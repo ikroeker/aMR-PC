@@ -111,7 +111,7 @@ def cmpGrw(H,k=-1):
     assert k<n
     alpha,beta=cmpAlphaBeta(H,k)
     J=JacobiMx(alpha,beta)
-    print(J)
+    #print(J)
     tau, V=np.linalg.eig(J)
     roots=tau
     weights=beta[0]* (V[0,:]**2)
@@ -133,7 +133,7 @@ def genGW(moments,roots):
             M[i,j]=roots[j]**i
     return np.linalg.solve(M,rs)
     
-def cmpNormCf(cf,roots,weights):
+def cmpNormCf(cfs,roots,weights):
     """computes the norming factor of the polynomial w.r.t. Gauss quadrature"""
     r=roots.shape[0]
     w=weights.shape[0]
@@ -144,3 +144,19 @@ def cmpNormCf(cf,roots,weights):
     for i in range(r):
         nc+=(p(roots[i])**2)*weights[i]
     return math.sqrt(nc)
+
+def uniHank(n,a=0,b=1):
+    """Generates Hankel Matrix H_n for U(a,b), uses m_n=1/n+1 sum_k=0^n a^k b^(n-k)"""
+    H=np.zeros([n,n])
+    lva=a*np.ones(2*n+1)
+    lvb=b*np.ones(2*n+1)
+    for i in range(2*n+1):
+        lva[i]=lva[i]**i
+        lvb[i]=lvb[i]**(2*n-i)
+    for k in range(n):
+        for l in range(n):
+            m=k+l
+            va=lva[0:m+1]
+            vb=lvb[2*n-m:]
+            H[k,l]=np.dot(va,vb)/(m+1)
+    return H
