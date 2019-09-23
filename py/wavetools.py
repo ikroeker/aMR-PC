@@ -9,10 +9,11 @@ class wavetools:
         self.n=2*self.P+1
         self.lb=lb
         self.rb=rb
+        self.len=rb-lb
         # roots and weights on [-1,1]
         roots, weights=np.polynomial.legendre.leggauss(self.n)
         # transform roots and weights to [lb, rb]
-        self.half=(self.rb-self.lb)/2
+        self.half=self.len/2
         self.roots=self.half*(roots+1)
         self.weights=self.half*weights
         self.p=np.zeros([self.P,self.n])
@@ -26,6 +27,7 @@ class wavetools:
         #s=np.ones(self.n)
         #s[b]=-1*s[b]        
         self.fs=lambda x: -1*(x<self.half)+ 1*(x>=self.half)
+        self.vfs=np.vectorize(self.fs)
         s=self.fs(self.roots)
         #s=np.sign(self.roots-self.half)        
         for i in range(self.P):
@@ -66,8 +68,8 @@ class wavetools:
         self.stepTwo()
         self.stepThree()
         
-    def fr(self,i,x):
-        """ r_i(x) evaluated on an arbitrariy point x """
+    def sfr(self,i,x):
+        """ r_i(x) evaluated on an arbitrariy point x (scalar version) """
         pws=np.arange(self.P)
         ps=x**pws
         qs=self.fs(x)*ps+self.alpha.T @ ps
@@ -76,12 +78,34 @@ class wavetools:
         for j in range(self.P-2,i-1,-1):
             rs[j]=qs[j]+self.beta[j,j+1:self.P] @ rs[j+1:self.P]
         return rs[i]
-        
-    def fpsi(self,j,x):
+    
+    def fr(self,i,x):
+        """ r_i(x) evaluated on an arbitrariy point x (scalar and vector) """
+        if type(x) is float or type(x) is int:
+            return self.sfr(i,x)
+        else:
+            xl=len(x)
+            y=np.zeros(xl)
+            for j in range(xl):
+                y[j]=self.sfr(i,x[j])
+            return y
+
+    def fpsi(self,i,x):
         """ function psi_j(x) evaluated on an arbitraty point x """
         return self.fr(i,x)/self.psncf[i]
     
-                                  
+    def rescX(self,x,Nr,Nri):
+        """ transforms x\in[lb_i,rb_i] to y in [lb,rb] """
+        scf=self.len * 2**(-Nr)
+        lbi=self.lb+ Nri * scf
+        rbi=self.lb+(Nri+1) *scf
+        y=lb+(x-lbi)/scf
+        return y
+
+    def rescCf(self,Nr):
+        """ resc. coefficients for multi-wavelets """
+        return 2**(Nr/2)
+    
 if __name__=="__main__":
     wv=wavetools(3)
     #wv.stepOne()
@@ -95,4 +119,5 @@ if __name__=="__main__":
     x=.7
     print(wv.fr(i,x))
     print(wv.fpsi(i,x))
-    print("done!")
+    print(wv.rescCf(1))
+    print("well done!")
