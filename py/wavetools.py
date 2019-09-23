@@ -93,18 +93,52 @@ class wavetools:
     def fpsi(self,i,x):
         """ function psi_j(x) evaluated on an arbitraty point x """
         return self.fr(i,x)/self.psncf[i]
-    
+
+    def bdChk(self,x,Nr,Nri):
+        """ Boundary check, returns true if x in [lb_i,rb_i] """
+        scf=self.len * 2**(-Nr)
+        lbi=self.lb+ Nri * scf
+        rbi=self.lb+(Nri+1) *scf
+        if type(x)==float or type(x)==int:
+            if x >= lbi and x<=rbi:
+                return True
+            else:
+                return False
+        else:
+            xl=len(x)
+            b=np.zeros(xl,dtype=bool)
+            b[x>=lbi]=True
+            b[x>rbi]=False
+            #print(x[b])
+            return b
+        
     def rescX(self,x,Nr,Nri):
         """ transforms x\in[lb_i,rb_i] to y in [lb,rb] """
         scf=self.len * 2**(-Nr)
         lbi=self.lb+ Nri * scf
         rbi=self.lb+(Nri+1) *scf
-        y=lb+(x-lbi)/scf
+        y=self.lb+(x-lbi)/scf
         return y
 
     def rescCf(self,Nr):
         """ resc. coefficients for multi-wavelets """
         return 2**(Nr/2)
+
+    def rfpsi(self,x,i,Nr,Nri):
+        """ rescaled multi-wavelets """
+        b=self.bdChk(x,Nr,Nri)
+        if type(x)==int or type(x)==float:
+            if b:
+                rx=self.rescX(x,Nr,Nri)
+                return self.rescCf(Nr) * self.fpsi(i,rx)
+            else:
+                return 0
+        else:
+            vx=self.rescX(x,Nr,Nri)
+            vy=np.zeros(len(x))
+            vy[b]=self.rescCf(Nr)*self.fpsi(i,vx[b])
+            return vy
+        
     
 if __name__=="__main__":
     wv=wavetools(3)
@@ -119,5 +153,5 @@ if __name__=="__main__":
     x=.7
     print(wv.fr(i,x))
     print(wv.fpsi(i,x))
-    print(wv.rescCf(1))
+    print(wv.rfpsi(x,1,1,1))
     print("well done!")
