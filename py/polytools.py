@@ -3,11 +3,12 @@ import math
 
 def moment(mm, data):
     """computes mm-th raw moment"""
+    #print(mm)
     return np.mean(data**mm)
     
 def Hankel(mmx,data):
     """generates Hankel matrix"""
-    H=np.zeros((mmx+1,mmx+1))
+    H=np.zeros([mmx+1,mmx+1])
     for i in range(mmx+1):
         for j in range(i,mmx+1):
             H[i,j]=moment(i+j,data)
@@ -27,7 +28,7 @@ def aPCcfs(H,k=-1,len=-1):
         cfs[0]=1
         return cfs
     assert k<l
-    rH=H[0:k+1,0:k+1]
+    rH=np.copy(H[0:k+1,0:k+1])
     rs=np.zeros(k+1)
     rs[-1]=1
     for j in range(k+1):
