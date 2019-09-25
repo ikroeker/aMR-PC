@@ -173,3 +173,48 @@ def cmpQuantDomain(data,qlb,qrb):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
     b=(data>=qlb) & (data<=qrb)
     return b
+
+def genPCmx(H,method=0,No=-1):
+    """ 
+    generates a mantrix with polynomial coefficients up to degree No 
+    H - Hankel Matrix, 
+    method: aPC method: 0 - Gautschi - style, 1- Sergey style
+    """
+    n=H.shape[0]
+    assert No<=n
+    if No<0:
+        No=n-1
+    cf=np.zeros([No,No])
+    for k in range(No):
+        if method==0:
+            cf[k,:]=PCcfs(H,k,No)
+        else:
+            cf[k,:]=aPCcfs(H,k,No)
+    return cf
+
+def genRW(H,method=0,No=-1):
+    """ generates roots and weights """
+    n=H.shape[0]
+    assert No<n
+    if No<0:
+        No=n-1
+    if method==0:
+        r,w=cmpGrw(H,No)
+    else:
+        pcf=aPCcfs(H,No)
+        p=np.poly1d(np.flip(pcf,0))
+        r=p.r
+        w=genGW(H[0,:],r)
+    return r,w
+
+def genNPCmx(cf,r,w,No=-1):
+    """ generates normed polynomial coefficients """
+    n=cf.shape[0]
+    assert No<=n
+    if No<0:
+        No=n
+    ncf=np.zeros([No,No])
+    for k in range(No):
+        nc=cmpNormCf(cf[k,:],r,w)
+        ncf[k,:]=cf[k,:]/nc
+    return ncf
