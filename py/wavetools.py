@@ -138,7 +138,17 @@ class wavetools:
             vy=np.zeros(len(x))
             vy[b]=self.rescCf(Nr)*self.fpsi(i,vx[b])
             return vy
-        
+
+    def cmpDetails(self,dataOnRoots,delta,No=-1):
+        """ computes MW coefficients for data on roots """
+        assert(No<=self.P)
+        if No>=0:
+            return dataOnRoots @ self.fpsi(No,self.roots)
+        else:
+            ret=np.zeros(self.P)
+            for i in range(self.P):
+                ret[i]= dataOnRoots @ self.fpsi(i,self.roots)
+            return ret
     
 if __name__=="__main__":
     wv=wavetools(3)
