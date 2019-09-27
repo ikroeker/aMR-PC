@@ -26,7 +26,8 @@ class wavetools:
         #b=self.roots<self.half
         #s=np.ones(self.n)
         #s[b]=-1*s[b]        
-        self.fs=lambda x: -1*(x<self.half)+ 1*(x>=self.half)
+        #self.fs=lambda x: -1*(x<self.half)+ 1*(x>=self.half)
+        self.fs=lambda x: np.sign(x-self.half)
         self.vfs=np.vectorize(self.fs)
         s=self.fs(self.roots)
         #s=np.sign(self.roots-self.half)        
@@ -43,6 +44,7 @@ class wavetools:
         for j in range(self.P):
             v=-(self.p * self.qt[j,:])@ self.weights
             self.alpha[:,j]=np.linalg.solve(rH,v)
+            print(v,self.alpha)
             self.q[j,:]=self.qt[j,:]+ self.alpha[:,j].T @ self.p  
 
     def stepTwo(self):
@@ -151,7 +153,8 @@ class wavetools:
         return ret
     
 if __name__=="__main__":
-    wv=wavetools(3)
+    p=1
+    wv=wavetools(p)
     #wv.stepOne()
     #print("a",wv.alpha)
     #print("p",wv.p)
@@ -163,5 +166,5 @@ if __name__=="__main__":
     x=.7
     print(wv.fr(i,x))
     print(wv.fpsi(i,x))
-    print(wv.rfpsi(x,1,1,1))
+    print(wv.rfpsi(x,0,1,1))
     print("well done!")
