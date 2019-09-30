@@ -6,16 +6,27 @@ class wavetools:
     """ generates wavelet functions according to Le Maitre et al """
     def __init__(self,deg,lb=0,rb=1):
         self.P=deg
-        self.n=2*self.P+1
+        self.n=2*self.P+2 # number of roots should be even
         self.lb=lb
         self.rb=rb
         self.len=rb-lb
+        self.half=self.len/2
+        #self.fs=lambda x: -1*(x<self.half)+ 1*(x>=self.half)
+        self.fs=lambda x: np.sign(x-self.half)
+        self.vfs=np.vectorize(self.fs)
+
+    def initQuad(self,qdeg):
+        """ initialilses quadrature, qdeg - quadrature degree should be even """
+        if qdeg >0:
+            self.n=qdeg
         # roots and weights on [-1,1]
         roots, weights=np.polynomial.legendre.leggauss(self.n)
         # transform roots and weights to [lb, rb]
-        self.half=self.len/2
         self.roots=self.half*(roots+1)
         self.weights=self.half*weights
+        
+    def initCfs(self):
+        """ initializes coefficient arrays """
         self.p=np.zeros([self.P,self.n])
         self.qt=np.zeros([self.P,self.n])
         self.q=np.zeros([self.P,self.n])
@@ -26,9 +37,6 @@ class wavetools:
         #b=self.roots<self.half
         #s=np.ones(self.n)
         #s[b]=-1*s[b]        
-        #self.fs=lambda x: -1*(x<self.half)+ 1*(x>=self.half)
-        self.fs=lambda x: np.sign(x-self.half)
-        self.vfs=np.vectorize(self.fs)
         s=self.fs(self.roots)
         #s=np.sign(self.roots-self.half)        
         for i in range(self.P):
@@ -44,7 +52,7 @@ class wavetools:
         for j in range(self.P):
             v=-(self.p * self.qt[j,:])@ self.weights
             self.alpha[:,j]=np.linalg.solve(rH,v)
-            print(v,self.alpha)
+            #print(v,self.alpha)
             self.q[j,:]=self.qt[j,:]+ self.alpha[:,j].T @ self.p  
 
     def stepTwo(self):
@@ -56,16 +64,24 @@ class wavetools:
                 #print("2.",self.r[l,:])
                 self.beta[j,l]=-((self.q[j,:]*self.r[l,:]) @ self.weights)/((self.r[l,:]**2) @ self.weights)
             self.r[j,:]=self.q[j,:]+self.beta[j,j+1:self.P] @ self.r[j+1:self.P,:]
+            #print(self.r)
                 
     def stepThree(self):
         """ Step 3, normalization """
         self.psncf=np.ones(self.P)
         for j in range(self.P):
             self.psncf[j]=math.sqrt((self.r[j,:]**2) @ self.weights)
+            #self.psncf[j]=(self.r[j,:]**2) @ self.weights
             self.psi[j,:]=self.r[j,:]/self.psncf[j]
+            #print(j,self.psncf[j],self.r[j,:],self.weights)
 
-    def genWVlets(self):
-        """ performs the three steps to generate the Multi-Wavelet basis """
+    def genWVlets(self,qdeg=-1):
+        """ 
+        performs the three steps to generate the Multi-Wavelet basis 
+        qdeg (quadrature degree) should be even, if seted
+        """
+        self.initQuad(qdeg)
+        self.initCfs()
         self.stepOne()
         self.stepTwo()
         self.stepThree()
@@ -154,6 +170,7 @@ class wavetools:
     
 if __name__=="__main__":
     p=1
+    print("p =",p)
     wv=wavetools(p)
     #wv.stepOne()
     #print("a",wv.alpha)
@@ -164,7 +181,9 @@ if __name__=="__main__":
     wv.genWVlets()
     i=0
     x=.7
-    print(wv.fr(i,x))
-    print(wv.fpsi(i,x))
-    print(wv.rfpsi(x,0,1,1))
+    print("i =",i,"  x =",x)
+    print("fr(%d,%f)=%f"%(i,x,wv.fr(i,x)))
+    print("fpsi(%d,%f)=%f"%(i,x,wv.fpsi(i,x)))
+    print("rfpsi(%f,%d,1,1)=%f"%(x,i,wv.rfpsi(x,i,1,1)))
+
     print("well done!")
