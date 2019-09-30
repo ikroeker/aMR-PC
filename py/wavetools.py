@@ -34,11 +34,7 @@ class wavetools:
         self.psi=np.zeros([self.P,self.n])
         self.alpha=np.zeros([self.P,self.P])
         self.beta=np.zeros([self.P,self.P])
-        #b=self.roots<self.half
-        #s=np.ones(self.n)
-        #s[b]=-1*s[b]        
         s=self.fs(self.roots)
-        #s=np.sign(self.roots-self.half)        
         for i in range(self.P):
             self.p[i,:]=self.roots**i
             self.qt[i,:]=s*self.p[i,:]
@@ -55,6 +51,20 @@ class wavetools:
             #print(v,self.alpha)
             self.q[j,:]=self.qt[j,:]+ self.alpha[:,j].T @ self.p  
 
+    def stepOneMS(self):
+        """ Step 1, inspired by Markus Schmidgall, p. 24, if a=0, b=1 """
+        rH=np.zeros([self.P,self.P])
+        v=np.zeros(self.P)
+        for i in range(self.P):
+            for j in range(self.P):
+                rH[i,j]=1/(i+j+1)
+        for j in range(self.P):
+            for i in range(self.P):
+                v[i]= (2**(1-(i+j)) -1)/(i+j+1)
+            self.alpha[:,j]=np.linalg.solve(rH,v)
+            self.q[j,:]=self.qt[j,:]+self.alpha[:,j].T @ self.p
+                    
+        
     def stepTwo(self):
         """ Step 2, acc. Le Maitre """
         self.r[self.P-1,:]=self.q[self.P-1,:]
@@ -82,7 +92,8 @@ class wavetools:
         """
         self.initQuad(qdeg)
         self.initCfs()
-        self.stepOne()
+        #self.stepOne()
+        self.stepOneMS()
         self.stepTwo()
         self.stepThree()
         
