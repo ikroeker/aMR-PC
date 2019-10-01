@@ -60,7 +60,7 @@ class wavetools:
                 rH[i,j]=1/(i+j+1)
         for j in range(self.P):
             for i in range(self.P):
-                v[i]= (2**(1-(i+j)) -1)/(i+j+1)
+                v[i]= (2**(-(i+j)) -1)/(i+j+1)
             self.alpha[:,j]=np.linalg.solve(rH,v)
             self.q[j,:]=self.qt[j,:]+self.alpha[:,j].T @ self.p
                     
@@ -85,15 +85,18 @@ class wavetools:
             self.psi[j,:]=self.r[j,:]/self.psncf[j]
             #print(j,self.psncf[j],self.r[j,:],self.weights)
 
-    def genWVlets(self,qdeg=-1):
+    def genWVlets(self,qdeg=-1,MS=False):
         """ 
         performs the three steps to generate the Multi-Wavelet basis 
         qdeg (quadrature degree) should be even, if seted
         """
         self.initQuad(qdeg)
         self.initCfs()
-        #self.stepOne()
-        self.stepOneMS()
+        if MS:
+            self.stepOneMS()
+        else:
+            self.stepOne()
+
         self.stepTwo()
         self.stepThree()
         
