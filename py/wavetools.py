@@ -4,9 +4,13 @@ import math
 
 class wavetools:
     """ generates wavelet functions according to Le Maitre et al """
-    def __init__(self,deg,lb=0,rb=1):
-        self.P=deg
-        self.n=2*(self.P+1) # number of roots should be even
+    def __init__(self,deg,qdeg=-1,decOn=True,lb=0,rb=1):
+        self.P=deg # polynomial degree
+        if qdeg>0:
+            self.n=qdeg # quadrature degreee / number of quad points
+        else:
+            self.n=2*(self.P+1) # number of roots should be even
+        self.decOn=decOn
         self.lb=lb
         self.rb=rb
         self.len=rb-lb
@@ -15,25 +19,26 @@ class wavetools:
         self.fs=lambda x: np.sign(x-self.half)
         self.vfs=np.vectorize(self.fs)
 
-    def initQuad(self,qdeg):
+    def initQuad(self,):
         """ 
         initialises quadrature, qdeg - quadrature degree should be even
-        uses two (roots,weights) tuples for lhs and rhs
+        uses two (roots,weights) tuples for lhs and rhs if decOn==True
         """
-        if qdeg >0:
-            self.n=qdeg
-        # roots and weights on [-1,1]
-        roots, weights=np.polynomial.legendre.leggauss(self.n//2)
-        # transform roots and weights to [lb, rb]
-        #self.roots=self.half*(roots+1)
-        #self.weights=self.half*weights
-        r=self.half*(roots+1)
-        w=self.half*weights
-        lr=self.rescY(r,1,0)
-        rr=self.rescY(r,1,1)
-        self.roots=np.concatenate((lr,rr))
-        wh=w/2
-        self.weights=np.concatenate((wh,wh))
+        if self.decOn:
+            # roots and weights on [-1,1]
+            roots, weights=np.polynomial.legendre.leggauss(self.n//2)
+            # transform roots and weights to [lb, rb]
+            r=self.half*(roots+1)
+            w=self.half*weights            
+            lr=self.rescY(r,1,0)
+            rr=self.rescY(r,1,1)
+            self.roots=np.concatenate((lr,rr))
+            wh=w/2
+            self.weights=np.concatenate((wh,wh))
+        else:
+            roots, weights=np.polynomial.legendre.leggauss(self.n)
+            self.roots=self.half*(roots+1)
+            self.weights=self.half*weights
         #print("r",r,lr,rr)
         #print(self.roots,self.weights)
         
@@ -95,14 +100,15 @@ class wavetools:
             self.psncf[j]=math.sqrt((self.r[j,:]**2) @ self.weights)
             #self.psncf[j]=(self.r[j,:]**2) @ self.weights
             self.psi[j,:]=self.r[j,:]/self.psncf[j]
-            #print(j,self.psncf[j],self.r[j,:],self.weights)
-
-    def genWVlets(self,qdeg=-1,MS=False):
+        
+    def genWVlets(self,MS=False):
         """ 
         performs the three steps to generate the Multi-Wavelet basis 
         qdeg (quadrature degree) should be even, if seted
+        MS - set MS style step one
+        decOn - switch the decoupling in two quadratures on
         """
-        self.initQuad(qdeg)
+        self.initQuad()
         self.initCfs()
         bchk= self.lb==0 and self.rb==1
         if MS and bchk:
@@ -195,23 +201,17 @@ class wavetools:
         """ computes MW coefficients for data on roots """
         assert(No<=self.P)
         if No>=0:
-            return dataOnRoots @ self.fpsi(No,self.roots)
+            return (dataOnRoots * self.fpsi(No,self.roots)) @ self.weights
         else:
             ret=np.zeros(self.P)
             for i in range(self.P):
-                ret[i]= dataOnRoots @ self.fpsi(i,self.roots)
+                ret[i]= (dataOnRoots * self.fpsi(i,self.roots)) @ self.weights
         return ret
     
 if __name__=="__main__":
     p=1
     print("p =",p)
     wv=wavetools(p)
-    #wv.stepOne()
-    #print("a",wv.alpha)
-    #print("p",wv.p)
-    #print("q",wv.q)
-    #wv.stepTwo()
-    #wv.stepThree()
     wv.genWVlets()
     i=0
     x=.7
