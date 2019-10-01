@@ -180,8 +180,9 @@ class wavetools:
     
     def rescCf(self,Nr):
         """ resc. coefficients for multi-wavelets """
-        return 2**(Nr/2)
-
+        #return 2**(Nr/2)
+        return 1
+    
     def rfpsi(self,x,i,Nr,Nri):
         """ rescaled multi-wavelets """
         b=self.bdChk(x,Nr,Nri)
