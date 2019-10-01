@@ -141,9 +141,7 @@ class wavetools:
 
     def bdChk(self,x,Nr,Nri):
         """ Boundary check, returns true if x in [lb_i,rb_i] """
-        scf=self.len * 2**(-Nr)
-        lbi=self.lb+ Nri * scf
-        rbi=self.lb+(Nri+1) *scf
+        lbi, rbi, scf=self.cmpLRBi(Nr,Nri)
         if type(x)==float or type(x)==int:
             if x >= lbi and x<=rbi:
                 return True
@@ -156,19 +154,21 @@ class wavetools:
             b[x>rbi]=False
             #print(x[b])
             return b
-        
+    def cmpLRBi(self,Nr,Nri):
+         scf=self.len / 2**Nr
+         lbi=self.lb+ Nri * scf
+         rbi=self.lb+(Nri+1) *scf
+         return lbi, rbi, scf
+     
     def rescX(self,x,Nr,Nri):
         """ transforms x\in[lb_i,rb_i] to y in [lb,rb] """
-        scf=self.len * 2**(-Nr)
-        lbi=self.lb+ Nri * scf
-        rbi=self.lb+(Nri+1) *scf
+        lbi, __, scf=self.cmpLRBi(Nr,Nri)
         y=self.lb+(x-lbi)/scf
         return y
     
     def rescY(self,y,Nr,Nri):
         """ transforms y in [lb,rb] to x in [lbi,rbi] """
-        scf=self.len / 2**(Nr)
-        lbi=self.lb+scf*Nri
+        lbi, __, scf=self.cmpLRBi(Nr,Nri)
         x=lbi+(y-self.lb)*scf
         return x
     
