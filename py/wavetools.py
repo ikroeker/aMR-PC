@@ -6,24 +6,36 @@ class wavetools:
     """ generates wavelet functions according to Le Maitre et al """
     def __init__(self,deg,lb=0,rb=1):
         self.P=deg
-        self.n=2*self.P+2 # number of roots should be even
+        self.n=2*(self.P+1) # number of roots should be even
         self.lb=lb
         self.rb=rb
         self.len=rb-lb
-        self.half=self.len/2
+        self.half=lb+self.len/2
         #self.fs=lambda x: -1*(x<self.half)+ 1*(x>=self.half)
         self.fs=lambda x: np.sign(x-self.half)
         self.vfs=np.vectorize(self.fs)
 
     def initQuad(self,qdeg):
-        """ initialilses quadrature, qdeg - quadrature degree should be even """
+        """ 
+        initialises quadrature, qdeg - quadrature degree should be even
+        uses two (roots,weights) tuples for lhs and rhs
+        """
         if qdeg >0:
             self.n=qdeg
         # roots and weights on [-1,1]
-        roots, weights=np.polynomial.legendre.leggauss(self.n)
+        roots, weights=np.polynomial.legendre.leggauss(self.n//2)
         # transform roots and weights to [lb, rb]
-        self.roots=self.half*(roots+1)
-        self.weights=self.half*weights
+        #self.roots=self.half*(roots+1)
+        #self.weights=self.half*weights
+        r=self.half*(roots+1)
+        w=self.half*weights
+        lr=self.rescY(r,1,0)
+        rr=self.rescY(r,1,1)
+        self.roots=np.concatenate((lr,rr))
+        wh=w/2
+        self.weights=np.concatenate((wh,wh))
+        #print("r",r,lr,rr)
+        #print(self.roots,self.weights)
         
     def initCfs(self):
         """ initializes coefficient arrays """
@@ -92,7 +104,8 @@ class wavetools:
         """
         self.initQuad(qdeg)
         self.initCfs()
-        if MS:
+        bchk= self.lb==0 and self.rb==1
+        if MS and bchk:
             self.stepOneMS()
         else:
             self.stepOne()
@@ -151,7 +164,14 @@ class wavetools:
         rbi=self.lb+(Nri+1) *scf
         y=self.lb+(x-lbi)/scf
         return y
-
+    
+    def rescY(self,y,Nr,Nri):
+        """ transforms y in [lb,rb] to x in [lbi,rbi] """
+        scf=self.len / 2**(Nr)
+        lbi=self.lb+scf*Nri
+        x=lbi+(y-self.lb)*scf
+        return x
+    
     def rescCf(self,Nr):
         """ resc. coefficients for multi-wavelets """
         return 2**(Nr/2)
