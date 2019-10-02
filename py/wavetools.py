@@ -13,8 +13,9 @@ class wavetools:
         self.decOn=decOn
         self.lb=lb
         self.rb=rb
-        self.len=rb-lb
-        self.half=lb+self.len/2
+        self.len=self.rb-self.lb
+        self.sqlen=math.sqrt(self.len)
+        self.half=0.5
         #self.fs=lambda x: -1*(x<self.half)+ 1*(x>=self.half)
         self.fs=lambda x: np.sign(x-self.half)
         self.vfs=np.vectorize(self.fs)
@@ -27,11 +28,13 @@ class wavetools:
         if self.decOn:
             # roots and weights on [-1,1]
             roots, weights=np.polynomial.legendre.leggauss(self.n//2)
-            # transform roots and weights to [lb, rb]
-            r=self.half*(roots+1)
+            # transform roots and weights to [0, 1]
+            #r=self.half*(roots+1)
             w=self.half*weights            
-            lr=self.rescY(r,1,0)
-            rr=self.rescY(r,1,1)
+            #lr=self.rescY(r,1,0)
+            #rr=self.rescY(r,1,1)
+            lr=(roots+1)/4
+            rr=(roots+1)/4 + self.half
             self.roots=np.concatenate((lr,rr))
             wh=w/2
             self.weights=np.concatenate((wh,wh))
@@ -110,8 +113,7 @@ class wavetools:
         """
         self.initQuad()
         self.initCfs()
-        bchk= self.lb==0 and self.rb==1
-        if MS and bchk:
+        if MS:
             self.stepOneMS()
         else:
             self.stepOne()
@@ -144,7 +146,19 @@ class wavetools:
     def fpsi(self,i,x):
         """ function psi_j(x) evaluated on an arbitraty point x """
         return self.fr(i,x)/self.psncf[i]
+    
+    def setNLRB(self,lb,rb):
+        self.lb=lb
+        self.rb=rb
+        self.len=rb-lb
+        self.sqlen=math.sqrt(self.len)
 
+    def cmpLRBi(self,Nr,Nri):
+         scf=self.len / 2**Nr
+         lbi=self.lb+ Nri * scf
+         rbi=self.lb+(Nri+1) *scf
+         return lbi, rbi, scf
+     
     def bdChk(self,x,Nr,Nri):
         """ Boundary check, returns true if x in [lb_i,rb_i] """
         lbi, rbi, scf=self.cmpLRBi(Nr,Nri)
@@ -160,28 +174,26 @@ class wavetools:
             b[x>rbi]=False
             #print(x[b])
             return b
-    def cmpLRBi(self,Nr,Nri):
-         scf=self.len / 2**Nr
-         lbi=self.lb+ Nri * scf
-         rbi=self.lb+(Nri+1) *scf
-         return lbi, rbi, scf
      
     def rescX(self,x,Nr,Nri):
-        """ transforms x\in[lb_i,rb_i] to y in [lb,rb] """
+        """ transforms x\in[lb_i,rb_i] to y in [0,1] """
         lbi, __, scf=self.cmpLRBi(Nr,Nri)
-        y=self.lb+(x-lbi)/scf
+        #y=self.lb+(x-lbi)/scf
+        y=(x-lbi)/scf
         return y
     
     def rescY(self,y,Nr,Nri):
-        """ transforms y in [lb,rb] to x in [lbi,rbi] """
+        """ transforms y in [0,1] to x in [lbi,rbi] """
         lbi, __, scf=self.cmpLRBi(Nr,Nri)
-        x=lbi+(y-self.lb)*scf
+        x=lbi+(y)*scf
         return x
     
     def rescCf(self,Nr):
         """ resc. coefficients for multi-wavelets """
-        #return 2**(Nr/2)
-        return 1
+        return  2**(Nr/2)/self.sqlen
+    def rqCf(self,Nr):
+        """ resc. coefficients for quadrature """
+        return self.len/(2**Nr)
     
     def rfpsi(self,x,i,Nr,Nri):
         """ rescaled multi-wavelets """
@@ -208,7 +220,13 @@ class wavetools:
             for i in range(self.P):
                 ret[i]= (dataOnRoots * self.fpsi(i,self.roots)) @ self.weights
         return ret
-    
+
+    def cmpRDetails(self,dataOnRoots,Nr,No=-1):
+        """ 
+        computes MW coefficients for data on roots rescalled for Nr
+        """
+        return self.rqCf(Nr)*self.cmpDetails(dataOnRoots,No)
+        
 if __name__=="__main__":
     p=1
     print("p =",p)
