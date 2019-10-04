@@ -8,15 +8,14 @@ def genMultiIdx(No,dim):
     uses graded lexicographic ordering (p. 156, Sullivan)
     """
     P=comb(No+dim,dim)
-    Alphas=np.zeros((P,dim))
-    tA=zeros(dim)
-    p=0
-    l=2
+    Alphas=np.zeros((int(P),dim))
+    tA=np.zeros(dim)
+    l=1
     pmax=(No+1)**dim
-    for p in range(pmax):
+    for p in range(1,pmax):
         rp=p
         for d in range(dim):
-            md=(No+1)**(dim-d)
+            md=(No+1)**(dim-d-1)
             val=rp//md
             tA[d]=val
             rp=rp-val*md
@@ -26,4 +25,8 @@ def genMultiIdx(No,dim):
     return Alphas
 
 if __name__=="__main__":
-    print("test mvtools.py")
+    print("test utils.py")
+    No=3
+    dim=2
+    Alphas=genMultiIdx(No,dim)
+    print(Alphas)
