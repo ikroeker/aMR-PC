@@ -27,10 +27,27 @@ def genMultiIdx(No,dim):
 
 # Data format for roots, weights and details: DictName(src,aNr,Nri)
 
+def genDictKey(Nr,aNr,Nri,src=-1):
+    """ 
+    generates dictionary key for 
+    Nr - max Nr, aNr - actually Nr, Nri , src
+    """
+    chkNr=aNr<=Nr
+    chkNri=Nri<2**aNr
+    assert(chkNr and chkNri)
+    if src==-1:
+        return (Nr,aNr,Nri)
+    else:
+        return (src,Nr,aNr,Nri)
+    
+def getDictEntry(Dict,Nr,aNr,Nri,src=-1):
+    """ return dictionary entry """
+    key=genDictKey(Nr,aNr,Nri,src)
+    return Dict[key]
+
 def storeDataDict(Dict,fname,dir="../data"):
     """ stores dictionary in {dir}/{fname}.p using pickle """
     file=dir +"/" + fname + '.p'
-    print(file)
     f=open(file,"wb")
     pickle.dump(Dict,f)
     f.close()
@@ -49,6 +66,10 @@ if __name__=="__main__":
     dim=2
     Alphas=genMultiIdx(No,dim)
     print(Alphas)
-    storeDataDict('D',"abc")
+    D={}
+    key=genDictKey(3,2,0)
+    D[key]=Alphas
+    storeDataDict(D,"abc")
     A=loadData("abc")
     print(A)
+
