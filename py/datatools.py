@@ -34,6 +34,23 @@ def genRootsWeights(Hdict,method):
         Weights[key]=w
     return Roots,Weights
 
+def genPCs(Hdict,method):
+    """
+    generated dictionaries with matrices of monic orthogonal
+    polynomials, method 0: Gautschi style, 1: Sergey Style.
+    """
+    Cfs={}
+    for key in Hdict:
+        Cfs[key]=pt.genPCmx(Hdict[key],method)
+    return Cfs
+
+def genNPCs(PCDict,Roots,Weights):
+    """ generates dictionary with coeficients of orthonormal polynomials """
+    nCfs={}
+    for key in PCDict:
+        nCfs[key]=pt.genNPCmx(PCDict[key],Roots[key],Weights[key])
+    return nCfs
+
 if  __name__=="__main__":
     # data location
     url='../data/InputParameters.txt'
