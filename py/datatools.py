@@ -11,10 +11,10 @@ def genHankel(dataframe,srcs,NrRange,No):
         data=dataframe[src]
         for aNr in NrRange:
             for Nri in range(2**aNr):
-                lb,rb=pt.cmpLRB(aNr,Nri)
+                lb,rb=cmpLRB(aNr,Nri)
                 qlb=data.quantile(lb)
                 qrb=data.quantile(rb)
-                bd=pt.cmpQuantDomain(data,qlb,qrb)
+                bd=cmpQuantDomain(data,qlb,qrb)
                 qdata=data[bd]
                 H=pt.Hankel(No,qdata)
                 key=u.genDictKey(Nr,aNr,Nri,src)
@@ -33,6 +33,18 @@ def genRootsWeights(Hdict,method):
         Roots[key]=r
         Weights[key]=w
     return Roots,Weights
+
+def cmpLRB(Nr,Nri):
+    """ computes left and right bounds for use in dataframe.quantile() """
+    cf=2**(Nr)
+    lb=Nri/cf
+    rb=(Nri+1)/cf
+    return lb, rb
+
+def cmpQuantDomain(data,qlb,qrb):
+    """ generates bool array with 1 for x in [qlb,qrb], 0 else """
+    b=(data>=qlb) & (data<=qrb)
+    return b
 
 def genPCs(Hdict,method):
     """

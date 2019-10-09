@@ -162,17 +162,6 @@ def uniHank(n,a=0,b=1):
             H[k,l]=np.dot(va,vb)/(m+1)
     return H
 
-def cmpLRB(Nr,Nri):
-    """ computes left and right bounds for use in dataframe.quantile() """
-    cf=2**(Nr)
-    lb=Nri/cf
-    rb=(Nri+1)/cf
-    return lb, rb
-
-def cmpQuantDomain(data,qlb,qrb):
-    """ generates bool array with 1 for x in [qlb,qrb], 0 else """
-    b=(data>=qlb) & (data<=qrb)
-    return b
 
 def genPCmx(H,method=0,No=-1):
     """ 
