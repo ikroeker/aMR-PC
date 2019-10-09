@@ -63,6 +63,38 @@ def genNPCs(PCDict,Roots,Weights):
         nCfs[key]=pt.genNPCmx(PCDict[key],Roots[key],Weights[key])
     return nCfs
 
+def GaussQuad(func,roots,weights):
+    """ Gauss quadrature with roots and weights """
+    assert(len(roots)==len(weights))
+    return func(roots)@weights
+
+def innerProd(f,g,roots,weights):
+    """ inner product <f,g,>, computed by Gauss quadrature """
+    return GaussQuad(lambda x: f(x)*g(x),roots,weights)
+
+def GaussSubQuad(f,roots,weights):
+    assert(len(roots)==len(weights))
+    return func(roots)*weights
+
+def GaussMultiQuad(FunTup,multiKey,Roots,Weights):
+    """ multi-dimensional Gauss quad on multiKey of 
+    f_0(x_0)*...*f_dim-1(x_dim-1), Func=(f_0,...,f_dim-1)
+    """
+    dim=len(multiKey)
+    rta=GaussSubQuad(FunTup[0],Roots[multiKey[0]],Weights[multiKey[0]])
+    for d in range(1,dim):
+        rta=rta*GaussQuad(FunTup[d],Roots[multiKey[d]],Weights[multiKey[d]])
+    return sum(rta)
+
+def innerProdMult(F,G,multikey,Roots,Weights):
+    """ <F,G> """
+    assert(len(F)==len(G))
+    dim=len(multiKey)
+    rta=GaussSubQuad(lambda x: F[0](x)*G[0](x),Roots[multiKey[0]],Weights[multikey[0]])
+    for d in range(1,dim):
+        rta=rta*innerProd(F[d],G[d],Roots[multiKey[d]],Weights[multiKey[d]])
+    return sum(rta)
+
 if  __name__=="__main__":
     # data location
     url='../data/InputParameters.txt'
