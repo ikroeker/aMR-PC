@@ -95,6 +95,8 @@ def innerProdMult(F,G,multikey,Roots,Weights):
         rta=rta*innerProd(F[d],G[d],Roots[multiKey[d]],Weights[multiKey[d]])
     return sum(rta)
 
+
+
 if  __name__=="__main__":
     # data location
     url='../data/InputParameters.txt'
