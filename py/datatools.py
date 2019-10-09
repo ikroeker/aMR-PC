@@ -76,26 +76,68 @@ def GaussSubQuad(f,roots,weights):
     assert(len(roots)==len(weights))
     return func(roots)*weights
 
-def GaussMultiQuad(FunTup,multiKey,Roots,Weights):
+def GaussQuadIdx(FunTup,multiKey,Roots,Weights):
     """ multi-dimensional Gauss quad on multiKey of 
     f_0(x_0)*...*f_dim-1(x_dim-1), Func=(f_0,...,f_dim-1)
     """
     dim=len(multiKey)
+    assert(dim==len(FunTup))
     rta=GaussSubQuad(FunTup[0],Roots[multiKey[0]],Weights[multiKey[0]])
     for d in range(1,dim):
         rta=rta*GaussQuad(FunTup[d],Roots[multiKey[d]],Weights[multiKey[d]])
     return sum(rta)
 
-def innerProdMult(F,G,multikey,Roots,Weights):
+def innerProdMultIdx(F,G,multikey,Roots,Weights):
     """ <F,G> """
-    assert(len(F)==len(G))
+    flen=len(F)
+    assert(flen==len(G))
     dim=len(multiKey)
+    assert(flen==dim)
     rta=GaussSubQuad(lambda x: F[0](x)*G[0](x),Roots[multiKey[0]],Weights[multikey[0]])
     for d in range(1,dim):
         rta=rta*innerProd(F[d],G[d],Roots[multiKey[d]],Weights[multiKey[d]])
     return sum(rta)
 
+def GaussQuadArr(FunTup,Roots,Weights):
+    dim=len(FunTup)
+    evals=Roots.shape[0]
+    Ba=dim==Roots.shape[1]
+    Bb=Roots.size==Weights.size
+    assert(a and b)
+    S=0
+    for l in range(evals):
+        tmp=1
+        for d in range(dim):
+            key=(l,d)
+            tmp=tmp*FunTup[d](Roots[key])*Weights[key]
+        S+tmp
+    return S
 
+def innerProdArr(F,G,Roots,Weights):
+    dim=len(F)
+    evals=Roots.shape[0]
+    a=dim==len(G)
+    b=Roots.size == Weights.size
+    c=dim==Roots.shape[1]
+    assert(a and b and c)
+    S=0
+    for l in range(evals):
+        tmp=1
+        for d in range(dim):
+            key=(l,d)
+            x=Roots[key]
+            tmp=tmp*F[d](x)*G[d](x)*Weights[key]
+        S+=tmp
+    return S
+
+def genRW4mkey(mKey,Roots,Weights):
+    """ generates roots and weights arrays from dict's Roots and Weights for multikey mkey """
+    dim=len(mKey)
+    for d in range(dim):
+        key=mKey[d]
+        r=Roots[key]
+        w=Weights[key]
+        
 
 if  __name__=="__main__":
     # data location
