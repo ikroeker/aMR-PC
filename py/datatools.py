@@ -180,6 +180,29 @@ def genRW4mkey(mKey,Roots,Weights):
         Ws[:,c]=w[I[:,c]]
     return Rs, Ws
 
+def writeEvalPoints(Points,fname,**kwargs):
+    """ 
+    writes evals points in asci file
+    additionals args: dir and template
+    """
+    if 'dir' in kwargs.keys():
+        dir=kwargs['dir']
+    else:
+        dir="../data"
+    if 'tmplt' in kwargs.keys():
+        template=kwargs['tmplt']
+    else:
+        template=' {: 8.7e}  {: 8.7e}  {: 8.7e}  {: 8.7e}\n'
+    file=dir+"/" + fname
+    lines,cols=Points.shape
+    f=open(file,'w')
+    for l in range(lines):
+        dataLine=Points[l]
+        #print(dataLine)
+        s=template.format(*dataLine)
+        f.write(s)
+    f.close()
+    
 if  __name__=="__main__":
     # data location
     url='../data/InputParameters.txt'
@@ -196,3 +219,6 @@ if  __name__=="__main__":
     # further with test004
     r,w=genRootsWeights(Hdict,method)
     print(r,w)
+    rpts=np.random.randn(100,4)
+    print(rpts.shape)
+    writeEvalPoints(rpts,'pts.txt')
