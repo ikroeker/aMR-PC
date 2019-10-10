@@ -86,7 +86,7 @@ def innerProd(f,g,roots,weights):
 
 def GaussSubQuad(f,roots,weights):
     assert(len(roots)==len(weights))
-    return func(roots)*weights
+    return f(roots)*weights
 
 def GaussQuadIdx(FunTup,multiKey,Roots,Weights):
     """ multi-dimensional Gauss quad on multiKey of 
@@ -99,13 +99,13 @@ def GaussQuadIdx(FunTup,multiKey,Roots,Weights):
         rta=rta*GaussQuad(FunTup[d],Roots[multiKey[d]],Weights[multiKey[d]])
     return sum(rta)
 
-def innerProdMultIdx(F,G,multikey,Roots,Weights):
-    """ <F,G> """
+def innerProdMultiIdx(F,G,multiKey,Roots,Weights):
+    """ <F,G>, F,G given by tuples """
     flen=len(F)
     assert(flen==len(G))
     dim=len(multiKey)
     assert(flen==dim)
-    rta=GaussSubQuad(lambda x: F[0](x)*G[0](x),Roots[multiKey[0]],Weights[multikey[0]])
+    rta=GaussSubQuad(lambda x: F[0](x)*G[0](x),Roots[multiKey[0]],Weights[multiKey[0]])
     for d in range(1,dim):
         rta=rta*innerProd(F[d],G[d],Roots[multiKey[d]],Weights[multiKey[d]])
     return sum(rta)
@@ -126,6 +126,7 @@ def GaussQuadArr(FunTup,Roots,Weights):
     return S
 
 def innerProdArr(F,G,Roots,Weights):
+    """ <F,G>, F,G are given by tuples """
     dim=len(F)
     evals=Roots.shape[0]
     a=dim==len(G)
@@ -141,6 +142,12 @@ def innerProdArr(F,G,Roots,Weights):
             tmp=tmp*F[d](x)*G[d](x)*Weights[key]
         S+=tmp
     return S
+
+def innerProdFct(F,G,Roots,Weights):
+    assert(Roots.shape == Weights.shape)
+    A= F(Roots)*G(Roots)*Weights
+    P=np.prod(A,axis=1)
+    return sum(P)
 
 def genRW4mkey(mKey,Roots,Weights):
     """ generates roots and weights arrays from dict's Roots and Weights for multikey mkey """

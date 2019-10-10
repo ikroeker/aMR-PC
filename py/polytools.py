@@ -212,9 +212,7 @@ def genNPCmx(cf,r,w,No=-1):
 
 def PCeval(Cfs,X):
     """ application of polyval with Cfs on X """
-    #C=np.flip(Cfs,0)
     C=Cfs.T
-    #C=Cfs
-    print(C)
+    #print(C)
     R=P.polyval(X,C,tensor=False)
     return R
