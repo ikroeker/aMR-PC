@@ -1,6 +1,6 @@
 import numpy as np
 import math
-
+from numpy.polynomial import polynomial as P
 def moment(mm, data):
     """computes mm-th raw moment"""
     #print(mm)
@@ -16,7 +16,9 @@ def Hankel(mmx,data):
     return H
 
 def aPCcfs(H,k=-1,len=-1):
-    """polynomial coefficients in increasing order, Sergey style"""
+    """ polynomial coefficients in increasing degree 
+    c_0 + c_1*x + c_2*x^2 + ... 
+    Sergey style """
     l=H.shape[0]
     assert l>=len
     if len==-1:
@@ -207,3 +209,12 @@ def genNPCmx(cf,r,w,No=-1):
         nc=cmpNormCf(cf[k,:],r,w)
         ncf[k,:]=cf[k,:]/nc
     return ncf
+
+def PCeval(Cfs,X):
+    """ application of polyval with Cfs on X """
+    #C=np.flip(Cfs,0)
+    C=Cfs.T
+    #C=Cfs
+    print(C)
+    R=P.polyval(X,C,tensor=False)
+    return R

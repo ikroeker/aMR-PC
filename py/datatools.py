@@ -63,6 +63,18 @@ def genNPCs(PCDict,Roots,Weights):
         nCfs[key]=pt.genNPCmx(PCDict[key],Roots[key],Weights[key])
     return nCfs
 
+def PCfs4eval(PCdict,mkey,alpha):
+    """ provides PC-Cfs for multi-polynomial with degrees in alpha """
+    mdeg=max(alpha)
+    alen=len(alpha)
+    assert(alen == len(mkey))
+    RCfs=np.zeros((alen,mdeg+1))
+    for d in range(alen):
+        ad=alpha[d]
+        Cfs=PCdict[mkey[d]]
+        RCfs[d,:]=Cfs[ad,0:mdeg+1]
+    return RCfs
+    
 def GaussQuad(func,roots,weights):
     """ Gauss quadrature with roots and weights """
     assert(len(roots)==len(weights))
@@ -148,7 +160,7 @@ def genRW4mkey(mKey,Roots,Weights):
         r=Roots[key]
         w=Weights[key]
         idx=I[:,c]
-        print(idx,r)
+        #print(idx,r)
         rs=r[idx]
         Rs[:,c]=rs
         Ws[:,c]=w[I[:,c]]

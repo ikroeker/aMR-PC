@@ -74,7 +74,7 @@ def genMultiKey(Nrs,aNrs,Nris,srcs):
 
 def getMultiEntry(Dict,Nrs,aNrs,Nris,srcs):
     """ returns dictionary entriy """
-    key=genMultiKes(Nrs,aNrs,Nris,srcs)
+    key=genMultiKey(Nrs,aNrs,Nris,srcs)
     return Dict[key]
 
 def storeDataDict(Dict,fname,dir="../data"):
