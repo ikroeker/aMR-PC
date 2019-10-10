@@ -25,6 +25,21 @@ def genMultiIdx(No,dim):
             l=l+1
     return Alphas
 
+def mIdx4quad(arLens):
+    nLens=np.array(arLens)
+    cols=len(arLens)
+    lines=nLens.prod()
+    I=np.zeros((lines,cols))
+    divs=np.zeros(cols)
+    for c in range(cols):
+        divs[c]=nLens[0:c].prod()
+    #print(divs)
+    for l in range(lines):
+        for c in range(cols):
+            v=(l//divs[c] % nLens[c])
+            I[l,c]=v
+    return I
+
 # Data format for roots, weights and details: DictName(Nr,aNr,Nri,src)
 ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
 

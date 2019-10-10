@@ -132,12 +132,24 @@ def innerProdArr(F,G,Roots,Weights):
 
 def genRW4mkey(mKey,Roots,Weights):
     """ generates roots and weights arrays from dict's Roots and Weights for multikey mkey """
-    dim=len(mKey)
-    for d in range(dim):
+    cols=len(mKey)
+    ls=[]
+    for d in range(cols):
+        key=mKey[d]
+        lk=len(Roots[key])
+        ls.append(lk)
+    lens=np.array(ls)
+    lines=lens.prod()
+    I=u.nIdx4quad(lens)
+    Rs=np.zeros([lines,cols])
+    Ws=np.zeros([lines,cols])
+    for c in range(cols):
         key=mKey[d]
         r=Roots[key]
         w=Weights[key]
-        
+        Rs[:,c]=r[I[:,c]]
+        Ws[:,c]=w[I[:,c]]
+    return Rs, Ws
 
 if  __name__=="__main__":
     # data location
