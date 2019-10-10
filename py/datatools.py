@@ -140,14 +140,17 @@ def genRW4mkey(mKey,Roots,Weights):
         ls.append(lk)
     lens=np.array(ls)
     lines=lens.prod()
-    I=u.nIdx4quad(lens)
-    Rs=np.zeros([lines,cols])
+    I=u.mIdx4quad(lens)
+    Rs=np.zeros((lines,cols))
     Ws=np.zeros([lines,cols])
     for c in range(cols):
-        key=mKey[d]
+        key=mKey[c]
         r=Roots[key]
         w=Weights[key]
-        Rs[:,c]=r[I[:,c]]
+        idx=I[:,c]
+        print(idx,r)
+        rs=r[idx]
+        Rs[:,c]=rs
         Ws[:,c]=w[I[:,c]]
     return Rs, Ws
 

@@ -9,7 +9,7 @@ def genMultiIdx(No,dim):
     uses graded lexicographic ordering (p. 156, Sullivan)
     """
     P=comb(No+dim,dim)
-    Alphas=np.zeros((int(P),dim))
+    Alphas=np.zeros((int(P),dim),dtype=int)
     tA=np.zeros(dim)
     l=1
     pmax=(No+1)**dim
@@ -29,7 +29,7 @@ def mIdx4quad(arLens):
     nLens=np.array(arLens)
     cols=len(arLens)
     lines=nLens.prod()
-    I=np.zeros((lines,cols))
+    I=np.zeros((lines,cols),dtype=int)
     divs=np.zeros(cols)
     for c in range(cols):
         divs[c]=nLens[0:c].prod()
