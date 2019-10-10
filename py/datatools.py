@@ -84,31 +84,32 @@ def innerProd(f,g,roots,weights):
     """ inner product <f,g,>, computed by Gauss quadrature """
     return GaussQuad(lambda x: f(x)*g(x),roots,weights)
 
-def GaussSubQuad(f,roots,weights):
-    assert(len(roots)==len(weights))
-    return f(roots)*weights
-
-def GaussQuadIdx(FunTup,multiKey,Roots,Weights):
+def GaussQuadIdx(F,multiKey,Roots,Weights):
     """ multi-dimensional Gauss quad on multiKey of 
     f_0(x_0)*...*f_dim-1(x_dim-1), Func=(f_0,...,f_dim-1)
     """
     dim=len(multiKey)
-    assert(dim==len(FunTup))
-    rta=GaussSubQuad(FunTup[0],Roots[multiKey[0]],Weights[multiKey[0]])
-    for d in range(1,dim):
-        rta=rta*GaussQuad(FunTup[d],Roots[multiKey[d]],Weights[multiKey[d]])
-    return sum(rta)
-
+    R,W=genRW4mkey(multiKey,Roots,Weights)
+    if type(F)==tuple:
+        assert(dim==len(FunTup))
+        return GaussQuadArr(F,R,W)
+    else:
+        return GaussQuadFtk(F,R,W)
+    
 def innerProdMultiIdx(F,G,multiKey,Roots,Weights):
-    """ <F,G>, F,G given by tuples """
-    flen=len(F)
-    assert(flen==len(G))
+    """ <F,G>, for for multi-index multiKey """
     dim=len(multiKey)
-    assert(flen==dim)
-    rta=GaussSubQuad(lambda x: F[0](x)*G[0](x),Roots[multiKey[0]],Weights[multiKey[0]])
-    for d in range(1,dim):
-        rta=rta*innerProd(F[d],G[d],Roots[multiKey[d]],Weights[multiKey[d]])
-    return sum(rta)
+    R,W=genRW4mkey(multiKey,Roots,Weights)
+    assert(type(F)==type(G))
+    tf=type(F)==tuple
+    tg=type(G)==tuple
+    if tf and tg:
+        flen=len(F)
+        assert(flen==len(G))
+        assert(flen==dim)
+        return innerProdArr(F,G,R,W)
+    else:
+        return innerProdFct(F,G,R,W)
 
 def GaussQuadArr(FunTup,Roots,Weights):
     dim=len(FunTup)
@@ -122,7 +123,7 @@ def GaussQuadArr(FunTup,Roots,Weights):
         for d in range(dim):
             key=(l,d)
             tmp=tmp*FunTup[d](Roots[key])*Weights[key]
-        S+tmp
+        S+=tmp
     return S
 
 def innerProdArr(F,G,Roots,Weights):
@@ -142,6 +143,12 @@ def innerProdArr(F,G,Roots,Weights):
             tmp=tmp*F[d](x)*G[d](x)*Weights[key]
         S+=tmp
     return S
+
+def GaussQuadFct(F,Roots,Weights):
+    assert(Roots.shape == Weights.shape)
+    A=F(Roots)*Weights
+    P=np.prod(A,axis=1)
+    return sum(P)
 
 def innerProdFct(F,G,Roots,Weights):
     assert(Roots.shape == Weights.shape)
