@@ -1,7 +1,7 @@
 import numpy as np
 #import math
 from scipy.special import comb
-import pickle
+
 
 def genMultiIdx(No,dim):
     """ 
@@ -77,20 +77,8 @@ def getMultiEntry(Dict,Nrs,aNrs,Nris,srcs):
     key=genMultiKey(Nrs,aNrs,Nris,srcs)
     return Dict[key]
 
-def storeDataDict(Dict,fname,dir="../data"):
-    """ stores dictionary in {dir}/{fname}.p using pickle """
-    file=dir +"/" + fname + '.p'
-    f=open(file,"wb")
-    pickle.dump(Dict,f)
-    f.close()
 
-def loadDataDict(fname,dir="../data"):
-    """ load picle stored data from {dir}/{fname}.p """
-    file=dir +"/" + fname + '.p'
-    f=open(file,"rb")
-    Dict=pickle.load(f)
-    f.close()
-    return Dict
+
 
 if __name__=="__main__":
     print("test utils.py")
@@ -101,7 +89,4 @@ if __name__=="__main__":
     D={}
     key=genDictKey(3,2,0)
     D[key]=Alphas
-    storeDataDict(D,"abc")
-    A=loadDataDict("abc")
-    print(A)
 
