@@ -25,6 +25,14 @@ def writeEvalPoints(Points,fname,**kwargs):
         f.write(s)
     f.close()
 
+def loadEvalPoints(fname,dir="../data"):
+    """
+    loads eval points from an ascii file
+    """
+    url=dir + "/" + fname
+    dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
+    return dataframe
+        
 def storeDataDict(Dict,fname,dir="../data"):
     """ stores dictionary in {dir}/{fname}.p using pickle """
     file=dir +"/" + fname + '.p'
@@ -45,3 +53,5 @@ if  __name__=="__main__":
   rpts=np.random.randn(100,4)
   print(rpts.shape)
   writeEvalPoints(rpts,'pts.txt')
+  data=loadEvalPoints('pts.txt')
+  print(data.describe())
