@@ -181,9 +181,35 @@ def genRW4mkey(mKey,Roots,Weights):
         Ws[:,c]=w[I[:,c]]
     return Rs, Ws
 
-def getRW4MRLevel(Nr,srcs,Roots,Weights):
+def getRW4Nrs(Nrs,srcs,Roots,Weights):
     """ generates eval. points and roots for an Nr level """
-    #for src in srcs:
+    dim=len(Nrs)
+    Nris=np.zeros(dim)
+    NriCnt=np.zeros(dim,dtype=int)
+    divs=np.zeros(dim)
+    R=np.array([])
+    W=np.array([])
+    for d in range(dim):
+        aNr=Nrs[d]
+        NriCnt[d]=2**aNr
+        divs[d]=np.prod(NriCnt[0:d])
+    tNriCnt=np.prod(NriCnt)
+    
+    for l in range(tNriCnt):
+        for d in range(dim):
+            v=(l//divs[d] % NriCnt[d])
+            Nris[d]=v
+        mkey=u.genMultiKey(Nrs,Nris,srcs)
+        r,w=genRW4mkey(mkey,Roots,Weights)
+        #r=np.reshape(r,(-1,dim))
+        if len(R)==0:
+            R=r
+            W=w
+        else:
+            #print(l,":",len(R))
+            R=np.concatenate([R,r],axis=0)
+            W=np.concatenate([W,w],axis=0)
+    return R,W
     
 def main():
     """ some tests """
@@ -203,5 +229,3 @@ def main():
     r,w=genRootsWeights(Hdict,method)
     print(r,w)
 
-if __name__=="__main__":
-    main()
