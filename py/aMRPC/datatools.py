@@ -5,7 +5,7 @@ from . import utils as u
 
 def genHankel(dataframe,srcs,NrRange,No):
     """ generates Hankel matrixes for each Nri, writes in Hdict """
-    Nr=max(NrRange)
+    #Nr=max(NrRange)
     Hdict={}
     for src in srcs:
         data=dataframe[src]
@@ -17,10 +17,11 @@ def genHankel(dataframe,srcs,NrRange,No):
                 bd=cmpQuantDomain(data,qlb,qrb)
                 qdata=data[bd]
                 H=pt.Hankel(No,qdata)
-                key=u.genDictKey(Nr,aNr,Nri,src)
+                key=u.genDictKey(aNr,Nri,src)
                 Hdict[key]=H
                 #print(H)
     return Hdict
+
 def genRootsWeights(Hdict,method):
     """ 
     generates dictionaries with roots and weights
@@ -180,9 +181,12 @@ def genRW4mkey(mKey,Roots,Weights):
         Ws[:,c]=w[I[:,c]]
     return Rs, Ws
 
-
+def getRW4MRLevel(Nr,srcs,Roots,Weights):
+    """ generates eval. points and roots for an Nr level """
+    #for src in srcs:
     
-if  __name__=="__main__":
+def main():
+    """ some tests """
     # data location
     url='../data/InputParameters.txt'
 
@@ -198,4 +202,6 @@ if  __name__=="__main__":
     # further with test004
     r,w=genRootsWeights(Hdict,method)
     print(r,w)
-  
+
+if __name__=="__main__":
+    main()

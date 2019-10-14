@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from numpy.polynomial import polynomial as P
+
 def moment(mm, data):
     """computes mm-th raw moment"""
     #print(mm)

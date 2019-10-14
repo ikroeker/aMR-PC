@@ -1,7 +1,6 @@
 import numpy as np
-#import math
 from scipy.special import comb
-
+#import math
 
 def genMultiIdx(No,dim):
     """ 
@@ -41,40 +40,41 @@ def mIdx4quad(arLens):
     return I
 
 # Data format for roots, weights and details: DictName(Nr,aNr,Nri,src)
-ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
+#ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
+ParPos={'Nr':0,'aNr':0,'Nri':1,'src':2}
 
-def genDictKey(Nr,aNr,Nri,src=-1):
+def genDictKey(aNr,Nri,src=-1):
     """ 
     generates dictionary key for 
-    Nr - max Nr, aNr - actually Nr, Nri , src
+    aNr - actually Nr, Nri , src
     according to ParPos
     """
-    chkNr=aNr<=Nr
+    #chkNr=aNr<=Nr
     chkNri=Nri<2**aNr
-    assert(chkNr and chkNri)
+    assert(chkNri)
     if src==-1:
-        return (Nr,aNr,Nri)
+        return (aNr,Nri)
     else:
-        return (Nr,aNr,Nri,src)
+        return (aNr,Nri,src)
     
-def getDictEntry(Dict,Nr,aNr,Nri,src=-1):
+def getDictEntry(Dict,aNr,Nri,src=-1):
     """ returns dictionary entry """
-    key=genDictKey(Nr,aNr,Nri,src)
+    key=genDictKey(aNr,Nri,src)
     return Dict[key]
 
-def genMultiKey(Nrs,aNrs,Nris,srcs):
+def genMultiKey(aNrs,Nris,srcs):
     """
     generates a tuple of tuples that will be used as a key
     """
     dims=len(srcs)
     keyList=[]
     for d in range(dims):
-        keyList.append(genDictKey(Nrs[d],aNrs[d],Nris[d],srcs[d]))
+        keyList.append(genDictKey(aNrs[d],Nris[d],srcs[d]))
     return tuple(keyList)
 
-def getMultiEntry(Dict,Nrs,aNrs,Nris,srcs):
+def getMultiEntry(Dict,aNrs,Nris,srcs):
     """ returns dictionary entriy """
-    key=genMultiKey(Nrs,aNrs,Nris,srcs)
+    key=genMultiKey(aNrs,Nris,srcs)
     return Dict[key]
 
 
