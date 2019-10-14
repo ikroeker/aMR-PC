@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-import polytools as pt
-import utils as u
+from . import polytools as pt
+from . import utils as u
 
 def genHankel(dataframe,srcs,NrRange,No):
     """ generates Hankel matrixes for each Nri, writes in Hdict """
