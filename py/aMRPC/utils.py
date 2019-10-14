@@ -77,9 +77,11 @@ def getMultiEntry(Dict,aNrs,Nris,srcs):
     key=genMultiKey(aNrs,Nris,srcs)
     return Dict[key]
 
-def chooseCols(A,ccols):
+def chooseCols(A,ccols,zeroCols=-1):
     """ picks the ccols columns from A """
     ret=A[:,ccols]
+    if zeroCols!=-1:
+        ret[:,zeroCols]=0
     return ret
 
 if __name__=="__main__":

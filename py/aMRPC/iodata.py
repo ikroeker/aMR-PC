@@ -48,10 +48,34 @@ def loadDataDict(fname,dir="../data"):
     f.close()
     return Dict
 
+def genFname(Fkt,**kwargs):
+    """ generates filename"""
+    Fpfx={
+        1: "roots",
+        2: "weights",
+        3: "Hdict",
+        4: "rootDict",
+        5: "weightsDict",
+        6: "PCdict",
+        7: "nPCdict"
+        }
+    chk= Fkt in Fpfx.keys()
+    assert(chk)
+    fname=Fpfx.get(Fkt)
+    if 'Nr' in kwargs.keys():
+        fname+='_Nr'+kwargs['Nr']
+        
+    if 'No' in kwargs.keys():
+        fname+='_No' +kwargs['No']
+                
+    return fname
     
+def main():
+    rpts=np.random.randn(100,4)
+    print(rpts.shape)
+    writeEvalPoints(rpts,'pts.txt')
+    data=loadEvalPoints('pts.txt')
+    print(data.describe())
+
 if  __name__=="__main__":
-  rpts=np.random.randn(100,4)
-  print(rpts.shape)
-  writeEvalPoints(rpts,'pts.txt')
-  data=loadEvalPoints('pts.txt')
-  print(data.describe())
+    main()
