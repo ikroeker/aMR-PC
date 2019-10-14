@@ -36,9 +36,15 @@ def loadEvalPoints(fname,dir="../data"):
 def storeDataDict(Dict,fname,dir="../data"):
     """ stores dictionary in {dir}/{fname}.p using pickle """
     file=dir +"/" + fname + '.p'
-    f=open(file,"wb")
-    pickle.dump(Dict,f)
-    f.close()
+    try:
+        f=open(file,"wb")
+        pickle.dump(Dict,f)
+        f.close()
+    except (IOError, ValueError):
+        print("An I/O error or a ValueError occurred")
+    except:
+        print("An unexpected error occurred")
+        raise
 
 def loadDataDict(fname,dir="../data"):
     """ load picle stored data from {dir}/{fname}.p """
