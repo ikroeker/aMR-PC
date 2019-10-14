@@ -1,8 +1,8 @@
 # load pandas
 import pandas as pd
-import polytools as pt
 import numpy as np
 import matplotlib.pyplot as plt
+import aMRPC.polytools as pt
 
 # data location
 url='../data/InputParameters.txt'
