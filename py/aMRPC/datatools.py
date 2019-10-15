@@ -183,7 +183,7 @@ def genRW4mkey(mKey,Roots,Weights):
     return Rs, Ws
 
 def getRW4Nrs(Nrs,srcs,Roots,Weights):
-    """ generates eval. points and roots for an Nr level """
+    """ generates eval. points and weights for an Nr level """
     dim=len(Nrs)
     Nris=np.zeros(dim)
     NriCnt=np.zeros(dim,dtype=int)
@@ -300,6 +300,31 @@ def getTopKeys(Kdict,srcs):
         if nkey in tKeys.keys():
             b=getTrueKids(tKeys,nkey)
     return tKeys
+
+def genMkeyArr(Kdict,srcs):
+    """ generates array of multi-keys from the dictionary Kdict """
+    kArr=[]
+    for keys in 
+    
+    # t.b.c.
+    
+    return kArr
+
+def getRW4kDict(Kdict,srcs,Roots,Weights):
+    """ generates eval. points and weights according to dictionary Kdict """
+    kArr=genMkeyArr
+    R=np.array([])
+    W=np.array([])
+    for mkey in kArr:
+        r,w=genRW4mkey(mkey,Roots,Weights)
+        if len(R)==0:
+            R=r
+            W=w
+        else:
+            #print(l,":",len(R))
+            R=np.concatenate([R,r],axis=0)
+            W=np.concatenate([W,w],axis=0)
+    return R,W
 
 def main():
     """ some tests """
