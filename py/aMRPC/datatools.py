@@ -261,6 +261,46 @@ def markDict4keep(Ddict,thres):
         Kdict[key]=b
     return Kdict
 
+def getTrueKids(Kdict,mkey):
+    """
+    checks leafs of the tree bottom ab, leaves only highest "True"-level on True
+    """
+    #kex= mkey in Kdict.keys()
+    ret=False
+    if Kdict[mkey]:
+        ret=True
+        Nri=mkey[u.ParPos['Nri']]
+        Nr=mkey[u.ParPos['Nr']]
+        src=mkey[u.ParPos['src']]
+        lNri=2*Nri
+        rNri=lNri+1
+        lkey=u.genDictKey(Nr+1,lNri,src)
+        rkey=u.genDictKey(Nr+1,rNri,src)
+        lex= lkey in Kdict.keys()
+        rex= rkey in Kdict.keys()
+        if lex and rex:
+            l= getTrueKids(Kdict,lkey)
+            r=getTrueKids(Kdict,rkey)
+            #print(Nr,src,l,r)
+            kids= l or r
+            if kids:
+                Kdict[mkey]=False
+                if not l:
+                    Kdict[lkey]=True
+                if not r:
+                    Kdict[rkey]=True
+                
+    return ret
+        
+def getTopKeys(Kdict,srcs):
+    """ returns set with top level (True) keys only (bottom up)"""
+    tKeys=Kdict.copy()
+    for src in srcs:
+        nkey=u.genDictKey(0,0,src)
+        if nkey in tKeys.keys():
+            b=getTrueKids(tKeys,nkey)
+    return tKeys
+
 def main():
     """ some tests """
     # data location
