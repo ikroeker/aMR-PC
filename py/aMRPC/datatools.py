@@ -253,6 +253,14 @@ def genDetailDict(Qdict,wvt,dicts=0):
     else:
         return DetDict, lDetDict
 
+def markDict4keep(Ddict,thres):
+    """ marks the details>= thres for keep """
+    Kdict={}
+    for key,data in Ddict.items():
+        b=data>=thres
+        Kdict[key]=b
+    return Kdict
+
 def main():
     """ some tests """
     # data location
