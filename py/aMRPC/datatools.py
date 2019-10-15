@@ -241,7 +241,7 @@ def genDetailDict(Qdict,wvt,dicts=0):
     l= dicts>=1
     for key, data in Qdict.items():
         Nr=key[u.ParPos['Nr']]
-        lDetails=wvt.cmpRDetails(data,Nr)
+        lDetails=wvt.cmpDetails(data)
         if l:
             lDetDict[key]=lDetails
         if s:
