@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from . import polytools as pt
 from . import utils as u
+from . import wavetools as wt
 
 def genHankel(dataframe,srcs,NrRange,No):
     """ generates Hankel matrixes for each Nri, writes in Hdict """
@@ -210,7 +211,48 @@ def getRW4Nrs(Nrs,srcs,Roots,Weights):
             R=np.concatenate([R,r],axis=0)
             W=np.concatenate([W,w],axis=0)
     return R,W
+
+def genQuantDict(dataframe,srcs,NrRange,wvt):
+    """ 
+    generates dictionary of quantiles on roots for each Nri and Nr in NrRange
+    accorting to roots stored in already initialized object of wavetools wt
+    using data in dataframe for columns in srcs
+    """
+    Qdict={}
     
+    for src in srcs:
+        data=dataframe[src]
+        for aNr in NrRange:
+            for Nri in range(2**aNr):
+                quants=wvt.cmpDataOnRoots(data,aNr,Nri)
+                key=u.genDictKey(aNr,Nri,src)
+                Qdict[key]=quants
+    return Qdict
+
+def genDetailDict(Qdict,wvt,dicts=0):
+    """ 
+    generates dictionary of Details on roots for each set of quantiles
+    stored in Qdict, using initalized wavetool wvt
+    dits=0: sum(abs(details)), 1: lDetails only, 2 both
+    """
+    DetDict={}
+    lDetDict={}
+    s= dicts==0 or dicts==2
+    l= dicts>=1
+    for key, data in Qdict.items():
+        Nr=key[u.ParPos['Nr']]
+        lDetails=wvt.cmpRDetails(data,Nr)
+        if l:
+            lDetDict[key]=lDetails
+        if s:
+            DetDict[key]=sum(abs(lDetails))
+    if dicts==0:
+        return DetDict
+    elif dicts==1:
+        return lDetDict
+    else:
+        return DetDict, lDetDict
+
 def main():
     """ some tests """
     # data location

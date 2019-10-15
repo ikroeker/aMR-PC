@@ -1,6 +1,6 @@
 import numpy as np
 import math
-#import polytools as pt
+import pandas as pd
 
 class wavetools:
     """ generates wavelet functions according to Le Maitre et al """
@@ -209,7 +209,8 @@ class wavetools:
             vy=np.zeros(len(x))
             vy[b]=self.rescCf(Nr)*self.fpsi(i,vx[b])
             return vy
-
+        
+                
     def cmpDetails(self,dataOnRoots,No=-1):
         """ computes MW coefficients for data on roots """
         assert(No<=self.P)
@@ -226,7 +227,18 @@ class wavetools:
         computes MW coefficients for data on roots rescalled for Nr
         """
         return self.rqCf(Nr)*self.cmpDetails(dataOnRoots,No)
-        
+
+    def cmpDataOnRoots(self,data,Nr,Nri):
+        """ 
+        computes quantiles of data for the Multi-Element Nri and resolution level NR
+        """
+        if Nr>0:
+            r=self.rescY(self.roots,Nr,Nri)
+        else:
+            r=np.copy(self.roots)
+        QuantileOnRoots=data.quantile(r)
+        return QuantileOnRoots
+    
 if __name__=="__main__":
     p=1
     print("p =",p)
