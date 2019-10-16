@@ -303,12 +303,21 @@ def getTopKeys(Kdict,srcs):
 
 def genMkeyArr(Kdict,srcs):
     """ generates array of multi-keys from the dictionary Kdict """
-    kArr=[]
-    for keys in 
-    
-    # t.b.c.
-    
-    return kArr
+    kArr=[[] for s in srcs]
+    srclen=len(srcs)
+    sidx=u.ParPos['src']
+    for key,chk in Kdict.items():
+        if chk:
+            idx=key[sidx]
+            kArr[idx].append(key)
+    print(kArr)
+    alen=[len(c) for c in kArr]
+    I=u.nIdx4quad(alen)
+    rkArr=[]
+    for c in range(srclen):
+        ci=[kArr[c][i] for i in I[:,c]]
+        rkArr.append(ci)
+    return rkArr
 
 def getRW4kDict(Kdict,srcs,Roots,Weights):
     """ generates eval. points and weights according to dictionary Kdict """
