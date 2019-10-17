@@ -301,28 +301,35 @@ def getTopKeys(Kdict,srcs):
             b=getTrueKids(tKeys,nkey)
     return tKeys
 
-def genMkeyArr(Kdict,srcs):
+def genMkeyArr(Kdict,isrcs):
     """ generates array of multi-keys from the dictionary Kdict """
-    kArr=[[] for s in srcs]
-    srclen=len(srcs)
+    kArr=[[] for s in isrcs]
+    srclen=len(isrcs)
     sidx=u.ParPos['src']
     for key,chk in Kdict.items():
         if chk:
             idx=key[sidx]
-            kArr[idx].append(key)
+            kArr[isrcs[idx]].append(key)
     print("Kdict:",Kdict)
     print("kArr:",kArr)
-    alen=[len(c) for c in kArr]
-    I=u.mIdx4quad(alen)
-    rkArr=[]
-    for c in range(srclen):
-        ci=[kArr[c][i] for i in I[:,c]]
-        rkArr.append(ci)
-    return rkArr
+    if srclen>1:
+        alen=[len(c) for c in kArr]
+        I=u.mIdx4quad(alen)
+        ilen=I.shape[0]    
+        mkArr=[ tuple([kArr[c][I[i,c]] for c in range(srclen)]) for i in range(ilen)]
+    else:
+        mkArr=kArr[0]
+        #mkArr=[ kArr[0][i] for i in I[:,0]]
+    print("mkArr:",mkArr)
+    return mkArr
 
 def getRW4kDict(Kdict,srcs,Roots,Weights):
     """ generates eval. points and weights according to dictionary Kdict """
-    kArr=genMkeyArr(Kdict,srcs)
+    isrc=u.invSrcArr(srcs)
+    print(isrc)
+    kArr=genMkeyArr(Kdict,isrc)
+    #print("mkArr:",kArr)
+    tcnt=len(kArr)
     R=np.array([])
     W=np.array([])
     for mkey in kArr:
@@ -332,7 +339,7 @@ def getRW4kDict(Kdict,srcs,Roots,Weights):
             R=r
             W=w
         else:
-            print(l,":",len(R))
+            print(mkey,":",len(R))
             R=np.concatenate([R,r],axis=0)
             W=np.concatenate([W,w],axis=0)
     return R,W

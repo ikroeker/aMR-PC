@@ -25,6 +25,7 @@ def genMultiIdx(No,dim):
     return Alphas
 
 def mIdx4quad(arLens):
+    """ generates indexes for eval. points etc. """
     nLens=np.array(arLens)
     cols=len(arLens)
     lines=nLens.prod()
@@ -83,6 +84,15 @@ def chooseCols(A,ccols,zeroCols=-1):
     if zeroCols!=-1:
         ret[:,zeroCols]=0
     return ret
+
+def invSrcArr(srcs):
+    """ generates dictionary with positions of srcs """
+    isrc={}
+    i=0
+    for s in srcs:
+       isrc[s] =i
+       i=i+1
+    return isrc
 
 if __name__=="__main__":
     print("test utils.py")
