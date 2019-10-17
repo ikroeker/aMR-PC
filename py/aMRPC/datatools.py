@@ -301,8 +301,10 @@ def getTopKeys(Kdict,srcs):
             b=getTrueKids(tKeys,nkey)
     return tKeys
 
-def genMkeyArr(Kdict,isrcs):
+def genMkeyArr(Kdict,srcs):
     """ generates array of multi-keys from the dictionary Kdict """
+    isrcs=u.invSrcArr(srcs)
+    print(isrcs)
     kArr=[[] for s in isrcs]
     srclen=len(isrcs)
     sidx=u.ParPos['src']
@@ -325,9 +327,7 @@ def genMkeyArr(Kdict,isrcs):
 
 def getRW4kDict(Kdict,srcs,Roots,Weights):
     """ generates eval. points and weights according to dictionary Kdict """
-    isrc=u.invSrcArr(srcs)
-    print(isrc)
-    kArr=genMkeyArr(Kdict,isrc)
+    kArr=genMkeyArr(Kdict,srcs)
     #print("mkArr:",kArr)
     tcnt=len(kArr)
     R=np.array([])
