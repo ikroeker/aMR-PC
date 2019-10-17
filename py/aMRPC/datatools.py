@@ -310,9 +310,10 @@ def genMkeyArr(Kdict,srcs):
         if chk:
             idx=key[sidx]
             kArr[idx].append(key)
-    print(kArr)
+    print("Kdict:",Kdict)
+    print("kArr:",kArr)
     alen=[len(c) for c in kArr]
-    I=u.nIdx4quad(alen)
+    I=u.mIdx4quad(alen)
     rkArr=[]
     for c in range(srclen):
         ci=[kArr[c][i] for i in I[:,c]]
@@ -321,16 +322,17 @@ def genMkeyArr(Kdict,srcs):
 
 def getRW4kDict(Kdict,srcs,Roots,Weights):
     """ generates eval. points and weights according to dictionary Kdict """
-    kArr=genMkeyArr
+    kArr=genMkeyArr(Kdict,srcs)
     R=np.array([])
     W=np.array([])
     for mkey in kArr:
+        print("mkey=",mkey)
         r,w=genRW4mkey(mkey,Roots,Weights)
         if len(R)==0:
             R=r
             W=w
         else:
-            #print(l,":",len(R))
+            print(l,":",len(R))
             R=np.concatenate([R,r],axis=0)
             W=np.concatenate([W,w],axis=0)
     return R,W
