@@ -257,25 +257,16 @@ def genDetailDict(Qdict,wvt,dicts=0):
 def markDict4keep(Ddict,thres):
     """ marks the details>= threshold for keep """
     Kdict={}
-    tcnt=0
     for key,data in Ddict.items():
         b=data>=thres
         Kdict[key]=b
-        if b:
-            tcnt+=1
-    if tcnt==0:
-        # workaround to prevent empty dictionary take the lowes level
-        for key in Ddict.keys():
-            if key[u.ParPos['Nr']]==0:
-                Kdict[key]=True
     return Kdict
 
 def getTrueKids(Kdict,key):
     """
-    checks leafs of the tree bottom ab, leaves only highest "True"-level on True
+    checks leafs of the tree bottom ab, leafs only highest "True"-level on True
     """
-    #kex= mkey in Kdict.keys()
-    ret=False
+    ret=0
     if Kdict[key]:
         ret=True
         Nri=key[u.ParPos['Nri']]
@@ -290,14 +281,15 @@ def getTrueKids(Kdict,key):
         if lex and rex:
             l= getTrueKids(Kdict,lkey)
             r=getTrueKids(Kdict,rkey)
-            #print(Nr,src,l,r)
             kids= l or r
             if kids:
                 Kdict[key]=False
                 if not l:
                     Kdict[lkey]=True
+                    ret=ret+1
                 if not r:
                     Kdict[rkey]=True
+                    ret=ret+1
     return ret
         
 def getTopKeys(Kdict,srcs):
@@ -306,13 +298,14 @@ def getTopKeys(Kdict,srcs):
     for src in srcs:
         nkey=u.genDictKey(0,0,src)
         if nkey in tKeys.keys():
-            b=getTrueKids(tKeys,nkey)
+            cnt=getTrueKids(tKeys,nkey)
+            if cnt==0:
+                tKeys[nkey]=True # set root node to True if no leafs are selected
     return tKeys
 
 def genMkeyArr(Kdict,srcs):
     """ generates array of multi-keys from the dictionary Kdict """
     isrcs=u.invSrcArr(srcs)
-    print(isrcs)
     kArr=[[] for s in isrcs]
     srclen=len(isrcs)
     sidx=u.ParPos['src']
@@ -320,32 +313,24 @@ def genMkeyArr(Kdict,srcs):
         if chk:
             idx=key[sidx]
             kArr[isrcs[idx]].append(key)
-    print("Kdict:",Kdict)
-    print("kArr:",kArr)
-    #if srclen>1:
     alen=[len(c) for c in kArr]
     I=u.mIdx4quad(alen)
     ilen=I.shape[0]    
     mkArr=[ tuple([kArr[c][I[i,c]] for c in range(srclen)]) for i in range(ilen)]
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
-    print("mkArr:",mkArr)
     return mkArr
 
-def getRW4kDict(Kdict,srcs,Roots,Weights):
-    """ generates eval. points and weights according to dictionary Kdict """
-    kArr=genMkeyArr(Kdict,srcs)
-    #print("mkArr:",kArr)
-    tcnt=len(kArr)
+def getRW4mKey(mkArr,Roots,Weights):
+    """ generates eval. points and weights for multi-keys in mkArr """
+    tcnt=len(mkArr)
     R=np.array([])
     W=np.array([])
-    for mkey in kArr:
-        print("mkey=",mkey)
+    for mkey in mkArr:
         r,w=genRW4mkey(mkey,Roots,Weights)
         if len(R)==0:
             R=r
             W=w
         else:
-            print(mkey,":",len(R))
             R=np.concatenate([R,r],axis=0)
             W=np.concatenate([W,w],axis=0)
     return R,W
