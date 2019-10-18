@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import pickle
 
+dataDir="../data"
 def writeEvalPoints(Points,fname,**kwargs):
     """ 
     writes evals points in asci file
@@ -25,7 +26,7 @@ def writeEvalPoints(Points,fname,**kwargs):
         f.write(s)
     f.close()
 
-def loadEvalPoints(fname,dir="../data"):
+def loadEvalPoints(fname,dir=dataDir):
     """
     loads eval points from an ascii file
     """
@@ -33,7 +34,7 @@ def loadEvalPoints(fname,dir="../data"):
     dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
     return dataframe
         
-def storeDataDict(Dict,fname,dir="../data"):
+def storeDataDict(Dict,fname,dir=dataDir):
     """ stores dictionary in {dir}/{fname}.p using pickle """
     file=dir +"/" + fname + '.p'
     try:
@@ -46,7 +47,7 @@ def storeDataDict(Dict,fname,dir="../data"):
         print("An unexpected error occurred")
         raise
 
-def loadDataDict(fname,dir="../data"):
+def loadDataDict(fname,dir=dataDir):
     """ load picle stored data from {dir}/{fname}.p """
     file=dir +"/" + fname + '.p'
     f=open(file,"rb")

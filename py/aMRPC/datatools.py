@@ -17,7 +17,7 @@ def genHankel(dataframe,srcs,NrRange,No):
                 qrb=data.quantile(rb)
                 bd=cmpQuantDomain(data,qlb,qrb)
                 qdata=data[bd]
-                H=pt.Hankel(No,qdata)
+                H=pt.Hankel(No+1,qdata)
                 key=u.genDictKey(aNr,Nri,src)
                 Hdict[key]=H
                 #print(H)
@@ -255,24 +255,32 @@ def genDetailDict(Qdict,wvt,dicts=0):
         return DetDict, lDetDict
 
 def markDict4keep(Ddict,thres):
-    """ marks the details>= thres for keep """
+    """ marks the details>= threshold for keep """
     Kdict={}
+    tcnt=0
     for key,data in Ddict.items():
         b=data>=thres
         Kdict[key]=b
+        if b:
+            tcnt+=1
+    if tcnt==0:
+        # workaround to prevent empty dictionary take the lowes level
+        for key in Ddict.keys():
+            if key[u.ParPos['Nr']]==0:
+                Kdict[key]=True
     return Kdict
 
-def getTrueKids(Kdict,mkey):
+def getTrueKids(Kdict,key):
     """
     checks leafs of the tree bottom ab, leaves only highest "True"-level on True
     """
     #kex= mkey in Kdict.keys()
     ret=False
-    if Kdict[mkey]:
+    if Kdict[key]:
         ret=True
-        Nri=mkey[u.ParPos['Nri']]
-        Nr=mkey[u.ParPos['Nr']]
-        src=mkey[u.ParPos['src']]
+        Nri=key[u.ParPos['Nri']]
+        Nr=key[u.ParPos['Nr']]
+        src=key[u.ParPos['src']]
         lNri=2*Nri
         rNri=lNri+1
         lkey=u.genDictKey(Nr+1,lNri,src)
@@ -285,12 +293,11 @@ def getTrueKids(Kdict,mkey):
             #print(Nr,src,l,r)
             kids= l or r
             if kids:
-                Kdict[mkey]=False
+                Kdict[key]=False
                 if not l:
                     Kdict[lkey]=True
                 if not r:
                     Kdict[rkey]=True
-                
     return ret
         
 def getTopKeys(Kdict,srcs):
