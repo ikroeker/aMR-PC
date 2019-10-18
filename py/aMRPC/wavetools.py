@@ -2,7 +2,7 @@ import numpy as np
 import math
 import pandas as pd
 
-class wavetools:
+class WaveTools:
     """ generates wavelet functions according to Le Maitre et al """
     def __init__(self,deg,qdeg=-1,decOn=True,lb=0,rb=1):
         self.P=deg # polynomial degree

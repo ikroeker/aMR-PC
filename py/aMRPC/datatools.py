@@ -164,6 +164,7 @@ def genRW4mkey(mKey,Roots,Weights):
     ls=[]
     for d in range(cols):
         key=mKey[d]
+        #print("k->r",key,Roots[key])
         lk=len(Roots[key])
         ls.append(lk)
     lens=np.array(ls)
@@ -314,14 +315,12 @@ def genMkeyArr(Kdict,srcs):
             kArr[isrcs[idx]].append(key)
     print("Kdict:",Kdict)
     print("kArr:",kArr)
-    if srclen>1:
-        alen=[len(c) for c in kArr]
-        I=u.mIdx4quad(alen)
-        ilen=I.shape[0]    
-        mkArr=[ tuple([kArr[c][I[i,c]] for c in range(srclen)]) for i in range(ilen)]
-    else:
-        mkArr=kArr[0]
-        #mkArr=[ kArr[0][i] for i in I[:,0]]
+    #if srclen>1:
+    alen=[len(c) for c in kArr]
+    I=u.mIdx4quad(alen)
+    ilen=I.shape[0]    
+    mkArr=[ tuple([kArr[c][I[i,c]] for c in range(srclen)]) for i in range(ilen)]
+    # required also for 1-dim case, to generate multikey -> tuple(tuple)
     print("mkArr:",mkArr)
     return mkArr
 
