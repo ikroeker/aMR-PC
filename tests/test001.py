@@ -1,12 +1,19 @@
-# load pandas
+# load standard libs
+import sys
 import pandas as pd
 import numpy as np
+# thd party
 import matplotlib.pyplot as plt
+# load local applications
+# add '../' to sys.path
+mypath=sys.path[0]+'/..'
+sys.path.append(mypath)
+print(sys.path)
 import aMRPC.polytools as pt
 
 # data location
-url='../data/InputParameters.txt'
-
+#url='../data/InputParameters.txt'
+url='./data/InputParameters.txt'
 # load data
 dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
 
