@@ -5,12 +5,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 # load local applications
 # add '../' to sys.path
-import addparent2path
+#import addparent2path
+import ppath
 import aMRPC.polytools as pt
 
 # data location
 #url='../data/InputParameters.txt'
-url='./data/InputParameters.txt'
+url=ppath.mypath+'/data/InputParameters.txt'
 # load data
 dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
 
