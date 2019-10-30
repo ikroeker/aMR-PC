@@ -11,7 +11,7 @@ import aMRPC.polytools as pt
 
 # data location
 #url='../data/InputParameters.txt'
-url=ppath.mypath+'/data/InputParameters.txt'
+url=ppath.mypath+'/tests/data/InputParameters.txt'
 # load data
 dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
 
