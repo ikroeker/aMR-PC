@@ -1,5 +1,6 @@
-import pandas as pd
+import os.path as op
 import numpy as np
+import pandas as pd
 import pickle
 
 dataDir="../data" # data directory
@@ -28,16 +29,23 @@ def writeEvalPoints(Points,fname,**kwargs):
         f.write(s)
     f.close()
 
-def loadEvalPoints(fname,dir=inDir):
+def loadEvalPoints(fname,dir=None):
     """
     loads eval points from an ascii file
     """
+    if dir is None:
+        dir=inDir
     url=dir + "/" + fname
-    dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
+    if op.exists(url):
+        dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
+    else:
+        print(url," does not exist!")
     return dataframe
         
-def storeDataDict(Dict,fname,dir=outDir):
+def storeDataDict(Dict,fname,dir=None):
     """ stores dictionary in {dir}/{fname}.p using pickle """
+    if dir is None:
+        dir=outDir
     file=dir +"/" + fname
     try:
         f=open(file,"wb")
@@ -49,8 +57,10 @@ def storeDataDict(Dict,fname,dir=outDir):
         print("An unexpected error occurred")
         raise
 
-def loadDataDict(fname,dir=inDir):
+def loadDataDict(fname,dir=None):
     """ load picle stored data from {dir}/{fname}.p """
+    if dir is None:
+        dir=outDir
     file=dir +"/" + fname
     f=open(file,"rb")
     Dict=pickle.load(f)
