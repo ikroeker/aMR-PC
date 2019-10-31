@@ -11,7 +11,7 @@ setuptools.setup(
     description="aMRPC python implementation",
     keywords="arbirtray multi-resolution polynomial chaos, multi-wavelet",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    #long_description_content_type="text/markdown",
     url="https://git.iws.uni-stuttgart.de/ikroeker/ik_amr-pc",
     packages=setuptools.find_packages(),
     classifiers=[
@@ -20,6 +20,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
+    requires=[
+        "numpy", "pandas", "pickle", "scipy", "math",
+        ],
     project_urls={
         'LS3':'https://www.iws.uni-stuttgart.de/ls3/',
         'IWS':'https://www.iws.uni-stuttgart.de'
