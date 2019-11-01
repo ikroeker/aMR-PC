@@ -242,7 +242,7 @@ class WaveTools:
 if __name__=="__main__":
     p=1
     print("p =",p)
-    wv=wavetools(p)
+    wv=WaveTools(p)
     wv.genWVlets()
     i=0
     x=.7
