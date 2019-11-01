@@ -1,5 +1,5 @@
 import numpy as np
-import context
+#import context
 import aMRPC.iodata as iod
 
 def test_txt():
