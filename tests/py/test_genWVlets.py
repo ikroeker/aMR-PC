@@ -12,6 +12,7 @@ def test_quad_one():
     tol=1e-8
     wv=genWV(P)
     i=1
+    j=i
     q=np.dot((wv.fpsi(i,wv.roots)* wv.fpsi(j,wv.roots)) , wv.weights)
     assert abs(q-1)<tol
     
