@@ -13,8 +13,10 @@ def test_quad_one():
     wv=genWV(P)
     i=1
     j=i
-    q=np.dot((wv.fpsi(i,wv.roots)* wv.fpsi(j,wv.roots)) , wv.weights)
-    assert abs(q-1)<tol
+    for i in range(P):
+        j=i
+        q=np.dot((wv.fpsi(i,wv.roots)* wv.fpsi(j,wv.roots)) , wv.weights)
+        assert abs(q-1)<tol
     
     
     
