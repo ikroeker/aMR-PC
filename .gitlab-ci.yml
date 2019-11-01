@@ -2,7 +2,7 @@ image: "python:3.7"
 
 before_script:
   - apt-get update -qy
-  - apt-get install -y python-dev python-pip python-pytest python-numpy
+  - apt-get install -y python-dev python-pip python-pytest python-numpy python-pandas python-scipy
   - python --version
   - pip install -r requirements.txt
 
