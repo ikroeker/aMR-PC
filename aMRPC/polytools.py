@@ -168,7 +168,7 @@ def uniHank(n,a=0,b=1):
 
 def genPCmx(H,method=0,No=-1):
     """ 
-    generates a mantrix with polynomial coefficients up to degree No 
+    generates a matrix with polynomial coefficients up to degree No 
     H - Hankel Matrix, 
     method: aPC method: 0 - Gautschi - style, 1- Sergey style
     """
