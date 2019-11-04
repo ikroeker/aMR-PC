@@ -33,7 +33,7 @@ def test_quad_zero_one():
                 assert abs(q)<tol
 
 def test_pols():
-    """ <x^i, \psi_j(x)>=0 test for [0,1]-multi-wavelets"""
+    """ <x^i, psi_j(x)>=0 test for [0,1]-multi-wavelets"""
     wv=genWV(P)
     x=wv.roots
     for i in range(P):
