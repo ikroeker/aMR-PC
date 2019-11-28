@@ -60,8 +60,13 @@ def test_innerProdFct():
                     qCfs=dt.PCfs4eval(nPCdict,mk,Alphas[q])
                     G=lambda x:pt.PCeval(qCfs,x)
                     q_pq=dt.innerProdFct(F,G,aR,aW)
+                    q_mk=dt.innerProdMultiIdx(F,G,mk,R,W)
                     if p!=q:
                         assert abs(q_pq)< tol
+                        assert abs(q_mk)< tol
                     else:
                         assert abs(1-q_pq)<tol
-                    
+                        assert abs(1-q_mk)<tol
+
+
+
