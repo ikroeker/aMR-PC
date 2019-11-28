@@ -66,6 +66,9 @@ def getDictEntry(Dict,aNr,Nri,src=-1):
 def genMultiKey(aNrs,Nris,srcs):
     """
     generates a tuple of tuples that will be used as a key
+    srcs - source numbers
+    aNrs - Nr- levels for each entree in srcs
+    Nris - Nr indices for each entree in src
     """
     dims=len(srcs)
     keyList=[]
