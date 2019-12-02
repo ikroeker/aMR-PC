@@ -158,12 +158,12 @@ def innerProdFct(F,G,Roots,Weights):
     P=np.prod(A,axis=1)
     return sum(P)
 
-def innerProdArrFct(Arr,F,Roots,Weights):
+def innerProdArrFct(Arr,F,Roots,Weights,srcs):
     """ inner product of data in Arr and F(Roots) weighted with Weigths"""
     assert(Roots.shape==Weights.shape)
-    A=A*F(Roots)*Weights
+    A=F(Roots[srcs])*Weights[srcs]
     P=np.prod(A,axis=1)
-    return sum(P)
+    return np.dot(Arr,P)
 
 def genRW4mkey(mKey,Roots,Weights):
     """ generates roots and weights arrays from dict's Roots and Weights for multikey mkey """
