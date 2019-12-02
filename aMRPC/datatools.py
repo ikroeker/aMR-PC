@@ -109,7 +109,7 @@ def innerProdMultiIdx(F,G,multiKey,Roots,Weights):
         flen=len(F)
         assert(flen==len(G))
         assert(flen==dim)
-        return innerProdArr(F,G,R,W)
+        return innerProdTuples(F,G,R,W)
     else:
         return innerProdFct(F,G,R,W)
 
@@ -128,7 +128,7 @@ def GaussQuadArr(FunTup,Roots,Weights):
         S+=tmp
     return S
 
-def innerProdArr(F,G,Roots,Weights):
+def innerProdTuples(F,G,Roots,Weights):
     """ <F,G>, F,G are given by tuples """
     dim=len(F)
     evals=Roots.shape[0]
@@ -155,6 +155,13 @@ def GaussQuadFct(F,Roots,Weights):
 def innerProdFct(F,G,Roots,Weights):
     assert(Roots.shape == Weights.shape)
     A= F(Roots)*G(Roots)*Weights
+    P=np.prod(A,axis=1)
+    return sum(P)
+
+def innerProdArrFct(Arr,F,Roots,Weights):
+    """ inner product of data in Arr and F(Roots) weighted with Weigths"""
+    assert(Roots.shape==Weights.shape)
+    A=A*F(Roots)*Weights
     P=np.prod(A,axis=1)
     return sum(P)
 

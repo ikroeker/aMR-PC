@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy.special import comb
 import context
 import aMRPC.iodata as iod
 import aMRPC.datatools as dt
@@ -9,11 +10,11 @@ import aMRPC.utils as u
 iod.inDir='./tests/data'
 iod.outDir=iod.inDir
 fname='InputParameters.txt'
-Nr=4
-No=3
+Nr=2
+No=2
 srcs=[0, 1, 2, 3]
 method=0
-tol=1e-5
+tol=1e-4
 
 NrRange=np.arange(Nr+1)
 dim=len(srcs)
@@ -47,16 +48,17 @@ def test_innerProdFct():
     PCdict=dt.genPCs(Hdict,method)
     nPCdict=dt.genNPCs(PCdict,R,W)
     Alphas=u.genMultiIdx(No,dim)
+    P=int(comb(No+dim,dim))
     for Nra in NrRange:
         aNrs=Nra*np.ones(dim)
         for Nri in range(2**Nra):
             Nris=Nri*np.ones(dim)
             mk=u.genMultiKey(aNrs,Nris,srcs)
             aR,aW=dt.genRW4mkey(mk,R,W)
-            for p in range(No+1):
+            for p in range(P):
                 pCfs=dt.PCfs4eval(nPCdict,mk,Alphas[p])
                 F=lambda x:pt.PCeval(pCfs,x)
-                for q in range(No+1):
+                for q in range(P):
                     qCfs=dt.PCfs4eval(nPCdict,mk,Alphas[q])
                     G=lambda x:pt.PCeval(qCfs,x)
                     q_pq=dt.innerProdFct(F,G,aR,aW)
