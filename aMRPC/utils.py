@@ -24,6 +24,24 @@ def genMultiIdx(No,dim):
             l=l+1
     return Alphas
 
+def genNriRange(Nrs):
+    """ generates an array with Nri-entries"""
+    dim=len(Nrs)
+    NriCnts=np.zeros(dim);
+    divs=np.zeros(dim)
+    NriCnt=1
+    for d in range(dim):
+        NriCnts[d]=2**(Nrs[d])
+        divs[d]=NriCnts[0:d].prod()
+    NriCnt=int(NriCnts.prod())        
+    Nris=np.zeros((NriCnt,dim),dtype=int)
+    for nri in range(NriCnt):
+        for d in range(dim):
+            v=(nri//divs[d] % NriCnts[d])
+            Nris[nri,d]=v
+    print(NriCnts,divs)
+    return Nris,NriCnt
+
 def mIdx4quad(arLens):
     """ generates indexes for eval. points etc. """
     nLens=np.array(arLens)

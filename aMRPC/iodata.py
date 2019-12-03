@@ -38,6 +38,7 @@ def loadEvalPoints(fname,dir=None):
     url=dir + "/" + fname
     if op.exists(url):
         dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
+        #dataframe=np.loadtxt(url)
     else:
         print(url," does not exist!")
     return dataframe
