@@ -39,7 +39,6 @@ def genNriRange(Nrs):
         for d in range(dim):
             v=(nri//divs[d] % NriCnts[d])
             Nris[nri,d]=v
-    print(NriCnts,divs)
     return Nris,NriCnt
 
 def mIdx4quad(arLens):

@@ -48,6 +48,20 @@ def cmpQuantDomain(data,qlb,qrb):
     b=(data>=qlb) & (data<=qrb)
     return b
 
+def cmpMVQuantDomain(Roots,Nrs,Nris,cols):
+    """ 
+    generates bool array with 1 for r inside of 
+    [a_0,b_0]x..x[a_d,b_d], 0 else
+    """
+    n=Roots.shape[0]
+    ndim=len(Nrs)
+    assert ndim == len(Nris)
+    B=np.ones(n,dtype=bool)
+    for d,c in enumerate(cols):
+        qlb,qrb=cmpLRB(Nrs[d],Nris[d])
+        B=B & cmpQuantDomain(Roots[c],qlb,qrb)
+    return B
+
 def genPCs(Hdict,method):
     """
     generated dictionaries with matrices of monic orthogonal
@@ -159,11 +173,12 @@ def innerProdFct(F,G,Roots,Weights):
     return sum(P)
 
 def innerProdArrFct(Arr,F,Roots,Weights,srcs):
-    """ inner product of data in Arr and F(Roots) weighted with Weigths"""
+    """ inner product of data in Arr and F(Roots) weighted with Weigths """
     assert(Roots.shape==Weights.shape)
     A=F(Roots[srcs])*Weights[srcs]
     P=np.prod(A,axis=1)
     return np.dot(Arr,P)
+     
 
 def genRW4mkey(mKey,Roots,Weights):
     """ generates roots and weights arrays from dict's Roots and Weights for multikey mkey """
