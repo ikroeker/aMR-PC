@@ -51,8 +51,9 @@ def test_innerProdFct():
     P=int(comb(No+dim,dim))
     for Nra in NrRange:
         aNrs=Nra*np.ones(dim)
-        for Nri in range(2**Nra):
-            Nris=Nri*np.ones(dim)
+        NriRange,Lines=u.genNriRange(aNrs)
+        for Nri in range(Lines):
+            Nris=NriRange[Nri,:]
             mk=u.genMultiKey(aNrs,Nris,srcs)
             aR,aW=dt.genRW4mkey(mk,R,W)
             for p in range(P):
