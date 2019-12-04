@@ -75,7 +75,8 @@ FilePfx={
         4: "rootDict",
         5: "weightsDict",
         6: "PCdict",
-        7: "nPCdict"
+        7: "nPCdict",
+        8: "NRBdict"
         }
 FileSfx={
         1: ".txt",
@@ -84,7 +85,8 @@ FileSfx={
         4: ".p",
         5: ".p",
         6: ".p",
-        7: ".p"
+        7: ".p",
+        8: ".p"
         }
 def genFname(Fkt,**kwargs):
     """ generates filename"""

@@ -23,6 +23,20 @@ def genHankel(dataframe,srcs,NrRange,No):
                 #print(H)
     return Hdict
 
+def genNrRangeBds(dataframe,srcs,NrRange):
+    """ generates dictionary with boundaries of MR-elements """
+    NRBdict={}
+    for src in srcs:
+        data=dataframe[src]
+        for aNr in NrRange:
+            for Nri in range(2**aNr):
+                lb,rb=cmpLRB(aNr,Nri)
+                qlb=data.quantile(lb)
+                qrb=data.quantile(rb)
+                key=u.genDictKey(aNr,Nri,src)
+                NRBdict[key]=(qlb,qrb)
+    return NRBdict
+
 def genRootsWeights(Hdict,method):
     """ 
     generates dictionaries with roots and weights
@@ -48,7 +62,7 @@ def cmpQuantDomain(data,qlb,qrb):
     b=(data>=qlb) & (data<=qrb)
     return b
 
-def cmpMVQuantDomain(Roots,Nrs,Nris,cols):
+def cmpMVQuantDomain(Roots,NRBdict,Nrs,Nris,cols):
     """ 
     generates bool array with 1 for r inside of 
     [a_0,b_0]x..x[a_d,b_d], 0 else
@@ -58,7 +72,8 @@ def cmpMVQuantDomain(Roots,Nrs,Nris,cols):
     assert ndim == len(Nris)
     B=np.ones(n,dtype=bool)
     for d,c in enumerate(cols):
-        qlb,qrb=cmpLRB(Nrs[d],Nris[d])
+        key=u.genDictKey(Nrs[d],Nris[d],c)
+        qlb,qrb=NRBdict[key]
         B=B & cmpQuantDomain(Roots[c],qlb,qrb)
     return B
 
