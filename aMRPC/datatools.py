@@ -358,19 +358,23 @@ def genMkeyArr(Kdict,srcs):
     return mkArr
 
 def getRW4mKey(mkArr,Roots,Weights):
-    """ generates eval. points and weights for multi-keys in mkArr """
+    """ generates eval. points and weights and nr->mkey dict for multi-keys in mkArr """
     tcnt=len(mkArr)
     R=np.array([])
     W=np.array([])
+    mkArrLong=[] #  multi-key in order of apperance
+    Points4mk=0
     for mkey in mkArr:
         r,w=genRW4mkey(mkey,Roots,Weights)
+        Points4mk=len(r)
+        mkArrLong=mkArrLong+[mkey for c in range(Points4mk)]
         if len(R)==0:
             R=r
             W=w
         else:
             R=np.concatenate([R,r],axis=0)
             W=np.concatenate([W,w],axis=0)
-    return R,W
+    return R,W,mkArrLong
 
 def main():
     """ some tests """

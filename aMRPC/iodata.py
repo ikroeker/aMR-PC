@@ -64,19 +64,26 @@ def loadDataDict(fname,dir=None):
         dir=outDir
     file=dir +"/" + fname
     f=open(file,"rb")
-    Dict=pickle.load(f)
-    f.close()
+    try:
+        Dict=pickle.load(f)
+        f.close()
+    except (IOError, ValueError):
+         print("An I/O error or a ValueError occurred")
+    except:
+        print("An unexpected error occurred")
+        raise
     return Dict
 
 FilePfx={
         1: "roots",
         2: "weights",
-        3: "Hdict",
+        3: "Hdict", # Hankel Matrices dictionary
         4: "rootDict",
         5: "weightsDict",
-        6: "PCdict",
-        7: "nPCdict",
-        8: "NRBdict"
+        6: "PCdict", # (monic) orthogonal polyonimial coeff. dict.
+        7: "nPCdict",# orthonormal pc. dict
+        8: "NRBdict", # dictionary of MR-elements bounds
+        9: "mKeys", # multi-keys in order of evaluation points
         }
 FileSfx={
         1: ".txt",
@@ -86,7 +93,8 @@ FileSfx={
         5: ".p",
         6: ".p",
         7: ".p",
-        8: ".p"
+        8: ".p",
+        9: ".p"
         }
 def genFname(Fkt,**kwargs):
     """ generates filename"""
