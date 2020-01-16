@@ -395,7 +395,19 @@ def sample2mKey(sample,mkArr,NRBdict,all=False):
                 return mk
     return mkList
     
-            
+def cmpRescCf(mKey):
+    """ 
+    computes rescaling cfs c=<phi^Nr_l,0,phi^0_0,0>. 
+    Is relevant for computing Exp. / Var. from coefficients only
+    """
+    dim=len(mKey)
+    NrPos=u.ParPos['aNr']
+    cf=1
+    for d in range(dim):
+        key=mKey[d]
+        cf/=2**(key[NrPos])
+    return cf
+    
 def main():
     """ some tests """
     # data location

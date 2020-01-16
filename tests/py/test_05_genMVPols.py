@@ -93,3 +93,14 @@ def test_sample2mkey():
         assert(len(mks)==1)
         assert(mk==mks[0])
     
+
+def test_cmpRescCf():
+    """ tests sum cfs =1 """
+    dataframe=load()
+    myNrRange=[Nr]
+    NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    mkArr=dt.genMkeyArr(NRBdict,srcs)
+    sum=0
+    for mk in mkArr:
+        sum+=dt.cmpRescCf(mk)
+    assert(abs(sum-1)<tol)
