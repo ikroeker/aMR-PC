@@ -89,5 +89,7 @@ def test_sample2mkey():
     for i in range(n):
         mk=mkArrLong[i]
         sample=tR[i,:]
-        assert(mk==dt.sample2mKey(sample,mkArr,NRBdict,True))
+        mks=dt.sample2mKey(sample,mkArr,NRBdict,True)
+        assert(len(mks)==1)
+        assert(mk==mks[0])
     
