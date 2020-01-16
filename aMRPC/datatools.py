@@ -358,7 +358,8 @@ def genMkeyArr(Kdict,srcs):
     return mkArr
 
 def getRW4mKey(mkArr,Roots,Weights):
-    """ generates eval. points and weights and nr->mkey dict for multi-keys in mkArr """
+    """ generates eval. points and weights  np.arrays and 
+    (point number)->mkey list   for multi-keys in mkArr list """
     tcnt=len(mkArr)
     R=np.array([])
     W=np.array([])
@@ -376,6 +377,25 @@ def getRW4mKey(mkArr,Roots,Weights):
             W=np.concatenate([W,w],axis=0)
     return R,W,mkArrLong
 
+def sample2mKey(sample,mkArr,NRBdict,all=False):
+    """ finds first, all multi-key in NR-Bounds dictrionary corresponding to the 
+    multi-element containing the sample
+    """
+    ndim=len(sample)
+    mkList=[]
+    for mk in mkArr:
+        chk=True
+        for d in range(ndim):
+            qlb,qrb=NRBdict[mk[d]]
+            chk=chk & cmpQuantDomain(sample[d],qlb,qrb)
+        if chk:
+            if all:
+                mkList+=[mk]
+            else:
+                return mk
+    return mkList
+    
+            
 def main():
     """ some tests """
     # data location

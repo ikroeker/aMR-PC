@@ -71,5 +71,23 @@ def test_innerProdFct():
                         assert abs(1-q_pq)<tol
                         assert abs(1-q_mk)<tol
 
-
-
+                        
+def test_sample2mkey():
+    """ tests the point to multi-key relationship """
+    dataframe=load()
+    myNrRange=[Nr]
+    # Generate Hankel matrices
+    Hdict=dt.genHankel(dataframe,srcs,NrRange,No)
+    # Roots and Weights
+    R,W=dt.genRootsWeights(Hdict,method)
+    # Generates dictionary of MR-elements bounds
+    NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    # get roots and weights for the output
+    mkArr=dt.genMkeyArr(NRBdict,srcs)
+    tR, tW, mkArrLong=dt.getRW4mKey(mkArr,R,W)
+    n=len(mkArrLong)
+    for i in range(n):
+        mk=mkArrLong[i]
+        sample=tR[i,:]
+        assert(mk==dt.sample2mKey(sample,mkArr,NRBdict))
+    
