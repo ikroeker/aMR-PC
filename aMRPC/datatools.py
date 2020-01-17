@@ -77,7 +77,7 @@ def cmpMVQuantDomain(Roots,NRBdict,Nrs,Nris,cols):
         B=B & cmpQuantDomain(Roots[c],qlb,qrb)
     return B
 
-def cmpMVQuantDomain(Roots,NRBdict,mkey):
+def cmpMVQuantDomainMK(Roots,NRBdict,mkey):
     """ 
     generates bool array with 1 for r inside of 
     [a_0,b_0]x..x[a_d,b_d], 0 else
