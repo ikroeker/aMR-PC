@@ -77,6 +77,20 @@ def cmpMVQuantDomain(Roots,NRBdict,Nrs,Nris,cols):
         B=B & cmpQuantDomain(Roots[c],qlb,qrb)
     return B
 
+def cmpMVQuantDomain(Roots,NRBdict,mkey):
+    """ 
+    generates bool array with 1 for r inside of 
+    [a_0,b_0]x..x[a_d,b_d], 0 else
+    for given multikey mkey
+    """
+    n=Roots.shape[0]
+    ndim=len(mkey)
+    B=np.ones(n,dtype=bool)
+    for key in mkey:
+        qlb,qrb=NRBdict[key]
+        B=B & cmpQuantDomain(Roots[c],qlb,qrb)
+    return B
+
 def genPCs(Hdict,method):
     """
     generated dictionaries with matrices of monic orthogonal
@@ -394,11 +408,23 @@ def sample2mKey(sample,mkArr,NRBdict,all=False):
             else:
                 return mk
     return mkList
-    
+
+def cmpRescCfL(aNRList):
+    """ 
+    computes rescaling cfs c=<phi^Nr_l,0,phi^0_0,0>. 
+    Is relevant for computing Exp. / Var. from coefficients only
+    for aNRlist [aNr_0,...,aNr_d]
+    """
+    cf=1
+    for aNr in aNRList:
+        cf/=2**(aNr)
+    return cf
+
 def cmpRescCf(mKey):
     """ 
     computes rescaling cfs c=<phi^Nr_l,0,phi^0_0,0>. 
     Is relevant for computing Exp. / Var. from coefficients only
+    for multi-key mKey
     """
     dim=len(mKey)
     NrPos=u.ParPos['aNr']

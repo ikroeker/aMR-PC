@@ -101,6 +101,8 @@ def test_cmpRescCf():
     NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
     mkArr=dt.genMkeyArr(NRBdict,srcs)
     sum=0
+    dim=len(srcs)
+    assert(abs(dt.cmpRescCf(mkArr[0])-dt.cmpRescCfL([Nr]*dim))<tol)
     for mk in mkArr:
         sum+=dt.cmpRescCf(mk)
     assert(abs(sum-1)<tol)
