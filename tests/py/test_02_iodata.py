@@ -24,3 +24,12 @@ def test_dict():
     iod.storeDataDict(Dict,fname)
     nDict=iod.loadDataDict(fname,dir)
     assert Dict['a']==nDict['a']
+
+def test_npArr():
+    dir = './tests/data'
+    iod.outDir = dir
+    fname =  "tst.npy"
+    Arr = np.array([1,2,3,4,42])
+    iod.storeNPArr(Arr,fname)
+    sArr=iod.loadNPArr(fname,dir)
+    assert( sum(abs(Arr-sArr)) == 0)

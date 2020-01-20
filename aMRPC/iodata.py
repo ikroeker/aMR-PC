@@ -74,28 +74,62 @@ def loadDataDict(fname,dir=None):
         raise
     return Dict
 
+def storeNPArr(npArray,fname,dir=None):
+    """ stores numpy.array npArray in {dir}/{fname} """
+    if dir is None:
+        dir = outDir
+    file = dir +"/" + fname
+    try:
+        np.save(file,npArray)
+    except (IOError, ValueError):
+        print("An I/O error or a ValueError occurred")
+    except:
+        print("An unexpected error occurred")
+        raise
+
+def loadNPArr(fname,dir=None):
+    """ loads numpy.array from {dir}/{fname} """
+    if dir is None:
+        dir=outDir
+    file=dir +"/" + fname
+    try:
+        npArray=np.load(file)
+    except (IOError, ValueError):
+         print("An I/O error or a ValueError occurred")
+    except:
+        print("An unexpected error occurred")
+        raise
+    return npArray
 FilePfx={
-        1: "roots",
-        2: "weights",
-        3: "Hdict", # Hankel Matrices dictionary
-        4: "rootDict",
-        5: "weightsDict",
-        6: "PCdict", # (monic) orthogonal polyonimial coeff. dict.
-        7: "nPCdict",# orthonormal pc. dict
-        8: "NRBdict", # dictionary of MR-elements bounds
-        9: "mKeys", # multi-keys in order of evaluation points
-        }
+    1: "roots",
+    2: "weights",
+    3: "Hdict", # Hankel Matrices dictionary
+    4: "rootDict",
+    5: "weightsDict",
+    6: "PCdict", # (monic) orthogonal polyonimial coeff. dict.
+    7: "nPCdict",# orthonormal pc. dict
+    8: "NRBdict", # dictionary of MR-elements bounds
+    9: "mKeys", # multi-keys in order of evaluation points
+    10: "sid2mk", # sample id / eval point nr -> multi-key
+    11: "mk2sid", # multi-key -> sample id
+    12: "rCfs", # rescalling coefs multi-key->cf
+    13: "polOnSid" # polyonimals evaluated on roots / samples (p,sid)
+}
 FileSfx={
-        1: ".txt",
-        2: ".txt",
-        3: ".p",
-        4: ".p",
-        5: ".p",
-        6: ".p",
-        7: ".p",
-        8: ".p",
-        9: ".p"
-        }
+    1: ".txt",
+    2: ".txt",
+    3: ".p",
+    4: ".p",
+    5: ".p",
+    6: ".p",
+    7: ".p",
+    8: ".p",
+    9: ".p",
+    10: ".p",
+    11: ".p",
+    12: ".p",
+    13: ".npy"
+}
 def genFname(Fkt,**kwargs):
     """ generates filename"""
     PfxChk= Fkt in FilePfx.keys()
