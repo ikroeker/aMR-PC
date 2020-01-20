@@ -83,26 +83,49 @@ def test_sample2mkey():
     # Generates dictionary of MR-elements bounds
     NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
     # get roots and weights for the output
-    mkArr=dt.genMkeyArr(NRBdict,srcs)
-    tR, tW, mkArrLong=dt.getRW4mKey(mkArr,R,W)
-    n=len(mkArrLong)
+    mkLst=dt.genMkeyList(NRBdict,srcs)
+    tR, tW, mkLstLong=dt.getRW4mKey(mkLst,R,W)
+    n=len(mkLstLong)
     for i in range(n):
-        mk=mkArrLong[i]
+        mk=mkLstLong[i]
         sample=tR[i,:]
-        mks=dt.sample2mKey(sample,mkArr,NRBdict,True)
+        mks=dt.sample2mKey(sample,mkLst,NRBdict,True)
         assert(len(mks)==1)
         assert(mk==mks[0])
     
 
+def test_MkeySidRel():
+    """ tests the point to multi-key relationship in dictionaries"""
+    dataframe=load()
+    myNrRange=[Nr]
+    # Generate Hankel matrices
+    Hdict=dt.genHankel(dataframe,srcs,NrRange,No)
+    # Roots and Weights
+    R,W=dt.genRootsWeights(Hdict,method)
+    # Generates dictionary of MR-elements bounds
+    NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    # get roots and weights for the output
+    mkLst=dt.genMkeyList(NRBdict,srcs)
+    tR, tW, mkLstLong=dt.getRW4mKey(mkLst,R,W)
+    sid2mk, mk2sid=dt.genMkeySidRel(tR,mkLst,NRBdict)
+    n=len(mkLstLong)
+    for sid in range(n):
+        mk=mkLstLong[sid]
+        assert(mk==sid2mk[sid])
+        assert(sid==mk2sid[mk])
+        
 def test_cmpRescCf():
     """ tests sum cfs =1 """
     dataframe=load()
     myNrRange=[Nr]
     NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
-    mkArr=dt.genMkeyArr(NRBdict,srcs)
+    mkLst=dt.genMkeyList(NRBdict,srcs)
     sum=0
     dim=len(srcs)
-    assert(abs(dt.cmpRescCf(mkArr[0])-dt.cmpRescCfL([Nr]*dim))<tol)
-    for mk in mkArr:
-        sum+=dt.cmpRescCf(mk)
+    assert(abs(dt.cmpRescCf(mkLst[0])-dt.cmpRescCfL([Nr]*dim))<tol)
+    rCdict=dt.genRCfDict(mkLst)
+    for mk in mkLst:
+        cf=dt.cmpRescCf(mk)
+        assert(cf == rCdict[mk])
+        sum+=cf
     assert(abs(sum-1)<tol)

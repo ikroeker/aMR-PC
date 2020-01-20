@@ -123,7 +123,7 @@ def PCfs4eval(PCdict,mkey,alpha):
 def GaussQuad(func,roots,weights):
     """ Gauss quadrature with roots and weights """
     assert(len(roots)==len(weights))
-    return func(roots)@weights
+    return np.inner(func(roots),weights)
 
 def innerProd(f,g,roots,weights):
     """ inner product <f,g,>, computed by Gauss quadrature """
@@ -206,7 +206,7 @@ def innerProdArrFct(Arr,F,Roots,Weights,srcs):
     assert(Roots.shape==Weights.shape)
     A=F(Roots[srcs])*Weights[srcs]
     P=np.prod(A,axis=1)
-    return np.dot(Arr,P)
+    return np.inner(Arr,P)
      
 
 def genRW4mkey(mKey,Roots,Weights):
@@ -354,60 +354,79 @@ def getTopKeys(Kdict,srcs):
                 tKeys[nkey]=True # set root node to True if no leafs are selected
     return tKeys
 
-def genMkeyArr(Kdict,srcs):
+def genMkeyList(Kdict,srcs):
     """ generates array of multi-keys from the dictionary Kdict """
     isrcs=u.invSrcArr(srcs)
-    kArr=[[] for s in isrcs]
+    kLst=[[] for s in isrcs]
     srclen=len(isrcs)
     sidx=u.ParPos['src']
     for key,chk in Kdict.items():
         if chk:
             idx=key[sidx]
-            kArr[isrcs[idx]].append(key)
-    alen=[len(c) for c in kArr]
+            kLst[isrcs[idx]].append(key)
+    alen=[len(c) for c in kLst]
     I=u.mIdx4quad(alen)
     ilen=I.shape[0]    
-    mkArr=[ tuple([kArr[c][I[i,c]] for c in range(srclen)]) for i in range(ilen)]
+    mkLst=[ tuple([kLst[c][I[i,c]] for c in range(srclen)]) for i in range(ilen)]
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
-    return mkArr
+    return mkLst
 
-def getRW4mKey(mkArr,Roots,Weights):
+def genMkeySidRel(samples,mkLst,NRBdict):
+    """
+    generates long sample->multi-key list
+    multi-key -> sample id dictionary
+    """
+    sample_cnt=samples.shape[0]
+    sid2mk={}
+    mk2sid={}
+    for sid in range(sample_cnt):
+        mks=sample2mKey(samples[sid],mkLst,NRBdict,True)
+        if len(mks)==1:
+            sid2mk[sid]=mks[0]
+        else:
+            sid2mk[sid]=mks
+        for mk in mks:
+            mk2sid[mk]=sid
+    return sid2mk, mk2sid
+    
+    
+def getRW4mKey(mkLst,Roots,Weights):
     """ generates eval. points and weights  np.arrays and 
     (point number)->mkey list   for multi-keys in mkArr list """
-    tcnt=len(mkArr)
+    tcnt=len(mkLst)
     R=np.array([])
     W=np.array([])
-    mkArrLong=[] #  multi-key in order of apperance
+    mkLstLong=[] #  multi-key in order of apperance
     Points4mk=0
-    for mkey in mkArr:
+    for mkey in mkLst:
         r,w=genRW4mkey(mkey,Roots,Weights)
         Points4mk=len(r)
-        mkArrLong=mkArrLong+[mkey for c in range(Points4mk)]
+        mkLstLong=mkLstLong+[mkey for c in range(Points4mk)]
         if len(R)==0:
             R=r
             W=w
         else:
             R=np.concatenate([R,r],axis=0)
             W=np.concatenate([W,w],axis=0)
-    return R,W,mkArrLong
+    return R,W,mkLstLong
 
-def sample2mKey(sample,mkArr,NRBdict,all=False):
+def sample2mKey(sample,mkLst,NRBdict,all=False):
     """ finds first, all multi-key in NR-Bounds dictrionary corresponding to the 
     multi-element containing the sample
     """
     ndim=len(sample)
-    mkList=[]
-    for mk in mkArr:
+    smkList=[]
+    for mk in mkLst:
         chk=True
         for d in range(ndim):
             qlb,qrb=NRBdict[mk[d]]
             chk=chk & cmpQuantDomain(sample[d],qlb,qrb)
         if chk:
             if all:
-                mkList+=[mk]
+                smkList+=[mk]
             else:
                 return mk
-    return mkList
+    return smkList
 
 def cmpRescCfL(aNRList):
     """ 
@@ -422,7 +441,7 @@ def cmpRescCfL(aNRList):
 
 def cmpRescCf(mKey):
     """ 
-    computes rescaling cfs c=<phi^Nr_l,0,phi^0_0,0>. 
+    computes rescaling coeficients c=<phi^Nr_l,0,phi^0_0,0>. 
     Is relevant for computing Exp. / Var. from coefficients only
     for multi-key mKey
     """
@@ -433,7 +452,16 @@ def cmpRescCf(mKey):
         key=mKey[d]
         cf/=2**(key[NrPos])
     return cf
-    
+def genRCfDict(mkList):
+    """
+    generates dictionary with rescaling coefficients for ech
+    multi-key in mkList [(mk),...]
+    """
+    rCfdict={}
+    for mKey in mkList:
+        rCfdict[mKey]=cmpRescCf(mKey)
+    return rCfdict
+
 def main():
     """ some tests """
     # data location
