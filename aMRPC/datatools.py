@@ -470,20 +470,17 @@ def genPolOnSamplesArr(samples,nPCdict,Alphas,mk2sid):
     nPCdict: pol. coeff. dictionary
     Alphas: matrix of multiindexes representing pol. degrees
     mk2sid: multi-key -> sample id's (sid lists should be disjoint)
-    ret[sample id]=[pol_0,...pol_P]
+    return: PolVals[sample id] = [pol_i:p_i(x_0),...p_i(x_end)]
     """
     n,m = samples.shape
     P = Alphas.shape[0]
     PolVals = np.zeros((P,n))
-    B = np.zeros(n,dtype=bool)
     for mk in mk2sid:
         sids = mk2sid[mk]
-        B[:] = False # reset mask
-        B[sids] = True # set mask
         for p in range(P):
             pCfs = PCfs4eval(nPCdict,mk,Alphas[p])
-            pvals = pt.PCeval(pCfs,samples[B])
-            PolVals[p,B] = np.prod(pvals,axis=1)
+            pvals = pt.PCeval(pCfs,samples[sids])
+            PolVals[p,sids] = np.prod(pvals,axis=1)
     return PolVals
             
     
