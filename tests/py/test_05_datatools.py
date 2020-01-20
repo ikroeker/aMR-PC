@@ -7,17 +7,17 @@ import aMRPC.datatools as dt
 import aMRPC.polytools as pt
 import aMRPC.utils as u
 
-iod.inDir='./tests/data'
-iod.outDir=iod.inDir
-fname='InputParameters.txt'
-Nr=2
-No=2
-srcs=[0, 1, 2, 3]
-method=0
-tol=1e-4
+iod.inDir = './tests/data'
+iod.outDir = iod.inDir
+fname = 'InputParameters.txt'
+Nr = 2
+No = 2
+srcs = [0, 1, 2, 3]
+method = 0
+tol = 1e-4
 
-NrRange=np.arange(Nr+1)
-dim=len(srcs)
+NrRange = np.arange(Nr+1)
+dim = len(srcs)
 
 def load():
     return iod.loadEvalPoints(fname)
@@ -25,9 +25,9 @@ def load():
 
 def test_load():
     """ test if data are correct loaded, dataset has 10k lines """
-    data=load()
-    n,m=data.shape
-    assert n==10000
+    data = load()
+    n,m = data.shape
+    assert n == 10000
 
 def test_MultiIdx():
     """ checks if each No multi-index is unique"""
@@ -115,7 +115,39 @@ def test_MkeySidRel():
         assert(mk==mkl[0])
         sids=mk2sid[mk]
         assert(sid in sids)
-        
+
+def testPolOnSamples():
+    """ tests genPolOnSamplesArr(...)"""
+    dataframe = load()
+    myNrRange = [Nr]
+    Hdict = dt.genHankel(dataframe,srcs,NrRange,No)
+    R,W = dt.genRootsWeights(Hdict,method)
+    PCdict = dt.genPCs(Hdict,method)
+    nPCdict = dt.genNPCs(PCdict,R,W)
+    Alphas = u.genMultiIdx(No,dim)
+    P = int(comb(No+dim,dim))
+    # Generates dictionary of MR-elements bounds
+    NRBdict = dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    # get roots and weights for the output
+    mkLst = dt.genMkeyList(NRBdict,srcs)
+    tR, tW, mkLstLong = dt.getRW4mKey(mkLst,R,W)
+    sid2mk, mk2sid = dt.genMkeySidRel(tR,mkLst,NRBdict)
+    polVals = dt.genPolOnSamplesArr(tR[:,srcs],nPCdict,Alphas,mk2sid)
+    Gws = np.prod(tW[:,srcs],axis=1)
+    n = tR.shape[0]
+    for mk in mk2sid:
+        sids = mk2sid[mk]
+        for p in range(P):
+            pV = polVals[p,sids]
+            for q in range(P):
+                qV = polVals[q,sids]
+                p_pq = np.inner(pV*qV,Gws[sids])
+                if p == q:
+                    assert(abs(1-p_pq)<tol)
+                else:
+                    assert(abs(p_pq)<tol)
+    
+    
 def test_cmpRescCf():
     """ tests sum cfs =1 """
     dataframe=load()

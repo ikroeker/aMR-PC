@@ -59,7 +59,7 @@ def cmpLRB(Nr,Nri):
 
 def cmpQuantDomain(data,qlb,qrb):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
-    b=(data>=qlb) & (data<=qrb)
+    b = (data>=qlb) & (data<=qrb)
     return b
 
 def cmpMVQuantDomain(Roots,NRBdict,Nrs,Nris,cols):
@@ -445,23 +445,48 @@ def cmpRescCf(mKey):
     Is relevant for computing Exp. / Var. from coefficients only
     for multi-key mKey
     """
-    dim=len(mKey)
-    NrPos=u.ParPos['aNr']
-    cf=1
+    dim = len(mKey)
+    NrPos = u.ParPos['aNr']
+    cf = 1
     for d in range(dim):
-        key=mKey[d]
+        key = mKey[d]
         cf/=2**(key[NrPos])
     return cf
+
 def genRCfDict(mkList):
     """
     generates dictionary with rescaling coefficients for ech
     multi-key in mkList [(mk),...]
     """
-    rCfdict={}
+    rCfdict = {}
     for mKey in mkList:
-        rCfdict[mKey]=cmpRescCf(mKey)
+        rCfdict[mKey] = cmpRescCf(mKey)
     return rCfdict
 
+def genPolOnSamplesArr(samples,nPCdict,Alphas,mk2sid):
+    """
+    generates np.array with pol. vals for each sample and pol. degree
+    samples : samples for evaluation (evtl. samples[srcs] )
+    nPCdict: pol. coeff. dictionary
+    Alphas: matrix of multiindexes representing pol. degrees
+    mk2sid: multi-key -> sample id's (sid lists should be disjoint)
+    ret[sample id]=[pol_0,...pol_P]
+    """
+    n,m = samples.shape
+    P = Alphas.shape[0]
+    PolVals = np.zeros((P,n))
+    B = np.zeros(n,dtype=bool)
+    for mk in mk2sid:
+        sids = mk2sid[mk]
+        B[:] = False # reset mask
+        B[sids] = True # set mask
+        for p in range(P):
+            pCfs = PCfs4eval(nPCdict,mk,Alphas[p])
+            pvals = pt.PCeval(pCfs,samples[B])
+            PolVals[p,B] = np.prod(pvals,axis=1)
+    return PolVals
+            
+    
 def main():
     """ some tests """
     # data location
