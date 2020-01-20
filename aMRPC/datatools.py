@@ -373,21 +373,21 @@ def genMkeyList(Kdict,srcs):
 
 def genMkeySidRel(samples,mkLst,NRBdict):
     """
-    generates long sample->multi-key list
-    multi-key -> sample id dictionary
+    generates long sample->[multi-key ]
+    multi-key -> np.array([sample id]) dictionaries
     """
     sample_cnt=samples.shape[0]
     sid2mk={}
-    mk2sid={}
+    mk2sids={}
     for sid in range(sample_cnt):
         mks=sample2mKey(samples[sid],mkLst,NRBdict,True)
-        if len(mks)==1:
-            sid2mk[sid]=mks[0]
-        else:
-            sid2mk[sid]=mks
+        sid2mk[sid]=mks
         for mk in mks:
-            mk2sid[mk]=sid
-    return sid2mk, mk2sid
+            if mk in mk2sids:
+                mk2sids[mk]=np.append(mk2sids[mk],sid)
+            else:
+                mk2sids[mk]=np.array([sid])
+    return sid2mk, mk2sids
     
     
 def getRW4mKey(mkLst,Roots,Weights):

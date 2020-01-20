@@ -111,8 +111,10 @@ def test_MkeySidRel():
     n=len(mkLstLong)
     for sid in range(n):
         mk=mkLstLong[sid]
-        assert(mk==sid2mk[sid])
-        assert(sid==mk2sid[mk])
+        mkl=sid2mk[sid]
+        assert(mk==mkl[0])
+        sids=mk2sid[mk]
+        assert(sid in sids)
         
 def test_cmpRescCf():
     """ tests sum cfs =1 """
