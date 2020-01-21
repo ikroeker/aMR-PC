@@ -93,6 +93,11 @@ def genMultiKey(aNrs,Nris,srcs):
         keyList.append(genDictKey(aNrs[d],Nris[d],srcs[d]))
     return tuple(keyList)
 
+def MultiKey2srcs(mk):
+    """ generates srcs list from multi-key """
+    sPos=ParPos['src']
+    return [c[sPos] for c in mk]
+
 def getMultiEntry(Dict,aNrs,Nris,srcs):
     """ returns dictionary entriy """
     key=genMultiKey(aNrs,Nris,srcs)

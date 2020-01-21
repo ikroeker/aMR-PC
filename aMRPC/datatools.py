@@ -478,11 +478,12 @@ def genPolOnSamplesArr(samples,nPCdict,Alphas,mk2sid):
     n,m = samples.shape
     P = Alphas.shape[0]
     PolVals = np.zeros((P,n))
+
     for mk in mk2sid:
         sids = mk2sid[mk]
         for p in range(P):
             pCfs = PCfs4eval(nPCdict,mk,Alphas[p])
-            pvals = pt.PCeval(pCfs,samples[sids])
+            pvals = pt.PCeval(pCfs,samples[sids,:])
             PolVals[p,sids] = np.prod(pvals,axis=1)
     return PolVals
             

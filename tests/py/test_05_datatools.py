@@ -13,6 +13,7 @@ fname = 'InputParameters.txt'
 Nr = 2
 No = 2
 srcs = [0, 1, 2, 3]
+srcs = [0, 2, 3]
 method = 0
 tol = 1e-4
 
@@ -132,8 +133,8 @@ def testPolOnSamples():
     mkLst = dt.genMkeyList(NRBdict,srcs)
     tR, tW, mkLstLong = dt.getRW4mKey(mkLst,R,W)
     sid2mk, mk2sid = dt.genMkeySidRel(tR,mkLst,NRBdict)
-    polVals = dt.genPolOnSamplesArr(tR[:,srcs],nPCdict,Alphas,mk2sid)
-    Gws = np.prod(tW[:,srcs],axis=1)
+    polVals = dt.genPolOnSamplesArr(tR,nPCdict,Alphas,mk2sid)
+    Gws = np.prod(tW,axis=1)
     n = tR.shape[0]
     for mk in mk2sid:
         sids = mk2sid[mk]

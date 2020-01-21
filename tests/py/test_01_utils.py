@@ -13,3 +13,16 @@ def test_midx():
     assert sum(fline)==0
     assert sum(lline)==No
     
+def test_multikes():
+    srcs = [0,1,3]
+    aNr = 2
+    dim = len(srcs)
+    aNrs = [aNr]*dim
+    NriMax = 2**(aNr*dim)
+    Nris,NriCnt = u.genNriRange(aNrs)
+    assert(NriMax == NriCnt)
+    for nri in Nris:
+        mk = u.genMultiKey(aNrs,nri,srcs)
+        nsrcs = u.MultiKey2srcs(mk)
+        for d in range(dim):
+            assert(srcs[d] == nsrcs[d])
