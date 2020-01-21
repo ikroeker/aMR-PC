@@ -374,22 +374,22 @@ def genMkeyList(Kdict,srcs):
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
     return mkLst
 
-def genMkeySidRel(samples,mkLst,NRBdict,all_mk=False):
+def genMkeySidRel(samples, mkLst, NRBdict, all_mk=False):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
     """
-    sample_cnt=samples.shape[0]
-    sid2mk={}
-    mk2sids={}
+    sample_cnt = samples.shape[0]
+    sid2mk = {}
+    mk2sids = {}
     for sid in range(sample_cnt):
-        mks=sample2mKey(samples[sid],mkLst,NRBdict,all_mk)
-        sid2mk[sid]=mks
+        mks = sample2mKey(samples[sid], mkLst, NRBdict, all_mk)
+        sid2mk[sid] = mks
         for mk in mks:
             if mk in mk2sids:
-                mk2sids[mk]=np.append(mk2sids[mk],sid)
+                mk2sids[mk] = np.append(mk2sids[mk], sid)
             else:
-                mk2sids[mk]=np.array([sid])
+                mk2sids[mk] = np.array([sid])
     return sid2mk, mk2sids
     
     
@@ -413,7 +413,7 @@ def getRW4mKey(mkLst,Roots,Weights):
             W=np.concatenate([W,w],axis=0)
     return R,W,mkLstLong
 
-def sample2mKey(sample,mkLst,NRBdict,all=False):
+def sample2mKey(sample, mkLst, NRBdict, all=False):
     """ finds first, all multi-key in NR-Bounds dictrionary corresponding to the 
     multi-element containing the sample
     """
