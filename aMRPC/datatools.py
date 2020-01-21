@@ -242,6 +242,8 @@ def getRW4Nrs(Nrs,srcs,Roots,Weights):
     divs=np.zeros(dim)
     R=np.array([])
     W=np.array([])
+    mkLstLong=[] #  multi-key in order of apperance
+    
     for d in range(dim):
         aNr=Nrs[d]
         NriCnt[d]=2**aNr
@@ -255,6 +257,7 @@ def getRW4Nrs(Nrs,srcs,Roots,Weights):
         mkey=u.genMultiKey(Nrs,Nris,srcs)
         r,w=genRW4mkey(mkey,Roots,Weights)
         #r=np.reshape(r,(-1,dim))
+        mkLstLong=mkLstLong+[mkey for c in range(len(r))]
         if len(R)==0:
             R=r
             W=w
@@ -262,7 +265,7 @@ def getRW4Nrs(Nrs,srcs,Roots,Weights):
             #print(l,":",len(R))
             R=np.concatenate([R,r],axis=0)
             W=np.concatenate([W,w],axis=0)
-    return R,W
+    return R,W,mkLstLong
 
 def genQuantDict(dataframe,srcs,NrRange,wvt):
     """ 

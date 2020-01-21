@@ -16,55 +16,56 @@ def Hankel(mmx,data):
             H[j,i]=H[i,j]
     return H
 
-def aPCcfs(H,k=-1,len=-1):
+def aPCcfs(H,k=-1,alen=-1):
     """ polynomial coefficients in increasing degree 
     c_0 + c_1*x + c_2*x^2 + ... 
     Sergey style """
-    l=H.shape[0]
-    assert l>=len
-    if len==-1:
-        len=l
-    cfs=np.zeros(len)
-    if k<0:
-        k=l-1
-    elif k==0:
-        cfs[0]=1
+    l = H.shape[0]
+    assert l>=alen
+    if alen == -1:
+        alen = l
+    cfs = np.zeros(alen)
+    if k < 0:
+        k = l-1
+    elif k == 0:
+        cfs[0] = 1
         return cfs
     assert k<l
-    rH=np.copy(H[0:k+1,0:k+1])
-    rs=np.zeros(k+1)
-    rs[-1]=1
+    rH = np.copy(H[0:k+1,0:k+1])
+    rs = np.zeros(k+1)
+    rs[-1] = 1
     for j in range(k+1):
-        rH[k,j]=0
-    rH[k,k]=1
-    cfs=np.linalg.solve(rH,rs)
-    cfs.resize(len)
+        rH[k,j] = 0
+    rH[k,k] = 1
+    cfs = np.linalg.solve(rH,rs)
+    cfs.resize(alen, refcheck=False) # np.ndarray.resize() -> not np.resize(a)
+    
     return cfs
  
-def PCcfs(H,k=-1,len=-1):
+def PCcfs(H,k=-1,alen=-1):
     """polynomial coefficientes in increasing order, Gautschi style via moment determinants (p. 53)"""
-    l=H.shape[0]
-    assert len<=l
-    if len==-1:
-        len=l
-    cfs=np.zeros(len)
+    l = H.shape[0]
+    assert alen <= l
+    if alen == -1:
+        alen=l
+    cfs = np.zeros(alen)
     if k<0:
-        k=l-1
-    elif k==0:
-        cfs[0]=1
+        k = l-1
+    elif k == 0:
+        cfs[0] = 1
         return cfs
     assert k<l
-    rH=H[0:k,0:k]
-    idx=np.ones(l,dtype=bool)
-    idx[k+1:l]=False
-    delta=np.linalg.det(rH)
+    rH = H[0:k,0:k]
+    idx = np.ones(l,dtype=bool)
+    idx[k+1:l] = False
+    delta = np.linalg.det(rH)
     for i in range(0,k):
-        idx[i]=False
-        Hk=H[0:k,idx]
-        dHk=np.linalg.det(Hk)
-        cfs[i]=(-1)**(k+i) * dHk/delta
-        idx[i]=True
-    cfs[k]=1
+        idx[i] = False
+        Hk = H[0:k,idx]
+        dHk = np.linalg.det(Hk)
+        cfs[i] = (-1)**(k+i) * dHk/delta
+        idx[i] = True
+    cfs[k] = 1
     return cfs
 
 def cmpAlphaBeta(H,k=-1):

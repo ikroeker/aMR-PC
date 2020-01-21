@@ -150,16 +150,16 @@ def testPolOnSamples():
     
 def test_cmpRescCf():
     """ tests sum cfs =1 """
-    dataframe=load()
-    myNrRange=[Nr]
-    NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
-    mkLst=dt.genMkeyList(NRBdict,srcs)
-    sum=0
-    dim=len(srcs)
-    assert(abs(dt.cmpRescCf(mkLst[0])-dt.cmpRescCfL([Nr]*dim))<tol)
-    rCdict=dt.genRCfDict(mkLst)
+    dataframe = load()
+    myNrRange = [Nr]
+    NRBdict = dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    mkLst = dt.genMkeyList(NRBdict,srcs)
+    sum = 0
+    dim = len(srcs)
+    assert(abs(dt.cmpRescCf(mkLst[0])-dt.cmpRescCfL([Nr]*dim)) < tol)
+    rCdict = dt.genRCfDict(mkLst)
     for mk in mkLst:
-        cf=dt.cmpRescCf(mk)
+        cf = dt.cmpRescCf(mk)
         assert(cf == rCdict[mk])
-        sum+=cf
-    assert(abs(sum-1)<tol)
+        sum += cf
+    assert(abs(sum-1) < tol)
