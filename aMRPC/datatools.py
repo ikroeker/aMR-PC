@@ -83,12 +83,13 @@ def cmpMVQuantDomainMK(Roots,NRBdict,mkey):
     [a_0,b_0]x..x[a_d,b_d], 0 else
     for given multikey mkey
     """
-    n=Roots.shape[0]
-    ndim=len(mkey)
-    B=np.ones(n,dtype=bool)
-    for key in mkey:
-        qlb,qrb=NRBdict[key]
-        B=B & cmpQuantDomain(Roots[c],qlb,qrb)
+    n, sdim = Roots.shape
+    assert(sdim == len(mkey))
+    B = np.ones(n, dtype=bool)
+    for d in range(sdim):
+        key = mkey[d]
+        qlb, qrb = NRBdict[key]
+        B = B & cmpQuantDomain(Roots[:,d], qlb, qrb)
     return B
 
 def genPCs(Hdict,method):
@@ -383,19 +384,14 @@ def genMkeySidRel(samples, mkLst, NRBdict, all_mk=False):
     sids = np.arange(sample_cnt)
     sid2mk = {}
     mk2sids = {}
-    #spos = u.ParPos['src']
-    for mk in mkLst:
-        B = np.ones(sample_cnt,dtype=bool)
-        for d in range(ndim):
-            key = mk[d]
-            qlb, qrb = NRBdict[key]
-            B = B & cmpQuantDomain(samples[:,d], qlb, qrb)
-        mk2sids[mk] = sids[B]
-        for sid in mk2sids[mk]:
+    for mkey in mkLst:
+        B = cmpMVQuantDomainMK(samples, NRBdict, mkey)
+        mk2sids[mkey] = sids[B]
+        for sid in mk2sids[mkey]:
             if sid in sid2mk:
-                sid2mk[sid] += mk
+                sid2mk[sid] += mkey
             else:
-                sid2mk[sid] = [mk]
+                sid2mk[sid] = [mkey]
     return sid2mk, mk2sids
     
     
