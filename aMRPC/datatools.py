@@ -379,17 +379,23 @@ def genMkeySidRel(samples, mkLst, NRBdict, all_mk=False):
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
     """
-    sample_cnt = samples.shape[0]
+    sample_cnt, ndim = samples.shape
+    sids = np.arange(sample_cnt)
     sid2mk = {}
     mk2sids = {}
-    for sid in range(sample_cnt):
-        mks = sample2mKey(samples[sid], mkLst, NRBdict, all_mk)
-        sid2mk[sid] = mks
-        for mk in mks:
-            if mk in mk2sids:
-                mk2sids[mk] = np.append(mk2sids[mk], sid)
+    #spos = u.ParPos['src']
+    for mk in mkLst:
+        B = np.ones(sample_cnt,dtype=bool)
+        for d in range(ndim):
+            key = mk[d]
+            qlb, qrb = NRBdict[key]
+            B = B & cmpQuantDomain(samples[:,d], qlb, qrb)
+        mk2sids[mk] = sids[B]
+        for sid in mk2sids[mk]:
+            if sid in sid2mk:
+                sid2mk[sid] += mk
             else:
-                mk2sids[mk] = np.array([sid])
+                sid2mk[sid] = [mk]
     return sid2mk, mk2sids
     
     
