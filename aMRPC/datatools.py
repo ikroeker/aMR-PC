@@ -374,7 +374,7 @@ def genMkeyList(Kdict,srcs):
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
     return mkLst
 
-def genMkeySidRel(samples,mkLst,NRBdict):
+def genMkeySidRel(samples,mkLst,NRBdict,all_mk=False):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
@@ -383,7 +383,7 @@ def genMkeySidRel(samples,mkLst,NRBdict):
     sid2mk={}
     mk2sids={}
     for sid in range(sample_cnt):
-        mks=sample2mKey(samples[sid],mkLst,NRBdict,True)
+        mks=sample2mKey(samples[sid],mkLst,NRBdict,all_mk)
         sid2mk[sid]=mks
         for mk in mks:
             if mk in mk2sids:
@@ -417,18 +417,18 @@ def sample2mKey(sample,mkLst,NRBdict,all=False):
     """ finds first, all multi-key in NR-Bounds dictrionary corresponding to the 
     multi-element containing the sample
     """
-    ndim=len(sample)
-    smkList=[]
+    ndim = len(sample)
+    smkList = []
     for mk in mkLst:
-        chk=True
+        chk = True
         for d in range(ndim):
-            qlb,qrb=NRBdict[mk[d]]
-            chk=chk & cmpQuantDomain(sample[d],qlb,qrb)
+            qlb, qrb = NRBdict[mk[d]]
+            chk = chk & cmpQuantDomain(sample[d], qlb, qrb)
         if chk:
             if all:
-                smkList+=[mk]
+                smkList += [mk]
             else:
-                return mk
+                smkList = [mk]
     return smkList
 
 def cmpRescCfL(aNRList):
