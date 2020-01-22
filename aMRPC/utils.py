@@ -65,16 +65,15 @@ def mIdx4quad(arLens):
 #ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
 ParPos={'Nr':0,'aNr':0,'Nri':1,'src':2}
 
-def genDictKey(aNr,Nri,src=-1):
+def genDictKey(aNr, Nri, src=None):
     """ 
     generates dictionary key for 
     aNr - actually Nr, Nri , src
     according to ParPos
     """
-    #chkNr=aNr<=Nr
-    chkNri=Nri<2**aNr
-    assert(chkNri)
-    if src==-1:
+    #chkNri = Nri < 2**aNr
+    #assert(chkNri)
+    if src is None:
         return (aNr,Nri)
     else:
         return (aNr,Nri,src)
@@ -91,10 +90,10 @@ def genMultiKey(aNrs,Nris,srcs):
     aNrs - Nr- levels for each entree in srcs
     Nris - Nr indices for each entree in src
     """
-    dims=len(srcs)
-    keyList=[]
-    for d in range(dims):
-        keyList.append(genDictKey(aNrs[d],Nris[d],srcs[d]))
+    dims = len(srcs)
+    keyList = [genDictKey(aNrs[d], Nris[d], srcs[d]) for d in range(dims)]
+    #for d in range(dims):
+    #    keyList.append(genDictKey(aNrs[d],Nris[d],srcs[d]))
     return tuple(keyList)
 
 def MultiKey2srcs(mk):
