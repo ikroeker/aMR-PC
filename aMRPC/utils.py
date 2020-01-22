@@ -25,21 +25,25 @@ def genMultiIdx(No,dim):
     return Alphas
 
 def genNriRange(Nrs):
-    """ generates an array with Nri-entries"""
-    dim=len(Nrs)
-    NriCnts=np.zeros(dim);
-    divs=np.zeros(dim)
-    NriCnt=1
+    """ 
+    generates an array with Nri-entries
+    Nris - np.array with Nri-(integer) entries
+    NriCnt - length of the array
+    """
+    dim = len(Nrs)
+    NriCnts = np.zeros(dim);
+    divs = np.zeros(dim)
+    NriCnt = 1
     for d in range(dim):
-        NriCnts[d]=2**(Nrs[d])
-        divs[d]=NriCnts[0:d].prod()
-    NriCnt=int(NriCnts.prod())        
-    Nris=np.zeros((NriCnt,dim),dtype=int)
+        NriCnts[d] = 2**(Nrs[d])
+        divs[d] = NriCnts[0:d].prod()
+    NriCnt = int(NriCnts.prod())        
+    Nris = np.zeros((NriCnt, dim), dtype=int)
     for nri in range(NriCnt):
         for d in range(dim):
-            v=(nri//divs[d] % NriCnts[d])
-            Nris[nri,d]=v
-    return Nris,NriCnt
+            v = (nri//divs[d] % NriCnts[d])
+            Nris[nri, d] = v
+    return Nris, NriCnt
 
 def mIdx4quad(arLens):
     """ generates indexes for eval. points etc. """
@@ -75,9 +79,9 @@ def genDictKey(aNr,Nri,src=-1):
     else:
         return (aNr,Nri,src)
     
-def getDictEntry(Dict,aNr,Nri,src=-1):
+def getDictEntry(Dict, aNr, Nri, src=-1):
     """ returns dictionary entry """
-    key=genDictKey(aNr,Nri,src)
+    key = genDictKey(aNr,Nri,src)
     return Dict[key]
 
 def genMultiKey(aNrs,Nris,srcs):
