@@ -30,16 +30,6 @@ def test_load():
     n,m = data.shape
     assert n == 10000
 
-def test_MultiIdx():
-    """ checks if each No multi-index is unique"""
-    Alphas=u.genMultiIdx(No,dim)
-    for p in range(No+1):
-        for q in range(No+1):
-            if p!=q:
-                chk=True
-                for d in range(dim):
-                    chk=chk and (Alphas[p,d]==Alphas[q,d])
-                assert not chk
 
 def test_innerProdFct():
     """ tests inner product for two polynomials as functions"""
@@ -94,7 +84,31 @@ def test_sample2mkey():
         assert(len(mks)==1)
         assert(mk==mks[0])
     
-
+def test_u_nri_ranges():
+    """ 
+    tests both utils.genNriRange functions
+    """
+    dataframe = load()
+    myNrRange = [Nr]
+    # Generate Hankel matrices
+    Hdict = dt.genHankel(dataframe, srcs, NrRange, No)
+    # Roots and Weights
+    R, W = dt.genRootsWeights(Hdict, method)
+    # Generates dictionary of MR-elements bounds
+    NRBdict = dt.genNrRangeBds(dataframe, srcs, myNrRange)
+    # get roots and weights for the output
+    mkLst = dt.genMkeyList(NRBdict, srcs)
+    mkey_set = set(mkLst)
+    assert(len(mkey_set) > 0)
+    aNrs = Nr*np.ones(dim) 
+    Nri_arr, Nri_cnt = u.genNriRange(aNrs)
+    Nri_arr_set, Nri_cnt_set = u.genNriRange_mkset(mkey_set, dim)
+    assert(Nri_cnt == Nri_cnt_set)
+    sum_nri = np.sum(Nri_arr, axis=0)
+    sum_nri_set = np.sum(Nri_arr_set, axis=0)
+    for d in range(dim):
+        assert(sum_nri[d] == sum_nri_set[d])
+        
 def test_MkeySidRel():
     """ tests the point to multi-key relationship in dictionaries"""
     dataframe=load()
