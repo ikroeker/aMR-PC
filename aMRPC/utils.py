@@ -53,27 +53,27 @@ def genNriRange(Nrs):
             Nris[nri, d] = v
     return Nris, NriCnt
 
-def genNriRange_mkset(mkey_set, dim):
+def genNriRange_4mkset(mkey_set, dim):
     """
     generates an np.array with Nri-entries
     input: 
     mkey_set -- set of multi-keys
     dim -- dimension, also number of keys in each mkey
     return:
-    Nris -- np.array with Nri-(integer) entries
-    NriCnt -- length of the array
+    nris -- np.array with Nri-(integer) entries
+    nri_cnt -- length of the array
     """
-    NriCnt = len(mkey_set) # number of multi-keys
+    nri_cnt = len(mkey_set) # number of multi-keys
     POS = ParPos['Nri']
-    assert (NriCnt > 0)
-    Nris = np.zeros((NriCnt, dim), dtype=int)
+    assert (nri_cnt > 0)
+    nris = np.zeros((nri_cnt, dim), dtype=int)
     cnt = 0 # counter
     for mkey in mkey_set:
         for d in range(dim):
-            Nris[cnt, d] = mkey[d][POS]
+            nris[cnt, d] = int(mkey[d][POS])
         cnt += 1
-    assert(cnt == NriCnt)
-    return Nris, NriCnt
+    assert(cnt == nri_cnt)
+    return nris, nri_cnt
     
 def mIdx4quad(arLens):
     """ generates indexes for eval. points etc. """

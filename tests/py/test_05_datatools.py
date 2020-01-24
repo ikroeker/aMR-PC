@@ -102,7 +102,7 @@ def test_u_nri_ranges():
     assert(len(mkey_set) > 0)
     aNrs = Nr*np.ones(dim) 
     Nri_arr, Nri_cnt = u.genNriRange(aNrs)
-    Nri_arr_set, Nri_cnt_set = u.genNriRange_mkset(mkey_set, dim)
+    Nri_arr_set, Nri_cnt_set = u.genNriRange_4mkset(mkey_set, dim)
     assert(Nri_cnt == Nri_cnt_set)
     sum_nri = np.sum(Nri_arr, axis=0)
     sum_nri_set = np.sum(Nri_arr_set, axis=0)
