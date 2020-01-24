@@ -321,30 +321,30 @@ def getTrueKids(Kdict,key):
     """
     checks leafs of the tree bottom ab, leafs only highest "True"-level on True
     """
-    ret=0
+    ret = 0
     if Kdict[key]:
-        ret=True
-        Nri=key[u.ParPos['Nri']]
-        Nr=key[u.ParPos['Nr']]
-        src=key[u.ParPos['src']]
-        lNri=2*Nri
-        rNri=lNri+1
-        lkey=u.genDictKey(Nr+1,lNri,src)
-        rkey=u.genDictKey(Nr+1,rNri,src)
-        lex= lkey in Kdict.keys()
-        rex= rkey in Kdict.keys()
+        #ret = True
+        Nri = key[u.ParPos['Nri']]
+        Nr = key[u.ParPos['Nr']]
+        src = key[u.ParPos['src']]
+        lNri = 2*Nri
+        rNri = lNri+1
+        lkey = u.genDictKey(Nr+1, lNri, src)
+        rkey = u.genDictKey(Nr+1, rNri, src)
+        lex = lkey in Kdict.keys()
+        rex = rkey in Kdict.keys()
         if lex and rex:
-            l= getTrueKids(Kdict,lkey)
-            r=getTrueKids(Kdict,rkey)
-            kids= l or r
+            l = getTrueKids(Kdict, lkey)
+            r = getTrueKids(Kdict, rkey)
+            kids = l or r
             if kids:
-                Kdict[key]=False
+                Kdict[key] = False
                 if not l:
-                    Kdict[lkey]=True
-                    ret=ret+1
+                    Kdict[lkey] = True
+                    ret = ret+1
                 if not r:
-                    Kdict[rkey]=True
-                    ret=ret+1
+                    Kdict[rkey] = True
+                    ret = ret+1
     return ret
         
 def getTopKeys(Kdict,srcs):
@@ -360,17 +360,17 @@ def getTopKeys(Kdict,srcs):
 
 def genMkeyList(Kdict,srcs):
     """ generates array of multi-keys from the dictionary Kdict """
-    isrcs=u.invSrcArr(srcs)
-    kLst=[[] for s in isrcs]
-    srclen=len(isrcs)
-    sidx=u.ParPos['src']
-    for key,chk in Kdict.items():
+    isrcs = u.invSrcArr(srcs)
+    kLst = [[] for s in isrcs]
+    srclen = len(isrcs)
+    sidx = u.ParPos['src']
+    for key, chk in Kdict.items():
         if chk:
-            idx=key[sidx]
+            idx = key[sidx]
             kLst[isrcs[idx]].append(key)
-    alen=[len(c) for c in kLst]
-    I=u.mIdx4quad(alen)
-    ilen=I.shape[0]    
+    alen = [len(c) for c in kLst]
+    I = u.mIdx4quad(alen)
+    ilen = I.shape[0]    
     mkLst=[ tuple([kLst[c][I[i,c]] for c in range(srclen)]) for i in range(ilen)]
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
     return mkLst
@@ -479,14 +479,14 @@ def genPolOnSamplesArr(samples,nPCdict,Alphas,mk2sid):
     """
     n,m = samples.shape
     P = Alphas.shape[0]
-    pol_vals = np.zeros((P,n))
+    pol_vals = np.zeros((P, n))
 
     for mk in mk2sid:
         sids = mk2sid[mk]
         for p in range(P):
-            pCfs = PCfs4eval(nPCdict,mk,Alphas[p])
-            pvals = pt.PCeval(pCfs,samples[sids,:])
-            pol_vals[p,sids] = np.prod(pvals,axis=1)
+            pCfs = PCfs4eval(nPCdict, mk, Alphas[p])
+            pvals = pt.PCeval(pCfs, samples[sids, :])
+            pol_vals[p, sids] = np.prod(pvals, axis=1)
     return pol_vals
             
     

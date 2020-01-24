@@ -10,12 +10,12 @@ import aMRPC.utils as u
 iod.inDir = './tests/data'
 iod.outDir = iod.inDir
 fname = 'InputParameters.txt'
-Nr = 2
-No = 2
+Nr = 3
+No = 3
 srcs = [0, 1, 2, 3]
 srcs = [0, 2, 3]
 method = 0
-tol = 1e-4
+tol = 1e-6 * 10**Nr
 
 NrRange = np.arange(Nr+1)
 dim = len(srcs)
