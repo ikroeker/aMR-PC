@@ -375,7 +375,7 @@ def genMkeyList(Kdict,srcs):
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
     return mkLst
 
-def genMkeySidRel(samples, mkLst, NRBdict, all_mk=False):
+def genMkeySidRel(samples, mkLst, NRBdict):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries

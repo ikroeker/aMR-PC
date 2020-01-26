@@ -6,16 +6,19 @@ import aMRPC.iodata as iod
 import aMRPC.datatools as dt
 import aMRPC.polytools as pt
 import aMRPC.utils as u
+import aMRPC.wavetools as wt
 
 iod.inDir = './tests/data'
 iod.outDir = iod.inDir
 fname = 'InputParameters.txt'
-Nr = 3
-No = 3
+Nr = 2
+No = 2
 srcs = [0, 1, 2, 3]
 srcs = [0, 2, 3]
 method = 0
 tol = 1e-6 * 10**Nr
+eps = 0.01 # multi-wavelet threshold
+#eps = 0.005 # multi-wavelet threshold
 
 NrRange = np.arange(Nr+1)
 dim = len(srcs)
@@ -167,10 +170,10 @@ def test_cmpRescCf():
     """ tests sum cfs =1 """
     dataframe = load()
     myNrRange = [Nr]
-    NRBdict = dt.genNrRangeBds(dataframe,srcs,myNrRange)
-    mkLst = dt.genMkeyList(NRBdict,srcs)
+    NRBdict = dt.genNrRangeBds(dataframe, srcs, myNrRange)
+    mkLst = dt.genMkeyList(NRBdict, srcs)
     sum = 0
-    dim = len(srcs)
+    #dim = len(srcs)
     assert(abs(dt.cmpRescCf(mkLst[0])-dt.cmpRescCfL([Nr]*dim)) < tol)
     rCdict = dt.genRCfDict(mkLst)
     for mk in mkLst:
@@ -178,3 +181,55 @@ def test_cmpRescCf():
         assert(cf == rCdict[mk])
         sum += cf
     assert(abs(sum-1) < tol)
+
+def test_wavelet_adapted():
+    """ 
+    generates wavelet adapted multi-element dataset
+    test if each sid in one multi-element only
+    and all sid's are contained 
+    """
+    dataframe = load()
+    minNr = 2
+    maxNr = Nr
+    minNo = 1
+    maxNo = No
+    for nr in range(minNr, maxNr+1):
+        nrs = nr*np.ones(dim)
+        myNrRange = np.arange(nr+1)
+        NRBdict = dt.genNrRangeBds(dataframe, srcs, myNrRange)
+        # multi-key list
+        #mkLst = dt.genMkeyList(NRBdict, srcs)
+        # rescaling coefficients for proj-> Nr=0
+        #rCdict = dt.genRCfDict(mkLst)
+        for no in range(minNo, maxNo+1):
+            # generate roots, weights and also polynomials
+            # compare with Rooots-n-Weights
+            # Generate Hankel matrices
+            Hdict = dt.genHankel(dataframe, srcs, myNrRange, no)
+            # Roots and Weights
+            R, W = dt.genRootsWeights(Hdict, method)
+            # (monic) orthogonal polynomial coefficients
+            PCdict = dt.genPCs(Hdict, method)
+            # normed orthogonal polynomials
+            nPCdict = dt.genNPCs(PCdict, R, W)
+
+            # generate wavelets and compute details
+            P = no+1
+            wv = wt.WaveTools(P)
+            wv.genWVlets()
+            # compute quantiles on roots on rescaled (0,1)-Legendre polynomials
+            Qdict = dt.genQuantDict(dataframe, srcs, myNrRange, wv)
+            # details
+            Dtdict = dt.genDetailDict(Qdict, wv)
+            # stoch elements to keep (details >= threshold)
+            Kdict = dt.markDict4keep(Dtdict, eps)
+            # highest level
+            topKeys = dt.getTopKeys(Kdict, srcs)
+            # multi-keys generated from topKeys
+            mkLst = dt.genMkeyList(topKeys, srcs)
+            #print(topKeys)
+            # get roots and weights for the output
+            tR, tW, mkLstLong = dt.getRW4mKey(mkLst, R ,W)
+            sid2mk, mk2sid = dt.genMkeySidRel(tR, mkLst, NRBdict)
+            for sid, mk in sid2mk.items():
+                assert(len(mk) == 1)
