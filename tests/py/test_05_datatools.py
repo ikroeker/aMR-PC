@@ -11,7 +11,7 @@ import aMRPC.wavetools as wt
 iod.inDir = './tests/data'
 iod.outDir = iod.inDir
 fname = 'InputParameters.txt'
-Nr = 2
+Nr = 3
 No = 2
 srcs = [0, 1, 2, 3]
 srcs = [0, 2, 3]
@@ -231,5 +231,9 @@ def test_wavelet_adapted():
             # get roots and weights for the output
             tR, tW, mkLstLong = dt.getRW4mKey(mkLst, R ,W)
             sid2mk, mk2sid = dt.genMkeySidRel(tR, mkLst, NRBdict)
+            point_set = set()
+            len_roots = tR.shape[0]
             for sid, mk in sid2mk.items():
                 assert(len(mk) == 1)
+                point_set.add(sid)
+            assert(len(point_set) == len_roots) 

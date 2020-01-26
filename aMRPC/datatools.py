@@ -317,45 +317,46 @@ def markDict4keep(Ddict,thres):
         Kdict[key]=b
     return Kdict
 
-def getTrueKids(Kdict,key):
+def getTrueNodes(Kdict,key):
     """
     checks leafs of the tree bottom ab, leafs only highest "True"-level on True
     """
     ret = 0
     if Kdict[key]:
-        #ret = True
+        ret = 1
         Nri = key[u.ParPos['Nri']]
         Nr = key[u.ParPos['Nr']]
         src = key[u.ParPos['src']]
-        lNri = 2*Nri
-        rNri = lNri+1
+        lNri = 2*Nri # left kid
+        rNri = lNri+1 # right kid
         lkey = u.genDictKey(Nr+1, lNri, src)
         rkey = u.genDictKey(Nr+1, rNri, src)
         lex = lkey in Kdict.keys()
         rex = rkey in Kdict.keys()
         if lex and rex:
-            l = getTrueKids(Kdict, lkey)
-            r = getTrueKids(Kdict, rkey)
-            kids = l or r
-            if kids:
+            l = getTrueNodes(Kdict, lkey)
+            r = getTrueNodes(Kdict, rkey)
+            kids = l + r
+            if kids>0:
                 Kdict[key] = False
-                if not l:
+                if  l is 0:
                     Kdict[lkey] = True
-                    ret = ret+1
-                if not r:
+                    ret += 1
+                if  r is 0:
                     Kdict[rkey] = True
-                    ret = ret+1
+                    ret += 1
+                ret += kids
     return ret
         
-def getTopKeys(Kdict,srcs):
+def getTopKeys(Kdict, srcs):
     """ returns set with top level (True) keys only (bottom up)"""
-    tKeys=Kdict.copy()
+    tKeys = Kdict.copy()
     for src in srcs:
-        nkey=u.genDictKey(0,0,src)
-        if nkey in tKeys.keys():
-            cnt=getTrueKids(tKeys,nkey)
-            if cnt==0:
-                tKeys[nkey]=True # set root node to True if no leafs are selected
+        root_key = u.genDictKey(0, 0, src) #multi-key on zero-level (root)
+        if root_key in tKeys.keys():
+            cnt = getTrueNodes(tKeys, root_key)
+            if cnt == 0:
+                tKeys[root_key] = True # set root node to True if no leafs are selected
     return tKeys
 
 def genMkeyList(Kdict,srcs):
