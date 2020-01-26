@@ -324,27 +324,28 @@ def getTrueNodes(Kdict,key):
     ret = 0
     if Kdict[key]:
         ret = 1
-        Nri = key[u.ParPos['Nri']]
-        Nr = key[u.ParPos['Nr']]
-        src = key[u.ParPos['src']]
-        lNri = 2*Nri # left kid
-        rNri = lNri+1 # right kid
-        lkey = u.genDictKey(Nr+1, lNri, src)
-        rkey = u.genDictKey(Nr+1, rNri, src)
-        lex = lkey in Kdict.keys()
-        rex = rkey in Kdict.keys()
-        if lex and rex:
-            l = getTrueNodes(Kdict, lkey)
-            r = getTrueNodes(Kdict, rkey)
-            kids = l + r
-            if kids>0:
-                Kdict[key] = False
-                if  l is 0:
-                    Kdict[lkey] = True
-                    ret += 1
-                if  r is 0:
-                    Kdict[rkey] = True
-                    ret += 1
+        
+    Nri = key[u.ParPos['Nri']]
+    Nr = key[u.ParPos['Nr']]
+    src = key[u.ParPos['src']]
+    lNri = 2*Nri # left kid
+    rNri = lNri+1 # right kid
+    lkey = u.genDictKey(Nr+1, lNri, src)
+    rkey = u.genDictKey(Nr+1, rNri, src)
+    lex = lkey in Kdict.keys()
+    rex = rkey in Kdict.keys()
+    if lex and rex:
+        l = getTrueNodes(Kdict, lkey)
+        r = getTrueNodes(Kdict, rkey)
+        kids = l + r
+        if kids>0:
+            Kdict[key] = False
+            if  l is 0:
+                Kdict[lkey] = True
+                ret += 1
+            if  r is 0:
+                Kdict[rkey] = True
+                ret += 1
                 ret += kids
     return ret
         
