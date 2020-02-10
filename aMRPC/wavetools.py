@@ -1,6 +1,6 @@
 import numpy as np
 import math
-import pandas as pd
+#import pandas as pd
 
 class WaveTools:
     """ generates wavelet functions according to Le Maitre et al """
@@ -154,29 +154,29 @@ class WaveTools:
         self.sqlen=math.sqrt(self.len)
 
     def cmpLRBi(self,Nr,Nri):
-         scf=self.len / 2**Nr
-         lbi=self.lb+ Nri * scf
-         rbi=self.lb+(Nri+1) *scf
-         return lbi, rbi, scf
+        scf=self.len / 2**Nr
+        lbi=self.lb+ Nri * scf
+        rbi=self.lb+(Nri+1) *scf
+        return lbi, rbi, scf
      
-    def bdChk(self,x,Nr,Nri):
+    def bdChk(self, x, Nr, Nri):
         """ Boundary check, returns true if x in [lb_i,rb_i] """
-        lbi, rbi, scf=self.cmpLRBi(Nr,Nri)
-        if type(x)==float or type(x)==int:
+        lbi, rbi, _ = self.cmpLRBi(Nr, Nri)
+        if type(x) == float or type(x) == int:
             if x >= lbi and x<=rbi:
                 return True
             else:
                 return False
         else:
-            xl=len(x)
-            b=np.zeros(xl,dtype=bool)
-            b[x>=lbi]=True
-            b[x>rbi]=False
+            xl = len(x)
+            b = np.zeros(xl, dtype=bool)
+            b[x>=lbi] = True
+            b[x>rbi] = False
             #print(x[b])
             return b
      
     def rescX(self,x,Nr,Nri):
-        """ transforms x\in[lb_i,rb_i] to y in [0,1] """
+        """ transforms x in[lb_i,rb_i] to y in [0,1] """
         lbi, __, scf=self.cmpLRBi(Nr,Nri)
         #y=self.lb+(x-lbi)/scf
         y=(x-lbi)/scf
@@ -240,15 +240,15 @@ class WaveTools:
         return QuantileOnRoots
     
 if __name__=="__main__":
-    p=1
-    print("p =",p)
-    wv=WaveTools(p)
+    P = 1
+    print("p =", P)
+    wv = WaveTools(P)
     wv.genWVlets()
-    i=0
-    x=.7
-    print("i =",i,"  x =",x)
-    print("fr(%d,%f)=%f"%(i,x,wv.fr(i,x)))
-    print("fpsi(%d,%f)=%f"%(i,x,wv.fpsi(i,x)))
-    print("rfpsi(%f,%d,1,1)=%f"%(x,i,wv.rfpsi(x,i,1,1)))
+    I = 0
+    X = .7
+    print("i =", I, "  x =", X)
+    print("fr(%d,%f)=%f"%(I, X, wv.fr(I, X)))
+    print("fpsi(%d,%f)=%f"%(I, X, wv.fpsi(I, X)))
+    print("rfpsi(%f,%d,1,1)=%f"%(X, I, wv.rfpsi(X, I, 1, 1)))
 
     print("well done!")
