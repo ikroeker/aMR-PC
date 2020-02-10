@@ -3,54 +3,54 @@ import numpy as np
 import pandas as pd
 import pickle
 
-dataDir="../data" # data directory
-inDir=dataDir # directory for input data
-outDir=dataDir # directory for output data
-def writeEvalPoints(Points,fname,**kwargs):
-    """ 
+dataDir = "../data" # data directory
+inDir = dataDir # directory for input data
+outDir = dataDir # directory for output data
+def writeEvalPoints(Points, fname, **kwargs):
+    """
     writes evals points in asci file
     additionals args: dir and template
     """
     if 'dir' in kwargs.keys():
-        dir=kwargs['dir']
+        mydir = kwargs['dir']
     else:
-        dir=outDir
+        mydir = outDir
     if 'tmplt' in kwargs.keys():
         template=kwargs['tmplt']
     else:
-        template=' {: 8.7e}  {: 8.7e}  {: 8.7e}  {: 8.7e}\n'
-    file=dir+"/" + fname
-    lines,cols=Points.shape
-    f=open(file,'w')
+        template = ' {: 8.7e}  {: 8.7e}  {: 8.7e}  {: 8.7e}\n'
+    file = mydir + "/" + fname
+    lines, _ = Points.shape
+    f = open(file, 'w')
     for l in range(lines):
-        dataLine=Points[l]
+        dataLine = Points[l]
         #print(dataLine)
-        s=template.format(*dataLine)
+        s = template.format(*dataLine)
         f.write(s)
     f.close()
 
-def loadEvalPoints(fname,dir=None):
+def loadEvalPoints(fname, mydir=None):
     """
     loads eval points from an ascii file
     """
-    if dir is None:
-        dir=inDir
-    url=dir + "/" + fname
+    if mydir is None:
+        mydir = inDir
+    url = mydir + "/" + fname
     if op.exists(url):
-        dataframe=pd.read_csv(url,header=None,sep='\s+ ',engine='python')
+        dataframe=pd.read_csv(url, header=None, sep='\s+ ', engine='python')
         #dataframe=np.loadtxt(url)
     else:
         print(url," does not exist!")
     return dataframe
-        
-def storeDataDict(Dict,fname,dir=None):
+
+def storeDataDict(Dict, fname, mydir=None):
     """ stores dictionary in {dir}/{fname}.p using pickle """
-    if dir is None:
-        dir=outDir
-    file=dir +"/" + fname
+    if mydir is None:
+        mydir = outDir
+    file = mydir +"/" + fname
     try:
-        f=open(file,"wb")
-        pickle.dump(Dict,f)
+        f = open(file, "wb")
+        pickle.dump(Dict, f)
         f.close()
     except (IOError, ValueError):
         print("An I/O error or a ValueError occurred")
@@ -58,44 +58,44 @@ def storeDataDict(Dict,fname,dir=None):
         print("An unexpected error occurred")
         raise
 
-def loadDataDict(fname,dir=None):
+def loadDataDict(fname, mydir=None):
     """ load picle stored data from {dir}/{fname}.p """
-    if dir is None:
-        dir=outDir
-    file=dir +"/" + fname
-    f=open(file,"rb")
+    if mydir is None:
+        mydir = outDir
+    file = mydir + "/" + fname
+    f = open(file, "rb")
     try:
-        Dict=pickle.load(f)
+        Dict = pickle.load(f)
         f.close()
     except (IOError, ValueError):
-         print("An I/O error or a ValueError occurred")
+        print("An I/O error or a ValueError occurred")
     except:
         print("An unexpected error occurred")
         raise
     return Dict
 
-def storeNPArr(npArray,fname,dir=None):
+def storeNPArr(npArray, fname, mydir=None):
     """ stores numpy.array npArray in {dir}/{fname} """
-    if dir is None:
-        dir = outDir
-    file = dir +"/" + fname
+    if mydir is None:
+        mydir = outDir
+    file = mydir +"/" + fname
     try:
-        np.save(file,npArray)
+        np.save(file, npArray)
     except (IOError, ValueError):
         print("An I/O error or a ValueError occurred")
     except:
         print("An unexpected error occurred")
         raise
 
-def loadNPArr(fname,dir=None):
-    """ loads numpy.array from {dir}/{fname} """
-    if dir is None:
-        dir=outDir
-    file=dir +"/" + fname
+def loadNPArr(fname, mydir=None):
+    """ loads numpy.array from {mydir}/{fname} """
+    if mydir is None:
+        mydir = outDir
+    file = mydir +"/" + fname
     try:
-        npArray=np.load(file)
+        npArray = np.load(file)
     except (IOError, ValueError):
-         print("An I/O error or a ValueError occurred")
+        print("An I/O error or a ValueError occurred")
     except:
         print("An unexpected error occurred")
         raise
@@ -148,7 +148,7 @@ def genFname(Fkt,**kwargs):
 
     fname+=FileSfx.get(Fkt) # add sfx to the filename
     return fname
-    
+
 def main():
     rpts=np.random.randn(100,4)
     print(rpts.shape)
