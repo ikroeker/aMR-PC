@@ -1,13 +1,21 @@
+"""
+utils.py - provides functions and dictionary for index and key management
+to handle multi-resolution
+
+@author: kroeker
+"""
+
+
 import numpy as np
 from scipy.special import comb
 #import math
 
 # Data format for roots, weights and details: DictName(Nr,aNr,Nri,src)
 #ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
-ParPos={'Nr':0,'aNr':0,'Nri':1,'src':2}
+ParPos = {'Nr':0, 'aNr':0, 'Nri':1, 'src':2}
 
 def genMultiIdx(No, dim):
-    """ 
+    """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
     """
@@ -17,22 +25,22 @@ def genMultiIdx(No, dim):
     l = 1
     pmax = (No+1)**dim
     for p in range(1, pmax):
-        rp=p
+        rp = p
         for d in range(dim):
             md = (No+1)**(dim-d-1)
             val = rp//md
             tA[d] = val
             rp = rp-val*md
         if sum(tA) <= No:
-            Alphas[l,:] = tA
+            Alphas[l, :] = tA
             l = l+1
     return Alphas
 
 def genNriRange(Nrs):
-    """ 
+    """
     generates an array with Nri-entries
     input:
-    Nrs -- list of Nr for each dim, e.g. [Nr, Nr] 
+    Nrs -- list of Nr for each dim, e.g. [Nr, Nr]
 
     return:
     Nris -- np.array with Nri-(integer) entries
@@ -45,7 +53,7 @@ def genNriRange(Nrs):
     for d in range(dim):
         NriCnts[d] = 2**(Nrs[d])
         divs[d] = NriCnts[0:d].prod()
-    NriCnt = int(NriCnts.prod())        
+    NriCnt = int(NriCnts.prod())
     Nris = np.zeros((NriCnt, dim), dtype=int)
     for nri in range(NriCnt):
         for d in range(dim):
@@ -56,7 +64,7 @@ def genNriRange(Nrs):
 def genNriRange_4mkset(mkey_set, dim):
     """
     generates an np.array with Nri-entries
-    input: 
+    input:
     mkey_set -- set of multi-keys
     dim -- dimension, also number of keys in each mkey
     return:
@@ -65,16 +73,16 @@ def genNriRange_4mkset(mkey_set, dim):
     """
     nri_cnt = len(mkey_set) # number of multi-keys
     POS = ParPos['Nri']
-    assert (nri_cnt > 0)
+    assert nri_cnt > 0
     nris = np.zeros((nri_cnt, dim), dtype=int)
     cnt = 0 # counter
     for mkey in mkey_set:
         for d in range(dim):
             nris[cnt, d] = int(mkey[d][POS])
         cnt += 1
-    assert(cnt == nri_cnt)
+    assert cnt == nri_cnt
     return nris, nri_cnt
-    
+
 def mIdx4quad(arLens):
     """ generates indexes for eval. points etc. """
     nLens = np.array(arLens)
@@ -93,8 +101,8 @@ def mIdx4quad(arLens):
 
 
 def genDictKey(aNr, Nri, src=None):
-    """ 
-    generates dictionary key for 
+    """
+    generates dictionary key for
     aNr - actually Nr, Nri , src
     according to ParPos
     """
@@ -104,7 +112,7 @@ def genDictKey(aNr, Nri, src=None):
         return (aNr, Nri)
     else:
         return (aNr, Nri, src)
-    
+
 def getDictEntry(Dict, aNr, Nri, src=-1):
     """ returns dictionary entry """
     key = genDictKey(aNr, Nri, src)
@@ -149,13 +157,12 @@ def invSrcArr(srcs):
         i = i+1
     return isrc
 
-if __name__=="__main__":
+if __name__ == "__main__":
     print("test utils.py")
-    NO=3
-    DIM=2
-    Alphas=genMultiIdx(NO,DIM)
-    print(Alphas)
-    D={}
-    key=genDictKey(3,2,0)
-    D[key]=Alphas
-
+    NO = 3
+    DIM = 2
+    ALPHAS = genMultiIdx(NO, DIM)
+    print(ALPHAS)
+    D = {}
+    akey = genDictKey(3, 2, 0)
+    D[akey] = ALPHAS
