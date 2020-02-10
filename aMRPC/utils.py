@@ -39,7 +39,7 @@ def genNriRange(Nrs):
     NriCnt -- length of the array
     """
     dim = len(Nrs)
-    NriCnts = np.zeros(dim);
+    NriCnts = np.zeros(dim)
     divs = np.zeros(dim)
     NriCnt = 1
     for d in range(dim):
@@ -145,15 +145,15 @@ def invSrcArr(srcs):
     isrc = {}
     i = 0
     for s in srcs:
-       isrc[s] = i
-       i = i+1
+        isrc[s] = i
+        i = i+1
     return isrc
 
 if __name__=="__main__":
     print("test utils.py")
-    No=3
-    dim=2
-    Alphas=genMultiIdx(No,dim)
+    NO=3
+    DIM=2
+    Alphas=genMultiIdx(NO,DIM)
     print(Alphas)
     D={}
     key=genDictKey(3,2,0)
