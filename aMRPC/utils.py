@@ -5,7 +5,6 @@ to handle multi-resolution
 @author: kroeker
 """
 
-
 import numpy as np
 from scipy.special import comb
 #import math
@@ -14,7 +13,7 @@ from scipy.special import comb
 #ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
 ParPos = {'Nr':0, 'aNr':0, 'Nri':1, 'src':2}
 
-def genMultiIdx(No, dim):
+def gen_multi_idx(No, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
@@ -22,7 +21,7 @@ def genMultiIdx(No, dim):
     P = comb(No+dim, dim)
     Alphas = np.zeros((int(P), dim), dtype=int)
     tA = np.zeros(dim)
-    l = 1
+    l_idx = 1
     pmax = (No+1)**dim
     for p in range(1, pmax):
         rp = p
@@ -32,11 +31,11 @@ def genMultiIdx(No, dim):
             tA[d] = val
             rp = rp-val*md
         if sum(tA) <= No:
-            Alphas[l, :] = tA
-            l = l+1
+            Alphas[l_idx, :] = tA
+            l_idx = l_idx+1
     return Alphas
 
-def genNriRange(Nrs):
+def gen_nri_range(Nrs):
     """
     generates an array with Nri-entries
     input:
@@ -61,7 +60,7 @@ def genNriRange(Nrs):
             Nris[nri, d] = v
     return Nris, NriCnt
 
-def genNriRange_4mkset(mkey_set, dim):
+def gen_nri_range_4mkset(mkey_set, dim):
     """
     generates an np.array with Nri-entries
     input:
@@ -72,18 +71,18 @@ def genNriRange_4mkset(mkey_set, dim):
     nri_cnt -- length of the array
     """
     nri_cnt = len(mkey_set) # number of multi-keys
-    POS = ParPos['Nri']
+    pos = ParPos['Nri']
     assert nri_cnt > 0
     nris = np.zeros((nri_cnt, dim), dtype=int)
     cnt = 0 # counter
     for mkey in mkey_set:
         for d in range(dim):
-            nris[cnt, d] = int(mkey[d][POS])
+            nris[cnt, d] = int(mkey[d][pos])
         cnt += 1
     assert cnt == nri_cnt
     return nris, nri_cnt
 
-def mIdx4quad(arLens):
+def midx4quad(arLens):
     """ generates indexes for eval. points etc. """
     nLens = np.array(arLens)
     cols = len(arLens)
@@ -93,14 +92,14 @@ def mIdx4quad(arLens):
     for c in range(cols):
         divs[c] = nLens[0:c].prod()
     #print(divs)
-    for l in range(lines):
+    for l_idx in range(lines):
         for c in range(cols):
-            v = (l//divs[c] % nLens[c])
-            I[l, c] = v
+            v = (l_idx//divs[c] % nLens[c])
+            I[l_idx, c] = v
     return I
 
 
-def genDictKey(aNr, Nri, src=None):
+def gen_dict_key(aNr, Nri, src=None):
     """
     generates dictionary key for
     aNr - actually Nr, Nri , src
@@ -109,16 +108,17 @@ def genDictKey(aNr, Nri, src=None):
     #chkNri = Nri < 2**aNr
     #assert(chkNri)
     if src is None:
-        return (aNr, Nri)
+        ret = (aNr, Nri)
     else:
-        return (aNr, Nri, src)
+        ret = (aNr, Nri, src)
+    return ret
 
-def getDictEntry(Dict, aNr, Nri, src=-1):
+def get_dict_entry(Dict, aNr, Nri, src=-1):
     """ returns dictionary entry """
-    key = genDictKey(aNr, Nri, src)
+    key = gen_dict_key(aNr, Nri, src)
     return Dict[key]
 
-def genMultiKey(aNrs, Nris, srcs):
+def gen_multi_key(aNrs, Nris, srcs):
     """
     generates a tuple of tuples that will be used as a key
     srcs - source numbers
@@ -126,29 +126,29 @@ def genMultiKey(aNrs, Nris, srcs):
     Nris - Nr indices for each entree in src
     """
     dims = len(srcs)
-    keyList = [genDictKey(aNrs[d], Nris[d], srcs[d]) for d in range(dims)]
+    key_list = [gen_dict_key(aNrs[d], Nris[d], srcs[d]) for d in range(dims)]
     #for d in range(dims):
     #    keyList.append(genDictKey(aNrs[d],Nris[d],srcs[d]))
-    return tuple(keyList)
+    return tuple(key_list)
 
-def MultiKey2srcs(mk):
+def multi_key2srcs(mk):
     """ generates srcs list from multi-key """
     sPos = ParPos['src']
     return [c[sPos] for c in mk]
 
-def getMultiEntry(Dict, aNrs, Nris, srcs):
+def get_multi_entry(Dict, aNrs, Nris, srcs):
     """ returns dictionary entriy """
-    key = genMultiKey(aNrs, Nris, srcs)
+    key = gen_multi_key(aNrs, Nris, srcs)
     return Dict[key]
 
-def chooseCols(A, ccols, zeroCols=-1):
+def choose_cols(A, ccols, zero_cols=-1):
     """ picks the ccols columns from A """
     ret = A[:, ccols]
-    if zeroCols != -1:
-        ret[:, zeroCols] = 0
+    if zero_cols != -1:
+        ret[:, zero_cols] = 0
     return ret
 
-def invSrcArr(srcs):
+def inv_src_arr(srcs):
     """ generates dictionary with positions of srcs """
     isrc = {}
     i = 0
@@ -161,8 +161,8 @@ if __name__ == "__main__":
     print("test utils.py")
     NO = 3
     DIM = 2
-    ALPHAS = genMultiIdx(NO, DIM)
+    ALPHAS = gen_multi_idx(NO, DIM)
     print(ALPHAS)
     D = {}
-    akey = genDictKey(3, 2, 0)
-    D[akey] = ALPHAS
+    AKEY = gen_dict_key(3, 2, 0)
+    D[AKEY] = ALPHAS

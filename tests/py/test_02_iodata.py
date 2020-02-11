@@ -10,8 +10,8 @@ def test_txt():
     m=4
     rpts=np.random.randn(n,m)
     n,m=rpts.shape
-    iod.writeEvalPoints(rpts,fname)
-    data=iod.loadEvalPoints(fname)
+    iod.write_eval_points(rpts,fname)
+    data=iod.load_eval_points(fname)
     k,l=data.shape
     assert n==k
     assert m==l
@@ -21,8 +21,8 @@ def test_dict():
     iod.outDir=dir
     fname="tst.p"
     Dict={'a':34,'b':55}
-    iod.storeDataDict(Dict,fname)
-    nDict=iod.loadDataDict(fname,dir)
+    iod.store_data_dict(Dict,fname)
+    nDict=iod.load_data_dict(fname,dir)
     assert Dict['a']==nDict['a']
 
 def test_npArr():
@@ -30,6 +30,6 @@ def test_npArr():
     iod.outDir = dir
     fname =  "tst.npy"
     Arr = np.array([1,2,3,4,42])
-    iod.storeNPArr(Arr,fname)
-    sArr=iod.loadNPArr(fname,dir)
+    iod.store_np_arr(Arr,fname)
+    sArr=iod.load_np_arr(fname,dir)
     assert( sum(abs(Arr-sArr)) == 0)

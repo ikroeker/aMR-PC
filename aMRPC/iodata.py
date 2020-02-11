@@ -1,12 +1,18 @@
+"""
+iodata.py - povides io-routines and file-name conventions
+@author: kroeker
+"""
+
 import os.path as op
+import pickle
 import numpy as np
 import pandas as pd
-import pickle
+
 
 dataDir = "../data" # data directory
 inDir = dataDir # directory for input data
 outDir = dataDir # directory for output data
-def writeEvalPoints(Points, fname, **kwargs):
+def write_eval_points(points, fname, **kwargs):
     """
     writes evals points in asci file
     additionals args: dir and template
@@ -16,20 +22,20 @@ def writeEvalPoints(Points, fname, **kwargs):
     else:
         mydir = outDir
     if 'tmplt' in kwargs.keys():
-        template=kwargs['tmplt']
+        template = kwargs['tmplt']
     else:
         template = ' {: 8.7e}  {: 8.7e}  {: 8.7e}  {: 8.7e}\n'
     file = mydir + "/" + fname
-    lines, _ = Points.shape
-    f = open(file, 'w')
-    for l in range(lines):
-        dataLine = Points[l]
+    lines, _ = points.shape
+    f_h = open(file, 'w')
+    for l_idx in range(lines):
+        data_line = points[l_idx]
         #print(dataLine)
-        s = template.format(*dataLine)
-        f.write(s)
-    f.close()
+        str_line = template.format(*data_line)
+        f_h.write(str_line)
+    f_h.close()
 
-def loadEvalPoints(fname, mydir=None):
+def load_eval_points(fname, mydir=None):
     """
     loads eval points from an ascii file
     """
@@ -37,70 +43,70 @@ def loadEvalPoints(fname, mydir=None):
         mydir = inDir
     url = mydir + "/" + fname
     if op.exists(url):
-        dataframe=pd.read_csv(url, header=None, sep='\s+ ', engine='python')
+        dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
         #dataframe=np.loadtxt(url)
     else:
-        print(url," does not exist!")
+        print(url, " does not exist!")
     return dataframe
 
-def storeDataDict(Dict, fname, mydir=None):
+def store_data_dict(out_dict, fname, mydir=None):
     """ stores dictionary in {dir}/{fname}.p using pickle """
     if mydir is None:
         mydir = outDir
     file = mydir +"/" + fname
     try:
-        f = open(file, "wb")
-        pickle.dump(Dict, f)
-        f.close()
+        f_h = open(file, "wb")
+        pickle.dump(out_dict, f_h)
+        f_h.close()
     except (IOError, ValueError):
         print("An I/O error or a ValueError occurred")
     except:
         print("An unexpected error occurred")
         raise
 
-def loadDataDict(fname, mydir=None):
+def load_data_dict(fname, mydir=None):
     """ load picle stored data from {dir}/{fname}.p """
     if mydir is None:
         mydir = outDir
     file = mydir + "/" + fname
-    f = open(file, "rb")
+    f_h = open(file, "rb")
     try:
-        Dict = pickle.load(f)
-        f.close()
+        in_dict = pickle.load(f_h)
+        f_h.close()
     except (IOError, ValueError):
         print("An I/O error or a ValueError occurred")
     except:
         print("An unexpected error occurred")
         raise
-    return Dict
+    return in_dict
 
-def storeNPArr(npArray, fname, mydir=None):
+def store_np_arr(np_array, fname, mydir=None):
     """ stores numpy.array npArray in {dir}/{fname} """
     if mydir is None:
         mydir = outDir
     file = mydir +"/" + fname
     try:
-        np.save(file, npArray)
+        np.save(file, np_array)
     except (IOError, ValueError):
         print("An I/O error or a ValueError occurred")
     except:
         print("An unexpected error occurred")
         raise
 
-def loadNPArr(fname, mydir=None):
+def load_np_arr(fname, mydir=None):
     """ loads numpy.array from {mydir}/{fname} """
     if mydir is None:
         mydir = outDir
     file = mydir +"/" + fname
     try:
-        npArray = np.load(file)
+        np_array = np.load(file)
     except (IOError, ValueError):
         print("An I/O error or a ValueError occurred")
     except:
         print("An unexpected error occurred")
         raise
-    return npArray
-FilePfx={
+    return np_array
+FilePfx = {
     1: "roots",
     2: "weights",
     3: "Hdict", # Hankel Matrices dictionary
@@ -115,7 +121,7 @@ FilePfx={
     12: "rCfs", # rescalling coefs multi-key->cf
     13: "polOnSid" # polyonimals evaluated on roots / samples (p,sid)
 }
-FileSfx={
+FileSfx = {
     1: ".txt",
     2: ".txt",
     3: ".p",
@@ -130,31 +136,32 @@ FileSfx={
     12: ".p",
     13: ".npy"
 }
-def genFname(Fkt,**kwargs):
+def gen_fname(fkt, **kwargs):
     """ generates filename"""
-    PfxChk= Fkt in FilePfx.keys()
-    SfxChk= Fkt in FileSfx.keys()
-    assert(PfxChk and SfxChk)
-    fname=FilePfx.get(Fkt)
+    pfx_chk = fkt in FilePfx.keys()
+    sfx_chk = fkt in FileSfx.keys()
+    assert pfx_chk and sfx_chk
+    fname = FilePfx.get(fkt)
 
     if 'txt' in kwargs.keys():
-        fname+=kwargs['txt']
+        fname += kwargs['txt']
     if 'Nr' in kwargs.keys():
-        fname+='_Nr'+kwargs['Nr']
+        fname += '_Nr'+kwargs['Nr']
     if 'No' in kwargs.keys():
-        fname+='_No' +kwargs['No']
+        fname += '_No' +kwargs['No']
     if 'ths' in kwargs.keys():
-        fname+='_ths'+kwargs['ths']
+        fname += '_ths'+kwargs['ths']
 
-    fname+=FileSfx.get(Fkt) # add sfx to the filename
+    fname += FileSfx.get(fkt) # add sfx to the filename
     return fname
 
 def main():
-    rpts=np.random.randn(100,4)
+    """ main function for testing """
+    rpts = np.random.randn(100, 4)
     print(rpts.shape)
-    writeEvalPoints(rpts,'pts.txt')
-    data=loadEvalPoints('pts.txt')
+    write_eval_points(rpts, 'pts.txt')
+    data = load_eval_points('pts.txt')
     print(data.describe())
 
-if  __name__=="__main__":
+if  __name__ == "__main__":
     main()

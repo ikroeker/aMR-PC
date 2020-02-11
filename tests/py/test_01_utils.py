@@ -8,7 +8,7 @@ DIM = 3
 
 def test_midx():
     dim = DIM
-    Alphas=u.genMultiIdx(No, dim)
+    Alphas=u.gen_multi_idx(No, dim)
     m,n=Alphas.shape
     fline=Alphas[0,:]
     lline=Alphas[m-1,:]
@@ -21,18 +21,18 @@ def test_multikeys():
     dim = len(srcs)
     aNrs = [aNr]*dim
     NriMax = 2**(aNr*dim)
-    Nris,NriCnt = u.genNriRange(aNrs)
+    Nris, NriCnt = u.gen_nri_range(aNrs)
     assert(NriMax == NriCnt)
     for nri in Nris:
-        mk = u.genMultiKey(aNrs,nri,srcs)
-        nsrcs = u.MultiKey2srcs(mk)
+        mk = u.gen_multi_key(aNrs,nri,srcs)
+        nsrcs = u.multi_key2srcs(mk)
         for d in range(dim):
             assert(srcs[d] == nsrcs[d])
 
 def test_MultiIdx():
     """ checks if each No multi-index is unique"""
     dim = DIM
-    Alphas = u.genMultiIdx(No, dim)
+    Alphas = u.gen_multi_idx(No, dim)
     for p in range(No+1):
         for q in range(No+1):
             if p != q:

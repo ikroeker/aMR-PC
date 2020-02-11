@@ -21,7 +21,7 @@ def Hankel(mmx, data):
             H[j, i] = H[i, j]
     return H
 
-def aPCcfs(H, k=-1, alen=-1):
+def apc_cfs(H, k=-1, alen=-1):
     """ polynomial coefficients in increasing degree
     c_0 + c_1*x + c_2*x^2 + ...
     Sergey style """
@@ -47,7 +47,7 @@ def aPCcfs(H, k=-1, alen=-1):
 
     return cfs
 
-def PCcfs(H, k=-1, alen=-1):
+def pc_cfs(H, k=-1, alen=-1):
     """
     polynomial coefficientes in increasing order,
     Gautschi style via moment determinants (p. 53)
@@ -63,10 +63,10 @@ def PCcfs(H, k=-1, alen=-1):
         cfs[0] = 1
         return cfs
     assert k < l
-    rH = H[0:k, 0:k]
+    red_H = H[0:k, 0:k]
     idx = np.ones(l, dtype=bool)
     idx[k+1:l] = False
-    delta = np.linalg.det(rH)
+    delta = np.linalg.det(red_H)
     for i in range(0, k):
         idx[i] = False
         Hk = H[0:k, idx]
@@ -76,7 +76,7 @@ def PCcfs(H, k=-1, alen=-1):
     cfs[k] = 1
     return cfs
 
-def cmpAlphaBeta(H, k=-1):
+def cmp_alpha_beta(H, k=-1):
     """generates vectors of recursion coefficientes alpha and beta"""
     n = H.shape[0]
     if k == -1:
@@ -107,7 +107,7 @@ def cmpAlphaBeta(H, k=-1):
             beta[l] = H[0, 0]
     return alpha, beta
 
-def JacobiMx(alpha, beta):
+def Jacobi_mx(alpha, beta):
     """generates Jacobi Matrix"""
     n = alpha.shape[0]
     m = beta.shape[0]
@@ -118,12 +118,12 @@ def JacobiMx(alpha, beta):
         J[l+1, l] = J[l, l+1]
     return J
 
-def cmpGrw(H, k=-1):
+def cmp_Grw(H, k=-1):
     """computes roots and weigth of the Gauss quadrature using Hankel Matrix, Gautschi p. 153"""
     n = H.shape[0]
     assert k < n
-    alpha, beta = cmpAlphaBeta(H, k)
-    J = JacobiMx(alpha, beta)
+    alpha, beta = cmp_alpha_beta(H, k)
+    J = Jacobi_mx(alpha, beta)
     #print(J)
     tau, V = np.linalg.eig(J)
     roots = tau
@@ -134,7 +134,7 @@ def cmpGrw(H, k=-1):
     #weights=beta[0]*v
     return roots, weights
 
-def genGW(moments, roots):
+def gen_Gw(moments, roots):
     """computes Gaussian weights using moments and roots, compare with Karniadakis & Kirby p.236"""
     m = moments.shape[0]
     r = roots.shape[0]
@@ -146,7 +146,7 @@ def genGW(moments, roots):
             M[i, j] = roots[j]**i
     return np.linalg.solve(M, rs)
 
-def cmpNormCf(cfs, roots, weights):
+def cmp_norm_cf(cfs, roots, weights):
     """computes the norming factor of the polynomial w.r.t. Gauss quadrature"""
     r = roots.shape[0]
     w = weights.shape[0]
@@ -175,7 +175,7 @@ def uniHank(n, a=0, b=1):
     return H
 
 
-def genPCmx(H, method=0, No=-1):
+def gen_pc_mx(H, method=0, No=-1):
     """
     generates a matrix with polynomial coefficients up to degree No
     H - Hankel Matrix,
@@ -188,27 +188,27 @@ def genPCmx(H, method=0, No=-1):
     cf = np.zeros([No, No])
     for k in range(No):
         if method == 0:
-            cf[k, :] = PCcfs(H, k, No)
+            cf[k, :] = pc_cfs(H, k, No)
         else:
-            cf[k, :] = aPCcfs(H, k, No)
+            cf[k, :] = apc_cfs(H, k, No)
     return cf
 
-def genRW(H, method=0, No=-1):
+def gen_rw(H, method=0, No=-1):
     """ generates roots and weights """
     n = H.shape[0]
     assert No < n
     if No < 0:
         No = n-1
     if method == 0:
-        r, w = cmpGrw(H, No)
+        r, w = cmp_Grw(H, No)
     else:
-        pcf = aPCcfs(H, No)
+        pcf = apc_cfs(H, No)
         p = np.poly1d(np.flip(pcf, 0))
         r = p.r
-        w = genGW(H[0, :], r)
+        w = gen_Gw(H[0, :], r)
     return r, w
 
-def genNPCmx(cf, r, w, No=-1):
+def gen_npc_mx(cf, r, w, No=-1):
     """ generates normed polynomial coefficients """
     n = cf.shape[0]
     assert No <= n
@@ -216,11 +216,11 @@ def genNPCmx(cf, r, w, No=-1):
         No = n
     ncf = np.zeros([No, No])
     for k in range(No):
-        nc = cmpNormCf(cf[k, :], r, w)
+        nc = cmp_norm_cf(cf[k, :], r, w)
         ncf[k, :] = cf[k, :]/nc
     return ncf
 
-def PCeval(cfs, X):
+def pc_eval(cfs, X):
     """ application of polyval with Cfs on X """
     C = cfs.T
     #print(C)

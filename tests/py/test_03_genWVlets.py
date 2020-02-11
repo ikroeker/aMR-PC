@@ -12,6 +12,15 @@ def genWV(P):
     wv.genWVlets()
     return wv
 
+def test_tranform():
+    """ test remapping from (0,1) to an subintervall"""
+    WV = genWV(P)
+    y = 0.7
+    Nri = 2
+    x = WV.resc_y(y, Nr, Nri)
+    new_y = WV.resc_x(x, Nr, Nri)
+    assert abs(new_y-y) < tol
+    
 def test_quad_one():
     """delta_ii test for  multi-wavelets on [0,1] """
     wv=genWV(P)
@@ -47,10 +56,10 @@ def test_quad_MR():
     wv=genWV(P)
     for aNr in range(Nr+1):
         for Nri in range(2**aNr):
-            x=wv.rescY(wv.roots,aNr,Nri)
+            x=wv.resc_y(wv.roots,aNr,Nri)
             for i in range(P):
                 for j in range(P):
-                    q= (wv.rfpsi(x,i,aNr,Nri)*wv.rfpsi(x,j,aNr,Nri)*wv.rqCf(aNr))@wv.weights
+                    q= (wv.rfpsi(x,i,aNr,Nri)*wv.rfpsi(x,j,aNr,Nri)*wv.rq_cf(aNr))@wv.weights
                     if i==j:
                         assert abs(q-1)<tol
                     else:
@@ -61,8 +70,8 @@ def test_pols_MR():
     wv=genWV(P)
     for aNr in range(Nr+1):
         for Nri in range(2**aNr):
-            x=wv.rescY(wv.roots,aNr,Nri)
+            x=wv.resc_y(wv.roots,aNr,Nri)
             for i in range(P):
                 for j in range(P):
-                    q= ((x**i)*wv.rfpsi(x,j,aNr,Nri)*wv.rqCf(aNr))@wv.weights
+                    q= ((x**i)*wv.rfpsi(x,j,aNr,Nri)*wv.rq_cf(aNr))@wv.weights
                     assert abs(q)<tol

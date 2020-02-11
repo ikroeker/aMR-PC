@@ -24,40 +24,40 @@ NrRange = np.arange(Nr+1)
 dim = len(srcs)
 
 def load():
-    return iod.loadEvalPoints(fname)
+    return iod.load_eval_points(fname)
     
 
 def test_load():
     """ test if data are correct loaded, dataset has 10k lines """
     data = load()
-    n,m = data.shape
+    n, m = data.shape
     assert n == 10000
 
 
 def test_innerProdFct():
     """ tests inner product for two polynomials as functions"""
-    dataframe=load()
-    Hdict=dt.genHankel(dataframe,srcs,NrRange,No)
-    R,W=dt.genRootsWeights(Hdict,method)
-    PCdict=dt.genPCs(Hdict,method)
-    nPCdict=dt.genNPCs(PCdict,R,W)
-    Alphas=u.genMultiIdx(No,dim)
+    dataframe = load()
+    Hdict = dt.genHankel(dataframe, srcs, NrRange, No)
+    R, W = dt.gen_roots_weights(Hdict, method)
+    PCdict=dt.gen_pcs(Hdict,method)
+    nPCdict=dt.gen_npcs(PCdict,R,W)
+    Alphas=u.gen_multi_idx(No,dim)
     P=int(comb(No+dim,dim))
     for Nra in NrRange:
         aNrs=Nra*np.ones(dim)
-        NriRange,Lines=u.genNriRange(aNrs)
+        NriRange,Lines=u.gen_nri_range(aNrs)
         for Nri in range(Lines):
-            Nris=NriRange[Nri,:]
-            mk=u.genMultiKey(aNrs,Nris,srcs)
-            aR,aW=dt.genRW4mkey(mk,R,W)
+            Nris = NriRange[Nri,:]
+            mk = u.gen_multi_key(aNrs,Nris,srcs)
+            aR, aW = dt.gen_rw_4mkey(mk, R, W)
             for p in range(P):
-                pCfs=dt.PCfs4eval(nPCdict,mk,Alphas[p])
-                F=lambda x:pt.PCeval(pCfs,x)
+                pCfs = dt.pcfs4eval(nPCdict, mk, Alphas[p])
+                F = lambda x:pt.pc_eval(pCfs, x)
                 for q in range(P):
-                    qCfs=dt.PCfs4eval(nPCdict,mk,Alphas[q])
-                    G=lambda x:pt.PCeval(qCfs,x)
-                    q_pq=dt.innerProdFct(F,G,aR,aW)
-                    q_mk=dt.innerProdMultiIdx(F,G,mk,R,W)
+                    qCfs = dt.pcfs4eval(nPCdict, mk, Alphas[q])
+                    G = lambda x:pt.pc_eval(qCfs, x)
+                    q_pq = dt.inner_prod_fct(F, G, aR, aW)
+                    q_mk = dt.inner_prod_multi_idx(F, G, mk, R, W)
                     if p!=q:
                         assert abs(q_pq)< tol
                         assert abs(q_mk)< tol
@@ -73,19 +73,19 @@ def test_sample2mkey():
     # Generate Hankel matrices
     Hdict=dt.genHankel(dataframe,srcs,NrRange,No)
     # Roots and Weights
-    R,W=dt.genRootsWeights(Hdict,method)
+    R,W=dt.gen_roots_weights(Hdict,method)
     # Generates dictionary of MR-elements bounds
-    NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    NRBdict=dt.gen_nr_range_bds(dataframe,srcs,myNrRange)
     # get roots and weights for the output
-    mkLst=dt.genMkeyList(NRBdict,srcs)
-    tR, tW, mkLstLong=dt.getRW4mKey(mkLst,R,W)
-    n=len(mkLstLong)
+    mkLst=dt.gen_mkey_list(NRBdict,srcs)
+    tR, tW, mkLstLong=dt.get_rw_4mkey(mkLst,R,W)
+    n = len(mkLstLong)
     for i in range(n):
-        mk=mkLstLong[i]
-        sample=tR[i,:]
-        mks=dt.sample2mKey(sample,mkLst,NRBdict,True)
-        assert(len(mks)==1)
-        assert(mk==mks[0])
+        mk = mkLstLong[i]
+        sample = tR[i, :]
+        mks = dt.sample2mkey(sample, mkLst, NRBdict, True)
+        assert len(mks)==1
+        assert mk==mks[0]
     
 def test_u_nri_ranges():
     """ 
@@ -96,21 +96,21 @@ def test_u_nri_ranges():
     # Generate Hankel matrices
     Hdict = dt.genHankel(dataframe, srcs, NrRange, No)
     # Roots and Weights
-    R, W = dt.genRootsWeights(Hdict, method)
+    R, W = dt.gen_roots_weights(Hdict, method)
     # Generates dictionary of MR-elements bounds
-    NRBdict = dt.genNrRangeBds(dataframe, srcs, myNrRange)
+    NRBdict = dt.gen_nr_range_bds(dataframe, srcs, myNrRange)
     # get roots and weights for the output
-    mkLst = dt.genMkeyList(NRBdict, srcs)
+    mkLst = dt.gen_mkey_list(NRBdict, srcs)
     mkey_set = set(mkLst)
-    assert(len(mkey_set) > 0)
+    assert len(mkey_set) > 0
     aNrs = Nr*np.ones(dim) 
-    Nri_arr, Nri_cnt = u.genNriRange(aNrs)
-    Nri_arr_set, Nri_cnt_set = u.genNriRange_4mkset(mkey_set, dim)
-    assert(Nri_cnt == Nri_cnt_set)
+    Nri_arr, Nri_cnt = u.gen_nri_range(aNrs)
+    Nri_arr_set, Nri_cnt_set = u.gen_nri_range_4mkset(mkey_set, dim)
+    assert Nri_cnt == Nri_cnt_set
     sum_nri = np.sum(Nri_arr, axis=0)
     sum_nri_set = np.sum(Nri_arr_set, axis=0)
     for d in range(dim):
-        assert(sum_nri[d] == sum_nri_set[d])
+        assert sum_nri[d] == sum_nri_set[d]
         
 def test_MkeySidRel():
     """ tests the point to multi-key relationship in dictionaries"""
@@ -119,38 +119,38 @@ def test_MkeySidRel():
     # Generate Hankel matrices
     Hdict=dt.genHankel(dataframe,srcs,NrRange,No)
     # Roots and Weights
-    R,W=dt.genRootsWeights(Hdict,method)
+    R,W=dt.gen_roots_weights(Hdict,method)
     # Generates dictionary of MR-elements bounds
-    NRBdict=dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    NRBdict=dt.gen_nr_range_bds(dataframe,srcs,myNrRange)
     # get roots and weights for the output
-    mkLst=dt.genMkeyList(NRBdict,srcs)
-    tR, tW, mkLstLong=dt.getRW4mKey(mkLst,R,W)
-    sid2mk, mk2sid=dt.genMkeySidRel(tR,mkLst,NRBdict)
+    mkLst=dt.gen_mkey_list(NRBdict,srcs)
+    tR, tW, mkLstLong=dt.get_rw_4mkey(mkLst,R,W)
+    sid2mk, mk2sid=dt.gen_mkey_sid_rel(tR,mkLst,NRBdict)
     n=len(mkLstLong)
     for sid in range(n):
         mk=mkLstLong[sid]
         mkl=sid2mk[sid]
-        assert(mk==mkl[0])
+        assert mk==mkl[0]
         sids=mk2sid[mk]
-        assert(sid in sids)
+        assert sid in sids
 
 def testPolOnSamples():
     """ tests genPolOnSamplesArr(...)"""
     dataframe = load()
     myNrRange = [Nr]
     Hdict = dt.genHankel(dataframe,srcs,NrRange,No)
-    R,W = dt.genRootsWeights(Hdict,method)
-    PCdict = dt.genPCs(Hdict,method)
-    nPCdict = dt.genNPCs(PCdict,R,W)
-    Alphas = u.genMultiIdx(No,dim)
+    R,W = dt.gen_roots_weights(Hdict,method)
+    PCdict = dt.gen_pcs(Hdict,method)
+    nPCdict = dt.gen_npcs(PCdict,R,W)
+    Alphas = u.gen_multi_idx(No,dim)
     P = int(comb(No+dim,dim))
     # Generates dictionary of MR-elements bounds
-    NRBdict = dt.genNrRangeBds(dataframe,srcs,myNrRange)
+    NRBdict = dt.gen_nr_range_bds(dataframe,srcs,myNrRange)
     # get roots and weights for the output
-    mkLst = dt.genMkeyList(NRBdict,srcs)
-    tR, tW, mkLstLong = dt.getRW4mKey(mkLst,R,W)
-    sid2mk, mk2sid = dt.genMkeySidRel(tR,mkLst,NRBdict)
-    polVals = dt.genPolOnSamplesArr(tR,nPCdict,Alphas,mk2sid)
+    mkLst = dt.gen_mkey_list(NRBdict,srcs)
+    tR, tW, mkLstLong = dt.get_rw_4mkey(mkLst,R,W)
+    sid2mk, mk2sid = dt.gen_mkey_sid_rel(tR,mkLst,NRBdict)
+    polVals = dt.gen_pol_on_samples_arr(tR, nPCdict, Alphas, mk2sid)
     Gws = np.prod(tW,axis=1)
     n = tR.shape[0]
     for mk in mk2sid:
@@ -161,26 +161,26 @@ def testPolOnSamples():
                 qV = polVals[q,sids]
                 p_pq = np.inner(pV*qV,Gws[sids])
                 if p == q:
-                    assert(abs(1-p_pq)<tol)
+                    assert abs(1-p_pq)<tol
                 else:
-                    assert(abs(p_pq)<tol)
+                    assert abs(p_pq)<tol
     
     
 def test_cmpRescCf():
     """ tests sum cfs =1 """
     dataframe = load()
     myNrRange = [Nr]
-    NRBdict = dt.genNrRangeBds(dataframe, srcs, myNrRange)
-    mkLst = dt.genMkeyList(NRBdict, srcs)
+    NRBdict = dt.gen_nr_range_bds(dataframe, srcs, myNrRange)
+    mkLst = dt.gen_mkey_list(NRBdict, srcs)
     sum = 0
     #dim = len(srcs)
-    assert(abs(dt.cmpRescCf(mkLst[0])-dt.cmpRescCfL([Nr]*dim)) < tol)
-    rCdict = dt.genRCfDict(mkLst)
+    assert abs(dt.cmp_resc_cf(mkLst[0])-dt.cmp_resc_cfl([Nr]*dim)) < tol
+    rCdict = dt.gen_rcf_dict(mkLst)
     for mk in mkLst:
-        cf = dt.cmpRescCf(mk)
+        cf = dt.cmp_resc_cf(mk)
         assert(cf == rCdict[mk])
         sum += cf
-    assert(abs(sum-1) < tol)
+    assert abs(sum-1) < tol
 
 def test_wavelet_adapted():
     """ 
@@ -196,9 +196,9 @@ def test_wavelet_adapted():
     for nr in range(minNr, maxNr+1):
         nrs = nr*np.ones(dim)
         myNrRange = np.arange(nr+1)
-        NRBdict = dt.genNrRangeBds(dataframe, srcs, myNrRange)
+        NRBdict = dt.gen_nr_range_bds(dataframe, srcs, myNrRange)
         # multi-key list
-        #mkLst = dt.genMkeyList(NRBdict, srcs)
+        #mkLst = dt.gen_mkey_list(NRBdict, srcs)
         # rescaling coefficients for proj-> Nr=0
         #rCdict = dt.genRCfDict(mkLst)
         for no in range(minNo, maxNo+1):
@@ -207,33 +207,34 @@ def test_wavelet_adapted():
             # Generate Hankel matrices
             Hdict = dt.genHankel(dataframe, srcs, myNrRange, no)
             # Roots and Weights
-            R, W = dt.genRootsWeights(Hdict, method)
+            R, W = dt.gen_roots_weights(Hdict, method)
             # (monic) orthogonal polynomial coefficients
-            PCdict = dt.genPCs(Hdict, method)
+            PCdict = dt.gen_pcs(Hdict, method)
             # normed orthogonal polynomials
-            nPCdict = dt.genNPCs(PCdict, R, W)
+            nPCdict = dt.gen_npcs(PCdict, R, W)
 
             # generate wavelets and compute details
             P = no+1
             wv = wt.WaveTools(P)
             wv.genWVlets()
             # compute quantiles on roots on rescaled (0,1)-Legendre polynomials
-            Qdict = dt.genQuantDict(dataframe, srcs, myNrRange, wv)
+            Qdict = dt.gen_quant_dict(dataframe, srcs, myNrRange, wv)
             # details
-            Dtdict = dt.genDetailDict(Qdict, wv)
+            Dtdict = dt.gen_detail_dict(Qdict, wv)
             # stoch elements to keep (details >= threshold)
-            Kdict = dt.markDict4keep(Dtdict, eps)
+            Kdict = dt.mark_dict4keep(Dtdict, eps)
             # highest level
-            topKeys = dt.getTopKeys(Kdict, srcs)
+            topKeys = dt.get_top_keys(Kdict, srcs)
             # multi-keys generated from topKeys
-            mkLst = dt.genMkeyList(topKeys, srcs)
+            mkLst = dt.gen_mkey_list(topKeys, srcs)
             #print(topKeys)
             # get roots and weights for the output
-            tR, tW, mkLstLong = dt.getRW4mKey(mkLst, R ,W)
-            sid2mk, mk2sid = dt.genMkeySidRel(tR, mkLst, NRBdict)
+            tR, tW, mkLstLong = dt.get_rw_4mkey(mkLst, R ,W)
+            sid2mk, mk2sid = dt.gen_mkey_sid_rel(tR, mkLst, NRBdict)
             point_set = set()
             len_roots = tR.shape[0]
             for sid, mk in sid2mk.items():
-                assert(len(mk) == 1)
+                assert len(mk) == 1
                 point_set.add(sid)
-            assert(len(point_set) == len_roots) 
+            assert len(point_set) == len_roots
+            
