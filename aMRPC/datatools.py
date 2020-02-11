@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from . import polytools as pt
 from . import utils as u
-from . import wavetools as wt
+#from . import wavetools as wt
 
 def genHankel(dataframe, srcs, NrRange, No):
     """ generates Hankel matrixes for each Nri, writes in h_dict """

@@ -6,14 +6,14 @@ import aMRPC.datatools as dt
 import aMRPC.polytools as pt
 import aMRPC.utils as u
 
-iod.inDir='./tests/data'
-iod.outDir=iod.inDir
-fname='InputParameters.txt'
-Nr=4
-No=4
-srcs=[0, 1, 2, 3]
+iod.inDir = './tests/data'
+iod.outDir = iod.inDir
+fname = 'InputParameters.txt'
+Nr = 4
+No = 4
+srcs = [0, 1, 2, 3]
 
-tol=1e-5
+tol = 1e-5
 
 def load():
     return iod.load_eval_points(fname)
@@ -40,9 +40,9 @@ def gen_aPC4method(data,method,ctol):
                     pj = pt.pc_eval(nCfs[j,:], r)
                     q = (pi*pj) @ w
                     if i == j:
-                        assert abs(q-1)<ctol
+                        assert abs(q-1) < ctol
                     else:
-                        assert abs(q)<ctol
+                        assert abs(q) < ctol
 
 def test_aPC4m0():
     """ method 0: Gautschi"""
