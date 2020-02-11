@@ -14,36 +14,35 @@ from . import polytools as pt
 from . import utils as u
 #from . import wavetools as wt
 
-def genHankel(dataframe, srcs, NrRange, No):
+def genHankel(dataframe, srcs, nr_range, n_o):
     """ generates Hankel matrixes for each Nri, writes in h_dict """
     #Nr=max(NrRange)
     h_dict = {}
+
     for src in srcs:
         data = dataframe[src]
-        for aNr in NrRange:
-            for Nri in range(2**aNr):
-                l_b, r_b = cmp_lrb(aNr, Nri)
+        for anr in nr_range:
+            for nri in range(2**anr):
+                l_b, r_b = cmp_lrb(anr, nri)
                 qlb = data.quantile(l_b)
                 qrb = data.quantile(r_b)
                 mask = cmp_quant_domain(data, qlb, qrb)
-                qdata = data[mask]
-                H = pt.Hankel(No+1, qdata)
-                key = u.gen_dict_key(aNr, Nri, src)
-                h_dict[key] = H
+                key = u.gen_dict_key(anr, nri, src)
+                h_dict[key] = pt.Hankel(n_o+1, data[mask])
                 #print(H)
     return h_dict
 
-def gen_nr_range_bds(dataframe, srcs, NrRange):
+def gen_nr_range_bds(dataframe, srcs, nr_range):
     """ generates dictionary with boundaries of MR-elements """
     nrb_dict = {}
     for src in srcs:
         data = dataframe[src]
-        for aNr in NrRange:
-            for Nri in range(2**aNr):
-                l_b, r_b = cmp_lrb(aNr, Nri)
+        for anr in nr_range:
+            for nri in range(2**anr):
+                l_b, r_b = cmp_lrb(anr, nri)
                 qlb = data.quantile(l_b)
                 qrb = data.quantile(r_b)
-                key = u.gen_dict_key(aNr, Nri, src)
+                key = u.gen_dict_key(anr, nri, src)
                 nrb_dict[key] = (qlb, qrb)
     return nrb_dict
 
@@ -62,9 +61,9 @@ def gen_roots_weights(h_dict, method):
 
 def cmp_lrb(n_r, nri):
     """ computes left and right bounds for use in dataframe.quantile() """
-    cf = 2**(n_r)
-    l_b = nri/cf
-    r_b = (nri+1)/cf
+    rcf = 2**(n_r)
+    l_b = nri/rcf
+    r_b = (nri+1)/rcf
     return l_b, r_b
 
 def cmp_quant_domain(data, qlb, qrb):
@@ -72,17 +71,17 @@ def cmp_quant_domain(data, qlb, qrb):
     b_mask = (data >= qlb) & (data <= qrb)
     return b_mask
 
-def cmp_mw_quant_domain(roots, nrb_dict, Nrs, Nris, cols):
+def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols):
     """
     generates bool array with 1 for r inside of
     [a_0,b_0]x..x[a_d,b_d], 0 else
     """
     n = roots.shape[0]
-    ndim = len(Nrs)
-    assert ndim == len(Nris)
+    ndim = len(nrs)
+    assert ndim == len(nris)
     b_mask = np.ones(n, dtype=bool)
     for d, c in enumerate(cols):
-        key = u.gen_dict_key(Nrs[d], Nris[d], c)
+        key = u.gen_dict_key(nrs[d], nris[d], c)
         qlb, qrb = nrb_dict[key]
         b_mask = b_mask & cmp_quant_domain(roots[c], qlb, qrb)
     return b_mask
@@ -136,9 +135,9 @@ def Gauss_quad(func, roots, weights):
     assert len(roots) == len(weights)
     return np.inner(func(roots), weights)
 
-def inner_prod(f, g, roots, weights):
+def inner_prod(f_la, g_la, roots, weights):
     """ inner product <f,g,>, computed by Gauss quadrature """
-    return Gauss_quad(lambda x: f(x)*g(x), roots, weights)
+    return Gauss_quad(lambda x: f_la(x)*g_la(x), roots, weights)
 
 def Gauss_quad_idx(fct, multi_key, roots, weights):
     """ multi-dimensional Gauss quad on multiKey of
@@ -146,7 +145,7 @@ def Gauss_quad_idx(fct, multi_key, roots, weights):
     """
     dim = len(multi_key)
     R, W = gen_rw_4mkey(multi_key, roots, weights)
-    if type(fct) == tuple:
+    if isinstance(fct, tuple):
         assert dim == len(fct)
         ret = Gauss_quad_arr(fct, R, W)
     else:
@@ -156,49 +155,49 @@ def Gauss_quad_idx(fct, multi_key, roots, weights):
 def inner_prod_multi_idx(F, G, multi_key, roots, weights):
     """ <F,G>, for for multi-index multiKey """
     dim = len(multi_key)
-    R, W = gen_rw_4mkey(multi_key, roots, weights)
+    r_mk, w_mk = gen_rw_4mkey(multi_key, roots, weights)
     assert type(F) == type(G)
-    tf = type(F) == tuple
-    tg = type(G) == tuple
+    tf = isinstance(F, tuple)
+    tg = isinstance(G, tuple)
     if tf and tg:
         flen = len(F)
         assert flen == len(G)
         assert flen == dim
-        ret = inner_prod_tuples(F, G, R, W)
+        ret = inner_prod_tuples(F, G, r_mk, w_mk)
     else:
-        ret = inner_prod_fct(F, G, R, W)
+        ret = inner_prod_fct(F, G, r_mk, w_mk)
     return ret
 
-def Gauss_quad_arr(FunTup, Roots, Weights):
-    dim = len(FunTup)
-    evals = Roots.shape[0]
-    a = dim == Roots.shape[1]
-    b = Roots.size == Weights.size
+def Gauss_quad_arr(fct_tup, roots, weights):
+    dim = len(fct_tup)
+    evals = roots.shape[0]
+    a = dim == roots.shape[1]
+    b = roots.size == weights.size
     assert a and b
     S = 0
     for l in range(evals):
         tmp = 1
         for d in range(dim):
             key = (l, d)
-            tmp = tmp*FunTup[d](Roots[key])*Weights[key]
+            tmp = tmp*fct_tup[d](roots[key])*weights[key]
         S += tmp
     return S
 
-def inner_prod_tuples(F, G, Roots, Weights):
+def inner_prod_tuples(F, G, roots, weights):
     """ <F,G>, F,G are given by tuples """
     dim = len(F)
-    evals = Roots.shape[0]
+    evals = roots.shape[0]
     a = dim == len(G)
-    b = Roots.size == Weights.size
-    c = dim == Roots.shape[1]
+    b = roots.size == weights.size
+    c = dim == roots.shape[1]
     assert a and b and c
     S = 0
     for l in range(evals):
         tmp = 1
         for d in range(dim):
             key = (l, d)
-            x = Roots[key]
-            tmp = tmp*F[d](x)*G[d](x)*Weights[key]
+            x = roots[key]
+            tmp = tmp*F[d](x)*G[d](x)*weights[key]
         S += tmp
     return S
 
@@ -208,45 +207,46 @@ def Gauss_quad_fct(F, Roots, Weights):
     P = np.prod(A, axis=1)
     return sum(P)
 
-def inner_prod_fct(F, G, Roots, Weights):
-    assert Roots.shape == Weights.shape
-    A = F(Roots)*G(Roots)*Weights
-    P = np.prod(A, axis=1)
-    return sum(P)
+def inner_prod_fct(f_la, g_la, roots, weights):
+    """ <f_la, g_la> on roots-n-weights, for lambdas f_la, and g_la """
+    assert roots.shape == weights.shape
+    quad_arr = f_la(roots)*g_la(roots)*weights
+    return sum(np.prod(quad_arr, axis=1))
 
-def inner_prod_arr_fct(Arr, F, Roots, Weights, srcs):
+
+def inner_prod_arr_fct(arr, f_la, roots, weights, srcs):
     """ inner product of data in Arr and F(Roots) weighted with Weigths """
-    assert Roots.shape == Weights.shape
-    A = F(Roots[srcs])*Weights[srcs]
-    P = np.prod(A, axis=1)
-    return np.inner(Arr, P)
+    assert roots.shape == weights.shape
+    quad_arr = f_la(roots[srcs])*weights[srcs]
+    prod_arr = np.prod(quad_arr, axis=1)
+    return np.inner(arr, prod_arr)
 
 
-def gen_rw_4mkey(mKey, Roots, Weights):
+def gen_rw_4mkey(mkey, roots, weights):
     """ generates roots and weights arrays from dict's Roots and Weights for multikey mkey """
-    cols = len(mKey)
+    cols = len(mkey)
     # ls=[]
     # for d in range(cols):
     #     key=mKey[d]
     #     #print("k->r",key,Roots[key])
     #     lk=len(Roots[key])
     #     ls.append(lk)
-    ls = [len(Roots[key]) for key in mKey]
+    ls = [len(roots[key]) for key in mkey]
     lens = np.array(ls)
     lines = lens.prod()
     I = u.midx4quad(lens)
-    Rs = np.zeros((lines, cols))
-    Ws = np.zeros([lines, cols])
+    r_roots = np.zeros((lines, cols))
+    r_weights = np.zeros([lines, cols])
     for c in range(cols):
-        key = mKey[c]
-        r = Roots[key]
-        w = Weights[key]
+        key = mkey[c]
+        r = roots[key]
+        w = weights[key]
         idx = I[:, c]
         #print(idx,r)
 
-        Rs[:, c] = r[idx]
-        Ws[:, c] = w[I[:, c]]
-    return Rs, Ws
+        r_roots[:, c] = r[idx]
+        r_weights[:, c] = w[I[:, c]]
+    return r_roots, r_weights
 
 def get_rw_4mkey(mkLst, Roots, Weights):
     """ generates eval. points and weights  np.arrays and
@@ -254,130 +254,129 @@ def get_rw_4mkey(mkLst, Roots, Weights):
     #tcnt=len(mkLst)
     R = np.array([])
     W = np.array([])
-    mkLstLong = [] #  multi-key in order of apperance
+    mk_lst_long = [] #  multi-key in order of apperance
     Points4mk = 0
     for mkey in mkLst:
         r, w = gen_rw_4mkey(mkey, Roots, Weights)
         Points4mk = len(r)
-        mkLstLong = mkLstLong+[mkey for c in range(Points4mk)]
+        mk_lst_long = mk_lst_long+[mkey for c in range(Points4mk)]
         if len(R) == 0:
             R = r
             W = w
         else:
             R = np.concatenate([R, r], axis=0)
             W = np.concatenate([W, w], axis=0)
-    return R, W, mkLstLong
+    return R, W, mk_lst_long
 
-def get_rw_4nrs(Nrs, srcs, Roots, Weights):
+def get_rw_4nrs(nrs, srcs, roots, weights):
     """ generates eval. points and weights for a Nr level """
-    dim = len(Nrs)
-    Nris = np.zeros(dim)
-    NriCnt = np.zeros(dim, dtype=int)
+    dim = len(nrs)
+    nris = np.zeros(dim)
+    nri_cnt = np.zeros(dim, dtype=int)
     divs = np.zeros(dim)
     R = np.array([])
     W = np.array([])
-    mkLstLong = [] #  multi-key in order of apperance
+    mk_lst_long = [] #  multi-key in order of apperance
 
     for d in range(dim):
         #aNr = Nrs[d]
-        NriCnt[d] = 2**Nrs[d]
-        divs[d] = np.prod(NriCnt[0:d])
-    tNriCnt = np.prod(NriCnt)
+        nri_cnt[d] = 2**nrs[d]
+        divs[d] = np.prod(nri_cnt[0:d])
 
-    for l in range(tNriCnt):
+    tnri_cnt = np.prod(nri_cnt)
+    for l in range(tnri_cnt):
         for d in range(dim):
-            Nris[d] = (l//divs[d] % NriCnt[d])
-        mkey = u.gen_multi_key(Nrs, Nris, srcs)
-        r, w = gen_rw_4mkey(mkey, Roots, Weights)
+            nris[d] = (l//divs[d] % nri_cnt[d])
+        mkey = u.gen_multi_key(nrs, nris, srcs)
+        r, w = gen_rw_4mkey(mkey, roots, weights)
         #r=np.reshape(r,(-1,dim))
-        mkLstLong = mkLstLong+[mkey for c in range(len(r))]
+        mk_lst_long = mk_lst_long+[mkey for c in range(len(r))]
         if len(R) == 0:
             R = r
             W = w
         else:
-            #print(l,":",len(R))
             R = np.concatenate([R, r], axis=0)
             W = np.concatenate([W, w], axis=0)
-    return R, W, mkLstLong
+    return R, W, mk_lst_long
 
-def gen_quant_dict(dataframe, srcs, NrRange, wvt):
+def gen_quant_dict(dataframe, srcs, nr_range, wvt):
     """
     generates dictionary of quantiles on roots for each Nri and Nr in NrRange
     accorting to roots stored in already initialized object of wavetools wt
     using data in dataframe for columns in srcs
     """
-    Qdict = {}
+    q_dict = {}
 
     for src in srcs:
         data = dataframe[src]
-        for aNr in NrRange:
-            for Nri in range(2**aNr):
-                quants = wvt.cmp_data_on_roots(data, aNr, Nri)
-                key = u.gen_dict_key(aNr, Nri, src)
-                Qdict[key] = quants
-    return Qdict
+        for anr in nr_range:
+            for nri in range(2**anr):
+                quants = wvt.cmp_data_on_roots(data, anr, nri)
+                key = u.gen_dict_key(anr, nri, src)
+                q_dict[key] = quants
+    return q_dict
 
-def gen_detail_dict(Qdict, wvt, dicts=0):
+def gen_detail_dict(q_dict, wvt, dicts=0):
     """
     generates dictionary of Details on roots for each set of quantiles
     stored in Qdict, using initalized wavetool wvt
     dits=0: sum(abs(details)), 1: lDetails only, 2 both
     """
-    DetDict = {}
-    lDetDict = {}
+    det_dict = {}
+    ldet_dict = {}
     s = dicts in (0, 2)
     l = dicts >= 1
-    for key, data in Qdict.items():
+    for key, data in q_dict.items():
         #Nr=key[u.ParPos['Nr']]
-        lDetails = wvt.cmp_details(data)
+        ldetails = wvt.cmp_details(data)
         if l:
-            lDetDict[key] = lDetails
+            ldet_dict[key] = ldetails
         if s:
-            DetDict[key] = sum(abs(lDetails))
+            det_dict[key] = sum(abs(ldetails))
     if dicts == 0:
-        ret = DetDict
+        ret = det_dict
     elif dicts == 1:
-        ret = lDetDict
+        ret = ldet_dict
     else:
-        return  DetDict, lDetDict
+        return  det_dict, ldet_dict
     return ret
 
-def mark_dict4keep(Ddict, thres):
+def mark_dict4keep(d_dict, thres):
     """ marks the details>= threshold for keep """
-    Kdict = {}
-    for key, data in Ddict.items():
+    k_dict = {}
+    for key, data in d_dict.items():
         b = data >= thres
-        Kdict[key] = b
-    return Kdict
+        k_dict[key] = b
+    return k_dict
 
-def get_true_nodes(Kdict, key):
+def get_true_nodes(k_dict, key):
     """
     checks leafs of the tree bottom ab, leafs only highest "True"-level on True
     """
     ret = 0
-    if Kdict[key]:
+    if k_dict[key]:
         ret = 1
 
-    Nri = key[u.ParPos['Nri']]
-    Nr = key[u.ParPos['Nr']]
+    nri = key[u.ParPos['Nri']]
+    nr = key[u.ParPos['Nr']]
     src = key[u.ParPos['src']]
-    lNri = 2*Nri # left kid
-    rNri = lNri+1 # right kid
-    lkey = u.gen_dict_key(Nr+1, lNri, src)
-    rkey = u.gen_dict_key(Nr+1, rNri, src)
-    lex = lkey in Kdict.keys()
-    rex = rkey in Kdict.keys()
+    lnri = 2*nri # left kid
+    rnri = lnri+1 # right kid
+    lkey = u.gen_dict_key(nr+1, lnri, src)
+    rkey = u.gen_dict_key(nr+1, rnri, src)
+    lex = lkey in k_dict.keys()
+    rex = rkey in k_dict.keys()
     if lex and rex:
-        l = get_true_nodes(Kdict, lkey)
-        r = get_true_nodes(Kdict, rkey)
+        l = get_true_nodes(k_dict, lkey)
+        r = get_true_nodes(k_dict, rkey)
         kids = l + r
         if kids > 0:
-            Kdict[key] = False
+            k_dict[key] = False
             if  l == 0:
-                Kdict[lkey] = True
+                k_dict[lkey] = True
                 ret += 1
             if  r == 0:
-                Kdict[rkey] = True
+                k_dict[rkey] = True
                 ret += 1
                 ret += kids
     return ret
@@ -435,16 +434,16 @@ def sample2mkey(sample, mk_lst, nrb_dict, find_all_mkeys=False):
     """
     ndim = len(sample)
     smk_list = []
-    for mk in mk_lst:
+    for mkey in mk_lst:
         chk = True
         for d in range(ndim):
-            qlb, qrb = nrb_dict[mk[d]]
+            qlb, qrb = nrb_dict[mkey[d]]
             chk = chk & cmp_quant_domain(sample[d], qlb, qrb)
         if chk:
             if find_all_mkeys:
-                smk_list += [mk]
+                smk_list += [mkey]
             else:
-                smk_list = [mk]
+                smk_list = [mkey]
     return smk_list
 
 def cmp_resc_cfl(anr_list):
@@ -482,7 +481,7 @@ def gen_rcf_dict(mk_list):
         rcf_dict[mkey] = cmp_resc_cf(mkey)
     return rcf_dict
 
-def gen_pol_on_samples_arr(samples, nPCdict, alphas, mk2sid):
+def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     """
     generates np.array with pol. vals for each sample and pol. degree
     samples : samples for evaluation (evtl. samples[srcs] )
@@ -495,10 +494,10 @@ def gen_pol_on_samples_arr(samples, nPCdict, alphas, mk2sid):
     P = alphas.shape[0]
     pol_vals = np.zeros((P, n))
 
-    for mk in mk2sid:
-        sids = mk2sid[mk]
+    for mkey in mk2sid:
+        sids = mk2sid[mkey]
         for p in range(P):
-            pcfs = pcfs4eval(nPCdict, mk, alphas[p])
+            pcfs = pcfs4eval(npc_dict, mkey, alphas[p])
             pvals = pt.pc_eval(pcfs, samples[sids, :])
             pol_vals[p, sids] = np.prod(pvals, axis=1)
     return pol_vals
