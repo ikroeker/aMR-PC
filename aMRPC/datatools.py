@@ -144,12 +144,12 @@ def Gauss_quad_idx(fct, multi_key, roots, weights):
     f_0(x_0)*...*f_dim-1(x_dim-1), Func=(f_0,...,f_dim-1)
     """
     dim = len(multi_key)
-    R, W = gen_rw_4mkey(multi_key, roots, weights)
+    r_mk, w_mk = gen_rw_4mkey(multi_key, roots, weights)
     if isinstance(fct, tuple):
         assert dim == len(fct)
-        ret = Gauss_quad_arr(fct, R, W)
+        ret = Gauss_quad_arr(fct, r_mk, w_mk)
     else:
-        ret = Gauss_quad_fct(fct, R, W)
+        ret = Gauss_quad_fct(fct, r_mk, w_mk)
     return ret
 
 def inner_prod_multi_idx(F, G, multi_key, roots, weights):
@@ -157,9 +157,9 @@ def inner_prod_multi_idx(F, G, multi_key, roots, weights):
     dim = len(multi_key)
     r_mk, w_mk = gen_rw_4mkey(multi_key, roots, weights)
     assert type(F) == type(G)
-    tf = isinstance(F, tuple)
-    tg = isinstance(G, tuple)
-    if tf and tg:
+    t_f = isinstance(F, tuple)
+    t_g = isinstance(G, tuple)
+    if t_f and t_g:
         flen = len(F)
         assert flen == len(G)
         assert flen == dim
@@ -171,9 +171,9 @@ def inner_prod_multi_idx(F, G, multi_key, roots, weights):
 def Gauss_quad_arr(fct_tup, roots, weights):
     dim = len(fct_tup)
     evals = roots.shape[0]
-    a = dim == roots.shape[1]
-    b = roots.size == weights.size
-    assert a and b
+    t_a = dim == roots.shape[1]
+    t_b = roots.size == weights.size
+    assert t_a and t_b
     S = 0
     for l in range(evals):
         tmp = 1
@@ -201,11 +201,11 @@ def inner_prod_tuples(F, G, roots, weights):
         S += tmp
     return S
 
-def Gauss_quad_fct(F, Roots, Weights):
-    assert Roots.shape == Weights.shape
-    A = F(Roots)*Weights
-    P = np.prod(A, axis=1)
-    return sum(P)
+def Gauss_quad_fct(fct, roots, weights):
+    assert roots.shape == weights.shape
+    arr = fct(roots)*weights
+    return sum(np.prod(arr, axis=1))
+
 
 def inner_prod_fct(f_la, g_la, roots, weights):
     """ <f_la, g_la> on roots-n-weights, for lambdas f_la, and g_la """
@@ -248,18 +248,18 @@ def gen_rw_4mkey(mkey, roots, weights):
         r_weights[:, c] = w[I[:, c]]
     return r_roots, r_weights
 
-def get_rw_4mkey(mkLst, Roots, Weights):
+def get_rw_4mkey(mkLst, roots, weights):
     """ generates eval. points and weights  np.arrays and
     (point number)->mkey list   for multi-keys in mkArr list """
     #tcnt=len(mkLst)
     R = np.array([])
     W = np.array([])
     mk_lst_long = [] #  multi-key in order of apperance
-    Points4mk = 0
+    points4mk = 0
     for mkey in mkLst:
-        r, w = gen_rw_4mkey(mkey, Roots, Weights)
-        Points4mk = len(r)
-        mk_lst_long = mk_lst_long+[mkey for c in range(Points4mk)]
+        r, w = gen_rw_4mkey(mkey, roots, weights)
+        points4mk = len(r)
+        mk_lst_long = mk_lst_long+[mkey for c in range(points4mk)]
         if len(R) == 0:
             R = r
             W = w
@@ -381,35 +381,35 @@ def get_true_nodes(k_dict, key):
                 ret += kids
     return ret
 
-def get_top_keys(Kdict, srcs):
+def get_top_keys(k_dict, srcs):
     """ returns set with top level (True) keys only (bottom up)"""
-    tKeys = Kdict.copy()
+    t_keys = k_dict.copy()
     for src in srcs:
         root_key = u.gen_dict_key(0, 0, src) #multi-key on zero-level (root)
-        if root_key in tKeys.keys():
-            cnt = get_true_nodes(tKeys, root_key)
+        if root_key in t_keys.keys():
+            cnt = get_true_nodes(t_keys, root_key)
             if cnt == 0:
-                tKeys[root_key] = True # set root node to True if no leafs are selected
-    return tKeys
+                t_keys[root_key] = True # set root node to True if no leafs are selected
+    return t_keys
 
-def gen_mkey_list(Kdict, srcs):
+def gen_mkey_list(k_dict, srcs):
     """ generates array of multi-keys from the dictionary Kdict """
     isrcs = u.inv_src_arr(srcs)
-    kLst = [[] for s in isrcs]
+    k_lst = [[] for s in isrcs]
     srclen = len(isrcs)
     sidx = u.ParPos['src']
-    for key, chk in Kdict.items():
+    for key, chk in k_dict.items():
         if chk:
             idx = key[sidx]
-            kLst[isrcs[idx]].append(key)
-    alen = [len(c) for c in kLst]
+            k_lst[isrcs[idx]].append(key)
+    alen = [len(c) for c in k_lst]
     I = u.midx4quad(alen)
     ilen, _ = np.shape(I)
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
-    return [tuple([kLst[c][I[i, c]] for c in range(srclen)]) for i in range(ilen)]
+    return [tuple([k_lst[c][I[i, c]] for c in range(srclen)]) for i in range(ilen)]
 
 
-def gen_mkey_sid_rel(samples, mkLst, nrb_dict):
+def gen_mkey_sid_rel(samples, mk_lst, nrb_dict):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
@@ -418,7 +418,7 @@ def gen_mkey_sid_rel(samples, mkLst, nrb_dict):
     sids = np.arange(sample_cnt)
     sid2mk = {}
     mk2sids = {}
-    for mkey in mkLst:
+    for mkey in mk_lst:
         B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey)
         mk2sids[mkey] = sids[B]
         for sid in mk2sids[mkey]:
@@ -490,18 +490,58 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     mk2sid: multi-key -> sample id's (sid lists should be disjoint)
     return: pol_vals[sample id] = [pol_i:p_i(x_0),...p_i(x_end)]
     """
-    n, _ = samples.shape
-    P = alphas.shape[0]
-    pol_vals = np.zeros((P, n))
+    n_s, _ = samples.shape
+    p_max = alphas.shape[0]
+    pol_vals = np.zeros((p_max, n_s))
 
     for mkey in mk2sid:
         sids = mk2sid[mkey]
-        for p in range(P):
+        for p in range(p_max):
             pcfs = pcfs4eval(npc_dict, mkey, alphas[p])
             pvals = pt.pc_eval(pcfs, samples[sids, :])
             pol_vals[p, sids] = np.prod(pvals, axis=1)
     return pol_vals
 
+def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
+    """
+    computes the armpc-decomposition coefficients f_p of
+    f(x,theta) = sum_p f_p(x) * pol_p(sample)
+    by least-squares on each sample, (sid, p, x):
+
+    Parameters
+    ----------
+    data : np.array[sample_id, space_point_nr]
+        evaluations of f on samples theta for each space point x
+    pol_vals : np.array[sample_id, pol_degree]
+        eval of picevise polynomials for each sample_id and pol_degree
+    mk2sid : dictionary
+        MR-related multi-key -> sample id
+
+    Returns
+    -------
+    cf_ls_4s: np.array of f_i for [sid, p, x_i]
+
+    """
+    # compute function coefficients by least-squares
+    # Fct coefs on each sample, (sid, p, x): by LS
+    n_s, n_x = data.shape
+    p_max = pol_vals.shape[0]
+    cf_ls_4s = np.zeros((n_s, p_max, n_x))
+    for _, sids in mk2sid.items():
+        phi = pol_vals[:, sids].T
+        for idx_x in range(n_x):
+            # v, resid, rank, sigma = linalg.lstsq(A,y)
+            # solves Av = y using least squares
+            # sigma - singular values of A
+            if n_s > 1:
+                #v_ls, resid, rank, sigma = np.linalg.lstsq(
+                #    Phi, data[sids, idx_x], rcond=None) # LS - output
+                v_ls, _, _, _ = np.linalg.lstsq(
+                    phi, data[sids, idx_x], rcond=None) # LS - output
+            else:
+                v_ls = data[idx_x]/phi
+            cf_ls_4s[sids, :, idx_x] = v_ls
+    return cf_ls_4s
 
 def main():
     """ some tests """
