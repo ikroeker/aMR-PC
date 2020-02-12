@@ -152,20 +152,20 @@ def Gauss_quad_idx(fct, multi_key, roots, weights):
         ret = Gauss_quad_fct(fct, r_mk, w_mk)
     return ret
 
-def inner_prod_multi_idx(F, G, multi_key, roots, weights):
+def inner_prod_multi_idx(fkt_f, fkt_g, multi_key, roots, weights):
     """ <F,G>, for for multi-index multiKey """
     dim = len(multi_key)
     r_mk, w_mk = gen_rw_4mkey(multi_key, roots, weights)
-    assert type(F) == type(G)
-    t_f = isinstance(F, tuple)
-    t_g = isinstance(G, tuple)
+    assert type(fkt_f) == type(fkt_g)
+    t_f = isinstance(fkt_f, tuple)
+    t_g = isinstance(fkt_g, tuple)
     if t_f and t_g:
-        flen = len(F)
-        assert flen == len(G)
+        flen = len(fkt_f)
+        assert flen == len(fkt_g)
         assert flen == dim
-        ret = inner_prod_tuples(F, G, r_mk, w_mk)
+        ret = inner_prod_tuples(fkt_f, fkt_g, r_mk, w_mk)
     else:
-        ret = inner_prod_fct(F, G, r_mk, w_mk)
+        ret = inner_prod_fct(fkt_f, fkt_g, r_mk, w_mk)
     return ret
 
 def Gauss_quad_arr(fct_tup, roots, weights):
@@ -506,16 +506,16 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
-    by least-squares on each sample, (sid, p, x):
+    on each sample, (sid, p, x) by least-squares
 
     Parameters
     ----------
     data : np.array[sample_id, space_point_nr]
         evaluations of f on samples theta for each space point x
     pol_vals : np.array[sample_id, pol_degree]
-        eval of picevise polynomials for each sample_id and pol_degree
+        eval of picevise polynomials for each sample_id and pol_degree.
     mk2sid : dictionary
-        MR-related multi-key -> sample id
+        MR-related multi-key -> sample id.
 
     Returns
     -------
@@ -527,7 +527,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
     n_s, n_x = data.shape
     p_max = pol_vals.shape[0]
     cf_ls_4s = np.zeros((n_s, p_max, n_x))
-    for _, sids in mk2sid.items():
+    for sids in mk2sid.values():
         phi = pol_vals[:, sids].T
         for idx_x in range(n_x):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
@@ -542,6 +542,48 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
                 v_ls = data[idx_x]/phi
             cf_ls_4s[sids, :, idx_x] = v_ls
     return cf_ls_4s
+
+def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
+    """
+    computes the armpc-decomposition coefficients f_p of
+    f(x,theta) = sum_p f_p(x) * pol_p(sample)
+    on each sample, (sid, p, x) by using Gauss quadrature
+
+    Parameters
+    ----------
+    data : np.array
+        [sample_id, space_point_nr]
+        evaluations of f on samples theta for each space point x.
+    pol_vals : np.array
+        np.array[sample_id, pol_degree]
+        eval of picevise polynomials for each sample_id and pol_degree.
+    mk2sid : dictionary
+        MR-related multi-key -> sample id.
+    weights : np.array
+        Gaussian weights.
+
+    Returns
+    -------
+    cf_q_4s : np.array
+         f_i for [sid, p, x_i].
+
+    """
+    n_s, n_x = data.shape
+    p_max = pol_vals.shape[0]
+    cf_q_4s = np.zeros((n_s, p_max, n_x))
+    weight_prod = np.prod(np.array(weights), axis=1)
+    weighted_data = data.T * weight_prod # weighted samples
+    #Fkt coefs.  on each sample, (sid, p, x) by quad
+
+    for p in range(p_max):
+        data_pol_4_p = weighted_data * pol_vals[p, :]
+        for idx_x in range(n_x):
+            for sids in mk2sid.values():
+                if n_s > 1:
+                    cf_q_4s[sids, p, idx_x] = sum(data_pol_4_p[idx_x, sids])
+                else:
+                    cf_q_4s[sids, p, idx_x] = data_pol_4_p[idx_x]
+    return cf_q_4s
 
 def main():
     """ some tests """
