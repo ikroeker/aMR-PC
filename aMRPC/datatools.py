@@ -585,6 +585,39 @@ def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
                     cf_q_4s[sids, p, idx_x] = data_pol_4_p[idx_x]
     return cf_q_4s
 
+def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
+    """
+    Computes mean and variance from the aMR-PC decompositions coeficients
+
+    Parameters
+    ----------
+    cf_4s : np.array
+        [sample_id, pol_degree, x_idx], function coefs.
+    rc_dict : dictionary
+        (multi-key)->rescaling coefficent.
+    mk2sid : dictionary
+        (multi-key)->[sample_id].
+
+    Returns
+    -------
+    mean : np.array
+        expectation for all x.
+    variance : np.array
+        variance for all x.
+
+    """
+    n_s, p_max, n_x = cf_4s.shape
+    mean = np.zeros(n_x)
+    variance = np.zeros(n_x)
+    for mkey, sids in mk2sid.items():
+        sid = sids[0]  # first sample related to multi-key
+        mean += cf_4s[sid, 0, :] * rc_dict[mkey]
+        for p_d in range(p_max):
+            variance += rc_dict[mkey] * (cf_4s[sid, p_d, :]**2)
+    variance -= mean**2
+
+    return mean, variance
+
 def main():
     """ some tests """
     # data location
