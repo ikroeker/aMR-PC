@@ -413,6 +413,8 @@ def gen_mkey_sid_rel(samples, mk_lst, nrb_dict):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
+
+    return : sid2mk, mk2sids
     """
     sample_cnt, _ = samples.shape
     sids = np.arange(sample_cnt)
@@ -473,13 +475,55 @@ def cmp_resc_cf(mkey):
 
 def gen_rcf_dict(mk_list):
     """
-    generates dictionary with rescaling coefficients for ech
+    Generates dictionary with rescaling coefficients for ech
     multi-key in mkList [(mk),...]
     """
     rcf_dict = {}
     for mkey in mk_list:
         rcf_dict[mkey] = cmp_resc_cf(mkey)
     return rcf_dict
+
+def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict, mk2sid):
+    """
+    Generates function reconstruction
+    f(sample, x) = sum_(p in alphas) f_cfs(sample, p,  x) * pol(alpha_p, sample)
+
+    Parameters
+    ----------
+    samples : np.array
+        samples for evaluation, samples[i] = [s_0, s_1, ..., s_n].
+    mk_list : list of tuples
+        list of multi-keys ((key,0),...,(key, n)).
+    alphas : np.array
+        array of pol. degrees of multi-variate polynomials.
+    f_cfs : np.array
+        reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
+    npc_dict : dictionary
+        dictionary of normed picewise polynomials.
+    nrb_dict : dictionary
+        dictionary of stochastic-element boundaries.
+    mk2sid : dictionary
+        (multi key) -> sample id dictionary.
+
+    Returns
+    -------
+    f_rec : mp.array
+        ampc reconstruction of the function f, f_rec[sample_id, idx_x].
+
+    """
+    n_s = samples.shape[0]
+    n_x = f_cfs.shape[3]
+    #p_max = alphas.shape[0]
+    f_rec = np.array(n_s, n_x)
+
+    _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
+    p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc)
+    for mkey, sids_l in mk2sid_loc.items():
+        sids = mk2sid[mkey]
+        for idx_p in range(alphas.shape[0]):
+            f_rec[sids_l, :] += f_cfs[sids[0], idx_p, :] * p_vals[sids_l, idx_p]
+
+    return f_rec
 
 def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     """
@@ -496,10 +540,10 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
 
     for mkey in mk2sid:
         sids = mk2sid[mkey]
-        for p in range(p_max):
-            pcfs = pcfs4eval(npc_dict, mkey, alphas[p])
+        for idx_p in range(p_max):
+            pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
             pvals = pt.pc_eval(pcfs, samples[sids, :])
-            pol_vals[p, sids] = np.prod(pvals, axis=1)
+            pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
     return pol_vals
 
 def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
@@ -606,7 +650,7 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
         variance for all x.
 
     """
-    n_s, p_max, n_x = cf_4s.shape
+    _, p_max, n_x = cf_4s.shape
     mean = np.zeros(n_x)
     variance = np.zeros(n_x)
     for mkey, sids in mk2sid.items():
