@@ -146,7 +146,7 @@ def gen_Gw(moments, roots):
             M[i, j] = roots[j]**i
     return np.linalg.solve(M, rs)
 
-def cmp_norm_cf(cfs, roots, weights, eps=1e-10):
+def cmp_norm_cf(cfs, roots, weights, eps=0):
     """computes the norming factor of the polynomial w.r.t. Gauss quadrature"""
     r = roots.shape[0]
     w = weights.shape[0]
@@ -220,7 +220,10 @@ def gen_npc_mx(cf, r, w, No=-1):
     ncf = np.zeros([No, No])
     for k in range(No):
         nc = cmp_norm_cf(cf[k, :], r, w)
-        ncf[k, :] = cf[k, :]/nc
+        if nc>0:
+            ncf[k, :] = cf[k, :]/nc
+        else:
+            ncf[k, :] = 0
     return ncf
 
 def pc_eval(cfs, X):
