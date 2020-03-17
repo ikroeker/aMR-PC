@@ -146,7 +146,7 @@ def gen_Gw(moments, roots):
             M[i, j] = roots[j]**i
     return np.linalg.solve(M, rs)
 
-def cmp_norm_cf(cfs, roots, weights):
+def cmp_norm_cf(cfs, roots, weights, eps=1e-10):
     """computes the norming factor of the polynomial w.r.t. Gauss quadrature"""
     r = roots.shape[0]
     w = weights.shape[0]
@@ -156,6 +156,9 @@ def cmp_norm_cf(cfs, roots, weights):
     nc = 0
     for i in range(r):
         nc += (p(roots[i])**2)*weights[i]
+    if nc < eps:
+        #print(nc)
+        nc = eps # ugly workarround, should be improved
     return math.sqrt(nc)
 
 def uniHank(n, a=0, b=1):

@@ -508,17 +508,12 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     Returns
     -------
-    f_rec : mp.array
+    f_rec : np.array
         ampc reconstruction of the function f, f_rec[sample_id, idx_x].
 
     """
     n_s = samples.shape[0]
     n_x = f_cfs.shape[2]
-    #p_max = alphas.shape[0]
-    # if srcs is None:
-    #     srcs = [*range(n_s)]
-    # else:
-    #     n_s = len(srcs)
     f_rec = np.zeros((n_s, n_x))
 
     _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
