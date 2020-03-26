@@ -161,20 +161,14 @@ def cmp_norm_cf(cfs, roots, weights, eps=0):
         nc = eps # ugly workarround, should be improved
     return math.sqrt(nc)
 
-def cmp_norm_cf_moments(cfs, Hankel, eps=0):
-    m = Hankel.shape[0]
+def cmp_norm_cf_moments(cfs, H_mx):
+    m = H_mx.shape[0]
     n = cfs.shape[0]
     assert n <= m
     ltwo_norm = 0
-    #pol_moments = cfs * moments
-    #ltwo_norm = np.add.reduce(np.multiply.outer(pol_moments, pol_moments),
-    #                          axis=None)
     for i in range(n):
-        for j in range(n):
-            ltwo_norm += cfs[i]*cfs[j]*Hankel[i,j]
-    #if ltwo_norm < eps:
-    #    print(ltwo_norm)
-    #    ltwo_norm = eps # ugly workarround
+        mx_line = cfs * H_mx[i, 0:n]
+        ltwo_norm += cfs[i] * np.add.reduce(mx_line)
     return math.sqrt(ltwo_norm)
 
 def uniHank(n, a=0, b=1):
@@ -242,14 +236,15 @@ def gen_npc_mx(cf, r, w, No=-1):
             ncf[k, :] = 0
     return ncf
 
-def gen_npc_mx_mm(cf, Hankel, No=-1):
+def gen_npc_mx_mm(cf, H_mx, No=-1):
+    
     n = cf.shape[0]
     assert No <= n
     if No < 0:
         No = n
     ncf = np.zeros([No, No])
     for k in range(No):
-        nc = cmp_norm_cf_moments(cf[k, :], Hankel)
+        nc = cmp_norm_cf_moments(cf[k, :], H_mx)
         if nc > 0:
             ncf[k, :] = cf[k, :]/nc
         else:
