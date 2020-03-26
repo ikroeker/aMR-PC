@@ -164,7 +164,7 @@ def cmp_norm_cf(cfs, roots, weights, eps=0):
 def cmp_norm_cf_moments(cfs, Hankel, eps=0):
     m = Hankel.shape[0]
     n = cfs.shape[0]
-    assert m == n
+    assert n <= m
     ltwo_norm = 0
     #pol_moments = cfs * moments
     #ltwo_norm = np.add.reduce(np.multiply.outer(pol_moments, pol_moments),
@@ -172,8 +172,8 @@ def cmp_norm_cf_moments(cfs, Hankel, eps=0):
     for i in range(n):
         for j in range(n):
             ltwo_norm += cfs[i]*cfs[j]*Hankel[i,j]
-    if ltwo_norm < eps:
-        print(ltwo_norm)
+    #if ltwo_norm < eps:
+    #    print(ltwo_norm)
     #    ltwo_norm = eps # ugly workarround
     return math.sqrt(ltwo_norm)
 
@@ -236,6 +236,20 @@ def gen_npc_mx(cf, r, w, No=-1):
     ncf = np.zeros([No, No])
     for k in range(No):
         nc = cmp_norm_cf(cf[k, :], r, w)
+        if nc > 0:
+            ncf[k, :] = cf[k, :]/nc
+        else:
+            ncf[k, :] = 0
+    return ncf
+
+def gen_npc_mx_mm(cf, Hankel, No=-1):
+    n = cf.shape[0]
+    assert No <= n
+    if No < 0:
+        No = n
+    ncf = np.zeros([No, No])
+    for k in range(No):
+        nc = cmp_norm_cf_moments(cf[k, :], Hankel)
         if nc > 0:
             ncf[k, :] = cf[k, :]/nc
         else:
