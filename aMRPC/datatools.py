@@ -118,6 +118,12 @@ def gen_npcs(pc_dict, roots, weights):
         n_cfs[key] = pt.gen_npc_mx(pc_dict[key], roots[key], weights[key])
     return n_cfs
 
+def gen_npcs_mm(pc_dict, H_dict):
+    n_cfs = {}
+    for key in pc_dict:
+        n_cfs[key] = pt.gen_npc_mx_mm(pc_dict[key], H_dict[key])
+    return n_cfs
+
 def pcfs4eval(pc_dict, mkey, alpha):
     """ provides PC-Cfs for multi-polynomial with degrees in alpha """
     mdeg = max(alpha)
@@ -483,8 +489,8 @@ def gen_rcf_dict(mk_list):
         rcf_dict[mkey] = cmp_resc_cf(mkey)
     return rcf_dict
 
-def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict, 
-                      mk2sid):
+def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
+                  mk2sid):
     """
     Generates function reconstruction
     f(sample, x) = sum_(p in alphas) f_cfs(sample, p,  x) * pol(alpha_p, sample)

@@ -18,7 +18,7 @@ Nr = 3
 No = 3
 srcs = [0, 1, 2, 3]
 srcs = [0, 2, 3]
-method = 0
+method = 1
 tol = 1e-6 * 10**Nr
 eps = 0.01 # multi-wavelet threshold
 #eps = 0.005 # multi-wavelet threshold
@@ -167,6 +167,37 @@ def test_pol_on_samples():
                     assert abs(1-p_pq) < tol
                 else:
                     assert abs(p_pq) < tol
+                    
+def test_apc_pol_on_samples():
+    """ tests genPolOnSamplesArr(...) PCs normalized with moments"""
+    dataframe = load()
+    myNrRange = [Nr]
+    Hdict = dt.genHankel(dataframe, srcs, NrRange, No)
+    R, W = dt.gen_roots_weights(Hdict, method)
+    PCdict = dt.gen_pcs(Hdict, method)
+    nPCdict = dt.gen_npcs_mm(PCdict, Hdict)
+    Alphas = u.gen_multi_idx(No, DIM)
+    P = int(comb(No+DIM, DIM))
+    # Generates dictionary of MR-elements bounds
+    NRBdict = dt.gen_nr_range_bds(dataframe, srcs, myNrRange)
+    # get roots and weights for the output
+    mkLst = dt.gen_mkey_list(NRBdict, srcs)
+    tR, tW, mkLstLong = dt.get_rw_4mkey(mkLst, R, W)
+    sid2mk, mk2sid = dt.gen_mkey_sid_rel(tR, mkLst, NRBdict)
+    polVals = dt.gen_pol_on_samples_arr(tR, nPCdict, Alphas, mk2sid)
+    Gws = np.prod(tW, axis=1)
+    n = tR.shape[0]
+    for mk in mk2sid:
+        sids = mk2sid[mk]
+        for p in range(P):
+            pV = polVals[p, sids]
+            for q in range(P):
+                qV = polVals[q, sids]
+                p_pq = np.inner(pV*qV, Gws[sids])
+                if p == q:
+                    assert abs(1-p_pq) < tol
+                else:
+                    assert abs(p_pq) < tol                    
 
 
 def test_cmp_resc_cf():
