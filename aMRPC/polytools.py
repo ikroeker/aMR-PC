@@ -161,14 +161,17 @@ def cmp_norm_cf(cfs, roots, weights, eps=0):
         nc = eps # ugly workarround, should be improved
     return math.sqrt(nc)
 
-def cmp_norm_cf_moments(cfs, moments):
+def cmp_norm_cf_moments(cfs, moments, eps=0):
     m = moments.shape[0]
     n = cfs.shape[0]
     assert m == n
     pol_moments = cfs * moments
     ltwo_norm = np.add.reduce(np.multiply.outer(pol_moments, pol_moments),
                               axis=None)
-    return ltwo_norm
+    if ltwo_norm < eps:
+        print(ltwo_norm)
+        ltwo_norm = eps # ugly workarround
+    return math.sqrt(ltwo_norm)
 
 def uniHank(n, a=0, b=1):
     """Generates Hankel Matrix H_n for U(a,b), uses m_n=1/n+1 sum_k=0^n a^k b^(n-k)"""
