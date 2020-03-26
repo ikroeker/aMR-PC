@@ -156,12 +156,12 @@ def cmp_norm_cf(cfs, roots, weights, eps=0):
     nc = 0
     for i in range(r):
         nc += (p(roots[i])**2)*weights[i]
-    if nc < eps:
+    if nc < eps: # ugly workarround, should be improved
         #print(nc)
-        nc = eps # ugly workarround, should be improved
+        nc = eps 
     return math.sqrt(nc)
 
-def cmp_norm_cf_moments(cfs, H_mx):
+def cmp_norm_cf_moments(cfs, H_mx, eps=0):
     m = H_mx.shape[0]
     n = cfs.shape[0]
     assert n <= m
@@ -169,6 +169,9 @@ def cmp_norm_cf_moments(cfs, H_mx):
     for i in range(n):
         mx_line = cfs * H_mx[i, 0:n]
         ltwo_norm += cfs[i] * np.add.reduce(mx_line)
+    if ltwo_norm < eps: # ugly workarround, should be improved
+        #print(nc)
+        ltwo_norm = eps     
     return math.sqrt(ltwo_norm)
 
 def uniHank(n, a=0, b=1):
