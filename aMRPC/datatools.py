@@ -575,7 +575,12 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
     """
     # compute function coefficients by least-squares
     # Fct coefs on each sample, (sid, p, x): by LS
-    n_s, n_x = data.shape
+    n_tup = data.shape
+    if len(n_tup) > 1:
+        n_x = n_tup[1]
+    else:
+        n_x = 1
+    n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     cf_ls_4s = np.zeros((n_s, p_max, n_x))
     for sids in mk2sid.values():
