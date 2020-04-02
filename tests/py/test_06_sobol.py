@@ -67,10 +67,10 @@ def test_sobol():
     pc_dict = dt.gen_pcs(h_dict, METHOD)
     npc_dict = dt.gen_npcs_mm(pc_dict, h_dict)
     nrb_dict = dt.gen_nr_range_bds(dataset, SRCS, pc_nr_range)
-    #MK_LST = dt.gen_mkey_list(PC_ROOTS, SRCS)
     # get roots and weights and long MK-list for the output
-    roots_eval, _, mk_lst = dt.get_rw_4nrs(np.zeros(DIM), SRCS,
+    roots_eval, _, mk_lst_l = dt.get_rw_4nrs(np.zeros(DIM), SRCS,
                                            pc_roots, pc_weights)
+    mk_lst = list(set(mk_lst_l))
     _, mk2sid = dt.gen_mkey_sid_rel(roots_eval, mk_lst, nrb_dict)
     pol_vals = dt.gen_pol_on_samples_arr(roots_eval, npc_dict, ALPHAS, mk2sid)
     y_rt = ISH_FCT(roots_eval)

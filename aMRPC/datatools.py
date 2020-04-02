@@ -46,6 +46,14 @@ def gen_nr_range_bds(dataframe, srcs, nr_range):
                 nrb_dict[key] = (qlb, qrb)
     return nrb_dict
 
+def get_nr_bds(nrb_dict, srcs, nr):
+    dict_4_nr = {}
+    for src in srcs:
+        for nri in range(2**nr):
+            key = u.gen_dict_key(nr, nri, src)
+            dict_4_nr[key] = nrb_dict[key]
+    return dict_4_nr
+
 def gen_roots_weights(h_dict, method):
     """
     generates dictionaries with roots and weights
