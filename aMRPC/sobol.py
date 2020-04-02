@@ -15,7 +15,7 @@ def sobol_idx_pc(pc_coefs, alphas, idx_set):
     srcs = list(range(dim))
     assert max(idx_set) < dim
     not_in_idx_set = list(set(srcs)-set(idx_set))
-    sobol = pc_coefs[0]
+    sobol = 0
     for pidx in range(p_max):
         alpha = alphas[pidx, :]
         chk_in = alpha[idx_set].min() > 0
