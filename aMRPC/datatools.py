@@ -670,14 +670,25 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
         variance for all x.
 
     """
-    _, p_max, n_x = cf_4s.shape
+    #_, p_max, n_x = cf_4s.shape
+    tup = cf_4s.shape
+    if len(tup) <= 2:
+        n_x = 1
+    else:
+        n_x = tup[2]
+    p_max = tup[1]
     mean = np.zeros(n_x)
     variance = np.zeros(n_x)
     for mkey, sids in mk2sid.items():
         sid = sids[0]  # first sample related to multi-key
-        mean += cf_4s[sid, 0, :] * rc_dict[mkey]
-        for p_d in range(p_max):
-            variance += rc_dict[mkey] * (cf_4s[sid, p_d, :]**2)
+        if n_x > 1:
+            mean += cf_4s[sid, 0, :] * rc_dict[mkey]
+            for p_d in range(p_max):
+                variance += rc_dict[mkey] * (cf_4s[sid, p_d, :]**2)
+        else:
+            mean += cf_4s[sid, 0] * rc_dict[mkey]
+            for p_d in range(p_max):
+                variance += rc_dict[mkey] * (cf_4s[sid, p_d]**2)
     variance -= mean**2
 
     return mean, variance
