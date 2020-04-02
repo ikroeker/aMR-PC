@@ -33,9 +33,10 @@ def gen_idx_subsets(dim):
                for t in it.combinations(items, length)]
     return set(sub_idx)
 
-def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_set):
+def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
     tot = 0
+    idx_set = set(idx_list)
     for idx_it in src_idxs:
-        if set(idx_set) <= idx_it:
-            tot += sobol_idx_pc(pc_coefs, alphas, idx_set)
+        if idx_set <= idx_it:
+            tot += sobol_idx_pc(pc_coefs, alphas, list(idx_it))
     return tot
