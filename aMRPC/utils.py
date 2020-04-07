@@ -134,6 +134,13 @@ def multi_key2srcs(mkey):
     src_pos = ParPos['src']
     return [c[src_pos] for c in mkey]
 
+def multi_key_diff_srcs(mkey_one, mkey_two):
+    assert len(mkey_one) == len(mkey_two)
+    spos = ParPos['src']
+    srcs = multi_key2srcs(mkey_one)
+    diff = [src for src in srcs if mkey_one[src] != mkey_two[src]]
+    return diff
+
 def get_multi_entry(adict, anrs, nris, srcs):
     """ returns dictionary entriy """
     key = gen_multi_key(anrs, nris, srcs)

@@ -688,7 +688,7 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
         else:
             mean += cf_4s[sid, 0] * rc_dict[mkey]
             for p_d in range(p_max):
-                variance += rc_dict[mkey] * (cf_4s[sid, p_d]**2)
+                variance +=  (cf_4s[sid, p_d]**2) *rc_dict[mkey]
     variance -= mean**2
 
     return mean, variance

@@ -21,7 +21,7 @@ def sobol_idx_pc(pc_coefs, alphas, idx_set):
         alpha = alphas[pidx, :]
         chk_in = alpha[idx_set].min() > 0
         if not not_in_idx_set:
-            chk_out = 0
+            chk_out = True
         else:
             chk_out = alpha[not_in_idx_set].max() == 0
         if chk_in and chk_out:
@@ -48,17 +48,23 @@ def sobol_idx_amrpc(pc_coefs, rsc_dict, mk2sid, alphas, idx_set):
     srcs = list(range(dim))
     assert max(idx_set) < dim
     not_in_idx_set = list(set(srcs)-set(idx_set))
-    sobol_ns = -mean**2
-    for sids in mk2sid.values():
+    #loc_rsc_cf = 2**(- len(not_in_idx_set))
+    sobol_ns = 0
+
+    for mkey, sids in mk2sid.items():
         loc_pc = pc_coefs[sids[0], :]
-        sobol_ns += loc_pc[0]**2
+        sobol_mk = 0 #loc_pc[0]**2
         for pidx in range(p_max):
             alpha = alphas[pidx, :]
             chk_in = alpha[idx_set].min() > 0
             if not not_in_idx_set:
-                chk_out = 0
+                chk_out = True
             else:
                 chk_out = alpha[not_in_idx_set].max() == 0
             if chk_in and chk_out:
-                sobol_ns += loc_pc[pidx]**2
-    return sobol_ns / var
+                sobol_mk += loc_pc[pidx]**2
+        sobol_mk *= rsc_dict[mkey]
+        sobol_ns += sobol_mk
+    sobol_ns -= mean**2
+    #print(mean, var, 1/rsc_dict[mkey])
+    return (sobol_ns / var)
