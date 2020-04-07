@@ -33,7 +33,7 @@ A = 7
 B = 0.1
 
 ISH_FCT = lambda X: A*np.sin(X[:, 1])**2 + (1+B*np.power(X[:, 2], 4))*np.sin(X[:, 0])
-
+np.random.seed(3)
 def ishigami_exact_sensitivity(a, b):
     ival = 0
     D = (a**2) / 8 + b*(math.pi**4) / 5 + (b**2) * (math.pi**8) /18 + 0.5
