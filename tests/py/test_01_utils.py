@@ -3,40 +3,57 @@ import numpy as np
 import context
 import aMRPC.utils as u
 
-No = 3
+NO = 3
+NR = 3
 DIM = 3
 
 def test_midx():
     dim = DIM
-    Alphas=u.gen_multi_idx(No, dim)
-    m,n=Alphas.shape
-    fline=Alphas[0,:]
-    lline=Alphas[m-1,:]
-    assert sum(fline)==0
-    assert sum(lline)==No
-    
+    alphas = u.gen_multi_idx(NO, dim)
+    m = alphas.shape[0]
+    fline = alphas[0, :]
+    lline = alphas[m-1, :]
+    assert sum(fline) == 0
+    assert sum(lline) == NO
+
 def test_multikeys():
-    srcs = [0,1,3]
-    aNr = 2
+    srcs = [0, 1, 3]
     dim = len(srcs)
-    aNrs = [aNr]*dim
-    NriMax = 2**(aNr*dim)
-    Nris, NriCnt = u.gen_nri_range(aNrs)
-    assert(NriMax == NriCnt)
-    for nri in Nris:
-        mk = u.gen_multi_key(aNrs,nri,srcs)
+    anrs = [NR]*dim
+    nri_max = 2**(NR*dim)
+    nris, nri_cnt = u.gen_nri_range(anrs)
+    assert nri_max == nri_cnt
+    for nri in nris:
+        mk = u.gen_multi_key(anrs, nri, srcs)
         nsrcs = u.multi_key2srcs(mk)
         for d in range(dim):
-            assert(srcs[d] == nsrcs[d])
+            assert srcs[d] == nsrcs[d]
 
-def test_MultiIdx():
+def test_multiidx():
     """ checks if each No multi-index is unique"""
-    dim = DIM
-    Alphas = u.gen_multi_idx(No, dim)
-    for p in range(No+1):
-        for q in range(No+1):
+    alphas = u.gen_multi_idx(NO, DIM)
+    for p in range(NO+1):
+        for q in range(NO+1):
             if p != q:
-                chk=True
-                for d in range(dim):
-                    chk = chk and (Alphas[p, d] == Alphas[q, d])
+                chk = True
+                for d in range(DIM):
+                    chk = chk and (alphas[p, d] == alphas[q, d])
                 assert not chk
+
+def test_mk_diff():
+    "checks multi-key diff fct"
+    srcs = [0, 1, 3]
+    dim = len(srcs)
+    anrs = [NR]*dim
+    nri_max = 2**(NR*dim)
+    nris, nri_cnt = u.gen_nri_range(anrs)
+    assert nri_max == nri_cnt
+    for nri_a in nris:
+        mk_a = u.gen_multi_key(anrs, nri_a, srcs)
+        for nri_b in nris:
+            mk_b = u.gen_multi_key(anrs, nri_b, srcs)
+            src_list = u.multi_key_diff_srcs(mk_a, mk_b)
+            if mk_a == mk_b:
+                assert not src_list
+            else:
+                assert src_list

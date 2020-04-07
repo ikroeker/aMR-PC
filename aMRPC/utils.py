@@ -135,10 +135,11 @@ def multi_key2srcs(mkey):
     return [c[src_pos] for c in mkey]
 
 def multi_key_diff_srcs(mkey_one, mkey_two):
-    assert len(mkey_one) == len(mkey_two)
-    spos = ParPos['src']
+    mk_len = len(mkey_one)
+    assert mk_len == len(mkey_two)
+    #spos = ParPos['src']
     srcs = multi_key2srcs(mkey_one)
-    diff = [src for src in srcs if mkey_one[src] != mkey_two[src]]
+    diff = [srcs[src] for src in range(mk_len) if mkey_one[src] != mkey_two[src]]
     return diff
 
 def get_multi_entry(adict, anrs, nris, srcs):
