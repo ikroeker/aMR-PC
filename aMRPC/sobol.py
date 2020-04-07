@@ -8,6 +8,7 @@ Created on Wed Apr  1 16:15:45 2020
 import itertools as it
 import numpy as np
 import aMRPC.datatools as dt
+import aMRPC.utils as u
 
 # %% Sobol idx for aPC
 def sobol_idx_pc(pc_coefs, alphas, idx_set):
@@ -54,6 +55,10 @@ def sobol_idx_amrpc(pc_coefs, rsc_dict, mk2sid, alphas, idx_set):
     for mkey, sids in mk2sid.items():
         loc_pc = pc_coefs[sids[0], :]
         sobol_mk = 0 #loc_pc[0]**2
+#        for a_mkey, a_sids in mk2sid.items():
+#            idx_diff = u.multi_key_diff_srcs(mkey, a_mkey)
+#            if set(idx_diff) <= set(idx_set):
+#                sobol_mk += loc_pc[0] * pc_coefs[a_sids[0], 0]
         for pidx in range(p_max):
             alpha = alphas[pidx, :]
             chk_in = alpha[idx_set].min() > 0
@@ -63,8 +68,8 @@ def sobol_idx_amrpc(pc_coefs, rsc_dict, mk2sid, alphas, idx_set):
                 chk_out = alpha[not_in_idx_set].max() == 0
             if chk_in and chk_out:
                 sobol_mk += loc_pc[pidx]**2
-        sobol_mk *= rsc_dict[mkey]
+        sobol_mk *= rsc_dict[mkey]**2
         sobol_ns += sobol_mk
-    sobol_ns -= mean**2
+#    sobol_ns -= mean**2
     #print(mean, var, 1/rsc_dict[mkey])
-    return (sobol_ns / var)
+    return sobol_ns / var
