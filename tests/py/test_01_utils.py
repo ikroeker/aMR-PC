@@ -57,3 +57,20 @@ def test_mk_diff():
                 assert not src_list
             else:
                 assert src_list
+
+def test_mk_intersect():
+    "checks multi-key intersection fct"
+    srcs = [0, 1, 3]
+    dim = len(srcs)
+    anrs = [NR]*dim
+    nri_max = 2**(NR*dim)
+    nris, nri_cnt = u.gen_nri_range(anrs)
+    assert nri_max == nri_cnt
+    for nri_a in nris:
+        mk_a = u.gen_multi_key(anrs, nri_a, srcs)
+        for nri_b in nris:
+            mk_b = u.gen_multi_key(anrs, nri_b, srcs)
+            src_list = u.multi_key_intersect_srcs(mk_a, mk_b)
+            if mk_a == mk_b:
+                assert src_list
+            

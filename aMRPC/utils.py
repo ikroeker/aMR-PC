@@ -142,6 +142,15 @@ def multi_key_diff_srcs(mkey_one, mkey_two):
     diff = [srcs[src] for src in range(mk_len) if mkey_one[src] != mkey_two[src]]
     return diff
 
+def multi_key_intersect_srcs(mkey_one, mkey_two):
+    mk_len = len(mkey_one)
+    assert mk_len == len(mkey_two)
+    #spos = ParPos['src']
+    srcs = multi_key2srcs(mkey_one)
+    diff = [srcs[src] for src in range(mk_len) if mkey_one[src] == mkey_two[src]]
+    return diff
+
+
 def get_multi_entry(adict, anrs, nris, srcs):
     """ returns dictionary entriy """
     key = gen_multi_key(anrs, nris, srcs)
