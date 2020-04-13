@@ -150,6 +150,22 @@ def multi_key_intersect_srcs(mkey_one, mkey_two):
     diff = [srcs[src] for src in range(mk_len) if mkey_one[src] == mkey_two[src]]
     return diff
 
+def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
+    mkey_len = len(mkey_two)
+    chk_a = len(mkey_one) == mkey_len
+    chk_b = max(srcs) < mkey_len
+    assert chk_a and chk_b
+    ret = True
+    for src in srcs:
+        ret = ret and (mkey_one[src] == mkey_two[src])
+    return ret
+
+def gen_corr_rcf(mkey, srcs):
+    nr_pos = ParPos['aNr']
+    correct_cf = 1
+    for src in srcs:
+        correct_cf *= 2**(-mkey[src][nr_pos])
+    return correct_cf
 
 def get_multi_entry(adict, anrs, nris, srcs):
     """ returns dictionary entriy """
