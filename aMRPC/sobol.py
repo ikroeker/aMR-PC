@@ -61,12 +61,12 @@ def sobol_idx_amrpc(pc_coefs, rsc_dict, mk2sid, alphas, idx_set):
             loc_pc_a = pc_coefs[a_sids[0], :]
             #idx_diff = u.multi_key_intersect_srcs(mkey, a_mkey)
             #if set(idx_diff) <= set(idx_set):
-            #if mkey == a_mkey:
+            #mk_chk = mkey == a_mkey
             #    sobol_mk += loc_pc[0]**2
             #else:
             mk_chk = u.compare_multi_key_for_idx(mkey, a_mkey, idx_set)
             if mk_chk:
-                sobol_mk += loc_pc[0] * loc_pc_a[0]
+                #sobol_mk += loc_pc[0] * loc_pc_a[0]
                 for pidx in range(p_max):
                     alpha = alphas[pidx, :]
                     chk_in = alpha[idx_set].min() > 0
@@ -74,7 +74,7 @@ def sobol_idx_amrpc(pc_coefs, rsc_dict, mk2sid, alphas, idx_set):
                         chk_out = True
                     else:
                         chk_out = alpha[not_in_idx_set].max() == 0
-                    if chk_in and chk_out:
+                    if chk_out:
                         sobol_mk += loc_pc[pidx] * loc_pc_a[pidx]
         sobol_mk *= r_cf * cf
         sobol_ns += sobol_mk
