@@ -43,6 +43,14 @@ def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
             tot += sobol_idx_pc(pc_coefs, alphas, list(idx_it))
     return tot
 
+def sobol_tot_sen(sob_dict, src_idxs, idx_list):
+    tot = 0
+    idx_set = set(idx_list)
+    for idx_it in src_idxs:
+        if idx_set <= idx_it:
+            tot += sob_dict[idx_set]
+    return tot
+
 def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list):
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
     p_max, dim = alphas.shape
@@ -56,7 +64,7 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list):
         loc_pc = pc_coefs[sids[0], :]
         sobol_mk = 0 #loc_pc[0]**2
         r_cf = rsc_dict[mkey]
-        cf = u.gen_corr_rcf(mkey, not_in_idx_set)
+        c_cf = u.gen_corr_rcf(mkey, not_in_idx_set)
         for a_mkey, a_sids in mk2sid.items():
             loc_pc_a = pc_coefs[a_sids[0], :]
             #idx_diff = u.multi_key_intersect_srcs(mkey, a_mkey)
@@ -76,7 +84,7 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list):
                         chk_out = alpha[not_in_idx_set].max() == 0
                     if chk_out:
                         sobol_mk += loc_pc[pidx] * loc_pc_a[pidx]
-        sobol_mk *= r_cf * cf
+        sobol_mk *= r_cf * c_cf
         sobol_ns += sobol_mk
     sobol_ns -= mean**2
     #print(mean, var, 1/rsc_dict[mkey])
@@ -89,7 +97,7 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
         items = list(idx_set)
         sub_idx = [frozenset(t) for length in range(1, idx_set_len)
                    for t in it.combinations(items, length)]
-        print(idx_set, sub_idx)
+        #print(idx_set, sub_idx)
         for idx in sub_idx:
             #ret_val -= sobol_dict[idx][0]
             ret_val -= sobol_idx_amrpc(sobol_dict, idx)
