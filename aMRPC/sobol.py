@@ -84,12 +84,13 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list):
 
 def sobol_idx_amrpc(sobol_dict, idx_set):
     idx_set_len = len(idx_set)
-    ret_val = sobol_dict[idx_set]
+    ret_val = sobol_dict[idx_set][0]
     if idx_set_len > 1:
         items = list(idx_set)
         sub_idx = [frozenset(t) for length in range(1, idx_set_len)
                    for t in it.combinations(items, length)]
-        #print(idx_set, sub_idx)
+        print(idx_set, sub_idx)
         for idx in sub_idx:
-            ret_val -= sobol_dict[idx]
+            #ret_val -= sobol_dict[idx][0]
+            ret_val -= sobol_idx_amrpc(sobol_dict, idx)
     return ret_val
