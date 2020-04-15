@@ -43,12 +43,12 @@ def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
             tot += sobol_idx_pc(pc_coefs, alphas, list(idx_it))
     return tot
 
-def sobol_tot_sen(sob_dict, src_idxs, idx_list):
+def sobol_tot_sens(sob_dict, src_idxs, idx_list):
     tot = 0
     idx_set = set(idx_list)
     for idx_it in src_idxs:
         if idx_set <= idx_it:
-            tot += sob_dict[idx_set]
+            tot += sob_dict[idx_it]
     return tot
 
 def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list):
