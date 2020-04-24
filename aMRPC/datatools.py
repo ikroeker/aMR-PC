@@ -702,9 +702,10 @@ def add_samples(samples, new_samples):
 def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid2mk):
     new_samples_cnt = new_samples.shape[0]
     sids = np.arange(new_samples_cnt) + start_sid
-    
+    new_mk2sid = {}
     for mkey in mk_list:
         B = cmp_mv_quant_domain_mk(new_samples, nrb_dict, mkey)
+        new_mk2sid[mkey] = new_samples[B]
         if mkey in mk2sid:
             mk2sid[mkey] = np.concatenate(mk2sid[mkey], sids[B])
         else:
@@ -714,7 +715,21 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
                 sid2mk[sid] += mkey
             else:
                 sid2mk[sid] = [mkey]
-    return sid2mk, mk2sid
+    return sid2mk, mk2sid, new_mk2sid
+
+def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_dict,
+                               alphas, new_mk2sid):
+
+    p_max = alphas.shape[0]
+    pol_vals = np.concatenate(pol_vals, np.zeros((p_max, new_samples_cnt)))
+
+    for mkey in new_mk2sid:
+        sids = new_mk2sid[mkey]
+        for idx_p in range(p_max):
+            pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
+            pvals = pt.pc_eval(pcfs, samples_updated[sids, :])
+            pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
+    return pol_vals
 
 def main():
     """ some tests """
