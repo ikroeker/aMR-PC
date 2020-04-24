@@ -274,7 +274,7 @@ def get_rw_4mkey(mkLst, roots, weights):
         r, w = gen_rw_4mkey(mkey, roots, weights)
         points4mk = len(r)
         mk_lst_long = mk_lst_long+[mkey for c in range(points4mk)]
-        if len(R) == 0:
+        if R.size == 0:
             R = r
             W = w
         else:
@@ -305,7 +305,7 @@ def get_rw_4nrs(nrs, srcs, roots, weights):
         r, w = gen_rw_4mkey(mkey, roots, weights)
         #r=np.reshape(r,(-1,dim))
         mk_lst_long = mk_lst_long+[mkey for c in range(len(r))]
-        if len(R) == 0:
+        if R.size == 0:
             R = r
             W = w
         else:
@@ -688,7 +688,7 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
         else:
             mean += cf_4s[sid, 0] * rc_dict[mkey]
             for p_d in range(p_max):
-                variance +=  (cf_4s[sid, p_d]**2) *rc_dict[mkey]
+                variance += (cf_4s[sid, p_d]**2) *rc_dict[mkey]
     variance -= mean**2
 
     return mean, variance
