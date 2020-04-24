@@ -714,7 +714,7 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
                 sid2mk[sid] += mkey
             else:
                 sid2mk[sid] = [mkey]
-    return sid2mk, mk2sids
+    return sid2mk, mk2sid
 
 def main():
     """ some tests """
