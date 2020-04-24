@@ -693,6 +693,29 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
 
     return mean, variance
 
+def add_samples(samples, new_samples):
+    sdim = samples.shape[1]
+    n_dim = new_samples.shape[1]
+    assert sdim == n_dim
+    return np.concatenate(samples, new_samples, axis=1)
+
+def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid2mk):
+    new_samples_cnt = new_samples.shape[0]
+    sids = np.arange(new_samples_cnt) + start_sid
+    
+    for mkey in mk_list:
+        B = cmp_mv_quant_domain_mk(new_samples, nrb_dict, mkey)
+        if mkey in mk2sid:
+            mk2sid[mkey] = np.concatenate(mk2sid[mkey], sids[B])
+        else:
+            mk2sid[mkey] = sids[B]
+        for sid in sids[B]:
+            if sid in sid2mk:
+                sid2mk[sid] += mkey
+            else:
+                sid2mk[sid] = [mkey]
+    return sid2mk, mk2sids
+
 def main():
     """ some tests """
     # data location
