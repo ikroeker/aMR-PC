@@ -117,7 +117,7 @@ def test_sobol():
         # solves Av = y using least squares
         # sigma - singular values of A
         v_ls, _, _, _ = np.linalg.lstsq(
-            phi, y_rt[sids], rcond=None) # LS - output
+            phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
     # %% Compute Sobol coefs
@@ -166,7 +166,7 @@ def test_amr_sobol():
         # solves Av = y using least squares
         # sigma - singular values of A
         v_ls, _, _, _ = np.linalg.lstsq(
-            phi, y_rt[sids], rcond=None) # LS - output
+            phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
     # %% Compute Sobol coefs
