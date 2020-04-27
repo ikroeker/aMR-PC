@@ -40,6 +40,24 @@ B = 0.1
 ISH_FCT = lambda X: A*np.sin(X[:, 1])**2 + (1+B*np.power(X[:, 2], 4))*np.sin(X[:, 0])
 
 def ishigami_exact_sensitivity(a, b):
+    """
+    generates analytical Sobol sensitivy indexes of Ishigami function
+
+    Parameters
+    ----------
+    a : float
+        parameter a.
+    b : float
+        parameter b.
+
+    Returns
+    -------
+    D : float
+        variance.
+    sob_cfs : dictionary[frozenset(sources)] = index
+        dictionary of analytocal Sobol indexes.
+
+    """
     ival = 0
     D = (a**2) / 8 + b*(math.pi**4) / 5 + (b**2) * (math.pi**8) /18 + 0.5
     DS = {}
@@ -57,6 +75,7 @@ def ishigami_exact_sensitivity(a, b):
 
 
 def gen_rv(sample_cnt):
+    """ generates random vector and apply Ishany function on """
     np.random.seed(3)
     x = np.random.uniform(-math.pi, math.pi, (sample_cnt, 3))
     y = ISH_FCT(x)
@@ -64,6 +83,14 @@ def gen_rv(sample_cnt):
 
 
 def test_sobol():
+    """
+    Tests Sobool indexes for aPc agains analytical solution.
+
+    Returns
+    -------
+    None.
+
+    """
     x, _ = gen_rv(SAMPLE_CNT)
     dataset = pd.DataFrame(x) #  dataframe
     # %% gen aPC polynomials and roots
@@ -104,6 +131,14 @@ def test_sobol():
         assert abs(sob_idx - sob_idx_ex) < TOL
 
 def test_amr_sobol():
+    """
+    Tests Sobol indexes for aMR-PC again analytical solution
+
+    Returns
+    -------
+    None.
+
+    """
     x, _ = gen_rv(SAMPLE_CNT)
     dataset = pd.DataFrame(x) #  dataframe
     nr_range = np.arange(NR, NR+1)
