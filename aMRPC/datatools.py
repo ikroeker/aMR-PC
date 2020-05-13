@@ -561,7 +561,7 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
             pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
     return pol_vals
 
-def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
+def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_stop=-1):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
@@ -575,6 +575,10 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
         eval of picevise polynomials for each sample_id and pol_degree.
     mk2sid : dictionary
         MR-related multi-key -> sample id.
+    x_start: integer
+        first space_point_nr to eval.
+    x_stop: integer
+        last space_pint_nr to eval
 
     Returns
     -------
@@ -588,12 +592,14 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid):
         n_x = n_tup[1]
     else:
         n_x = 1
+    if x_stop < 0:
+        x_stop = n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     cf_ls_4s = np.zeros((n_s, p_max, n_x))
     for sids in mk2sid.values():
         phi = pol_vals[:, sids].T
-        for idx_x in range(n_x):
+        for idx_x in range(x_start, x_stop):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
             # solves Av = y using least squares
             # sigma - singular values of A
