@@ -561,7 +561,7 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
             pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
     return pol_vals
 
-def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_stop=-1):
+def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
@@ -577,8 +577,8 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_stop=-1):
         MR-related multi-key -> sample id.
     x_start: integer
         first space_point_nr to eval.
-    x_stop: integer
-        last space_pint_nr to eval
+    x_len: integer
+        length of the x-vector to eval
 
     Returns
     -------
@@ -592,24 +592,26 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_stop=-1):
         n_x = n_tup[1]
     else:
         n_x = 1
-    if x_stop < 0:
-        x_stop = n_x
+    if x_len < 0:
+        x_len = n_x
+    assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
-    cf_ls_4s = np.zeros((n_s, p_max, n_x))
+    cf_ls_4s = np.zeros((n_s, p_max, x_len))
     for sids in mk2sid.values():
         phi = pol_vals[:, sids].T
-        for idx_x in range(x_start, x_stop):
+        for idx_x in range(x_len):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
             # solves Av = y using least squares
             # sigma - singular values of A
+            dt_idx_x = x_start + idx_x
             if n_s > 1:
                 #v_ls, resid, rank, sigma = np.linalg.lstsq(
                 #    Phi, data[sids, idx_x], rcond=None) # LS - output
                 v_ls, _, _, _ = np.linalg.lstsq(
-                    phi, data[sids, idx_x], rcond=None) # LS - output
+                    phi, data[sids, dt_idx_x], rcond=None) # LS - output
             else:
-                v_ls = data[idx_x]/phi
+                v_ls = data[dt_idx_x]/phi
             cf_ls_4s[sids, :, idx_x] = v_ls
     return cf_ls_4s
 
