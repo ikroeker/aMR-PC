@@ -145,6 +145,22 @@ def gen_npcs(pc_dict, roots, weights):
     return n_cfs
 
 def gen_npcs_mm(pc_dict, H_dict):
+    """
+    generates normed polynomal coefficients using moment matrix (Hankel matrix)
+
+    Parameters
+    ----------
+    pc_dict : dictionary
+        pol. coeficients of monic orthogonal polynomials.
+    H_dict : dictionary
+        Hankel (moment) matrixes.
+
+    Returns
+    -------
+    n_cfs : dictionary
+        normed polynomial coefficients (orthonormal polynomials).
+
+    """
     n_cfs = {}
     for key in pc_dict:
         n_cfs[key] = pt.gen_npc_mx_mm(pc_dict[key], H_dict[key])
@@ -201,6 +217,24 @@ def inner_prod_multi_idx(fkt_f, fkt_g, multi_key, roots, weights):
     return ret
 
 def Gauss_quad_arr(fct_tup, roots, weights):
+    """
+    Gauss quadrature for function touple and arrays of roots-n-weights
+
+    Parameters
+    ----------
+    fct_tup : touple of length d
+        touple of d-functions.
+    roots : np.array
+        d-dimensional array of roots (eval. points).
+    weights : np.array
+        d-dimensional array of weights (related to roots).
+
+    Returns
+    -------
+    S : float
+        result of Gaussian quadrature.
+
+    """
     dim = len(fct_tup)
     evals = roots.shape[0]
     t_a = dim == roots.shape[1]
@@ -234,6 +268,7 @@ def inner_prod_tuples(F, G, roots, weights):
     return S
 
 def Gauss_quad_fct(fct, roots, weights):
+    """ computes Gauss quadratur of the function fct on roots-n-weights"""
     assert roots.shape == weights.shape
     arr = fct(roots)*weights
     return sum(np.prod(arr, axis=1))
