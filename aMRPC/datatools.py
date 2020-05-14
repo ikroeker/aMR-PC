@@ -46,11 +46,29 @@ def gen_nr_range_bds(dataframe, srcs, nr_range):
                 nrb_dict[key] = (qlb, qrb)
     return nrb_dict
 
-def get_nr_bds(nrb_dict, srcs, nr):
+def get_nr_bds(nrb_dict, srcs, n_r):
+    """
+    get element boundaries for given refinement level n_r
+
+    Parameters
+    ----------
+    nrb_dict : dictionary
+        dictionary of all element bounds.
+    srcs : list
+        list of sournces, par ex. [0, 1, 2].
+    n_r : integer
+        refinement level.
+
+    Returns
+    -------
+    dict_4_nr : dictionary
+        dictionary of elem. bounds for ref, leevel n_r.
+
+    """
     dict_4_nr = {}
     for src in srcs:
-        for nri in range(2**nr):
-            key = u.gen_dict_key(nr, nri, src)
+        for nri in range(2**n_r):
+            key = u.gen_dict_key(n_r, nri, src)
             dict_4_nr[key] = nrb_dict[key]
     return dict_4_nr
 
