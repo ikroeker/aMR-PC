@@ -702,10 +702,26 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
     return mean, variance
 
 def add_samples(samples, new_samples):
+    """
+    Adds new samples to the samples np.array
+
+    Parameters
+    ----------
+    samples : np.array
+        old samples.
+    new_samples : np.array
+        new samples.
+
+    Returns
+    -------
+    TYPE
+        np.array.
+
+    """
     sdim = samples.shape[1]
     n_dim = new_samples.shape[1]
     assert sdim == n_dim
-    return np.concatenate(samples, new_samples, axis=1)
+    return np.concatenate((samples, new_samples), axis=1)
 
 def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid2mk):
     new_samples_cnt = new_samples.shape[0]
