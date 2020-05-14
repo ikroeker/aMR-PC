@@ -742,17 +742,45 @@ def add_samples(samples, new_samples):
     return np.concatenate((samples, new_samples), axis=1)
 
 def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid2mk):
+    """
+    updates multikey->sample id dictionary for new samples
+
+    Parameters
+    ----------
+    new_samples : np.array
+        array of new_samples.
+    start_sid : int
+        sample id, which should be related to the first sample.
+    nrb_dict : dictionary
+        dictionary of element bounaries.
+    mk_list : list
+        list of multi-keys (touples of touples).
+    mk2sid : dictionary
+        old multi-key- > sid dictionary.
+    sid2mk : dictionary
+        old sample id -> multi-key dictionary.
+
+    Returns
+    -------
+    sid2mk : dictionary
+        updatet sample id -> multi-key dictionary.
+    mk2sid : dictionary
+        updated multi-key -> sample id dictionary.
+    new_mk2sid : dictionary
+        multi-key -> sample id dictionary of new_new samples only.
+
+    """
     new_samples_cnt = new_samples.shape[0]
     sids = np.arange(new_samples_cnt) + start_sid
     new_mk2sid = {}
     for mkey in mk_list:
-        B = cmp_mv_quant_domain_mk(new_samples, nrb_dict, mkey)
-        new_mk2sid[mkey] = new_samples[B]
+        b_msk = cmp_mv_quant_domain_mk(new_samples, nrb_dict, mkey)
+        new_mk2sid[mkey] = new_samples[b_msk]
         if mkey in mk2sid:
-            mk2sid[mkey] = np.concatenate(mk2sid[mkey], sids[B])
+            mk2sid[mkey] = np.concatenate(mk2sid[mkey], sids[b_msk])
         else:
-            mk2sid[mkey] = sids[B]
-        for sid in sids[B]:
+            mk2sid[mkey] = sids[b_msk]
+        for sid in sids[b_msk]:
             if sid in sid2mk:
                 sid2mk[sid] += mkey
             else:
@@ -777,7 +805,7 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_d
     alphas : np.array
         degrees of multivariate polynomials.
     new_mk2sid : dictionary
-        updated multikey->sample_id dictionary.
+        multikey->sample_id dictionary for new samples only.
 
     Returns
     -------
