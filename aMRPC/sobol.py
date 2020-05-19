@@ -11,17 +11,23 @@ import aMRPC.datatools as dt
 import aMRPC.utils as u
 
 #  Sobol idx for aPC
-def sobol_idx_pc(pc_coefs, alphas, idx_set):
+def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=0):
     cf_tup = pc_coefs.shape
     if len(cf_tup) == 1 or cf_tup[1] == 1:
         var_pc = pc_coefs[1:] @ pc_coefs[1:]
+        sobol = 0
     else:
+        sobol = np.zeros(cf_tup[1])
         var_pc = np.add.reduce(pc_coefs[1:] * pc_coefs[1:], axis=0)
+        var_thresh = var_pc <= eps
+        if max(var_thresh):
+            var_pc[var_thresh] = 1 
+        
     p_max, dim = alphas.shape
     srcs = list(range(dim))
     assert max(idx_set) < dim
     not_in_idx_set = list(set(srcs)-set(idx_set))
-    sobol = 0
+    #sobol = 0
     for pidx in range(p_max):
         alpha = alphas[pidx, :]
         chk_in = alpha[idx_set].min() > 0
