@@ -12,6 +12,27 @@ import aMRPC.utils as u
 
 #  Sobol idx for aPC
 def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=1e-15):
+    """
+    computes Sobol indexes from polynomial chaos (PC) expansion
+
+    Parameters
+    ----------
+    pc_coefs : numpy.ndarray
+        PC coefficients.
+    alphas : numpy.ndarray
+        polynomial degrees related to pc_coefs.
+    idx_set : list
+        list of sources to be considered.
+    eps : float, optional
+        threshold for minimal value for variance. Set var=1 vor var<=eps. 
+        The default is 1e-15.
+
+    Returns
+    -------
+    sobol : float / numpy.ndarray
+        Sobol indexes for idx_set.
+
+    """
     cf_tup = pc_coefs.shape
     if len(cf_tup) == 1 or cf_tup[1] == 1:
         var_pc = pc_coefs[1:] @ pc_coefs[1:]
@@ -21,8 +42,8 @@ def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=1e-15):
         var_pc = np.add.reduce(pc_coefs[1:] * pc_coefs[1:], axis=0)
         var_thresh = var_pc <= eps
         if max(var_thresh):
-            var_pc[var_thresh] = 1 
-        
+            var_pc[var_thresh] = 1
+
     p_max, dim = alphas.shape
     srcs = list(range(dim))
     assert max(idx_set) < dim
@@ -40,12 +61,46 @@ def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=1e-15):
     return sobol
 
 def gen_idx_subsets(dim):
+    """
+    Generates all possible source combination for dim-sources
+
+    Parameters
+    ----------
+    dim : int
+        number/dimension of sources.
+
+    Returns
+    -------
+    TYPE
+        frozenset of frozensets.
+
+    """
     items = list(range(dim))
     sub_idx = [frozenset(t) for length in range(1, dim+1)
                for t in it.combinations(items, length)]
     return set(sub_idx)
 
 def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
+    """
+    Computes total sensitivity coeficients for polynomial-chaos (PC) expansion
+
+    Parameters
+    ----------
+    pc_coefs : numpy.ndarray
+        PC coefficients.
+    alphas : numpy.ndarray
+        polynomial degrees related to pc_coefs.
+    src_idxs : frozenset
+        all possbile index combinations.
+    idx_list : list
+        idx_list to be considered.
+
+    Returns
+    -------
+    tot : float / numpy.ndarray
+        total sensitivity for sources in idx_list.
+
+    """
     tot = 0
     idx_set = set(idx_list)
     for idx_it in src_idxs:
@@ -54,6 +109,24 @@ def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
     return tot
 
 def sobol_tot_sens(sob_dict, src_idxs, idx_list):
+    """
+    total sensitivity
+
+    Parameters
+    ----------
+    sob_dict : dictionary
+        dictionary of Soblo coeffcients.
+    src_idxs : frozenset
+        set of all possbile source combinations.
+    idx_list : list
+        list of source-indexes to be considered.
+
+    Returns
+    -------
+    tot : float / numpy.ndarray
+        total sensitivity for sources in idx_list.
+
+    """
     tot = 0
     idx_set = set(idx_list)
     for idx_it in src_idxs:
@@ -62,6 +135,31 @@ def sobol_tot_sens(sob_dict, src_idxs, idx_list):
     return tot
 
 def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+    """
+    Helper function for computation of Sobol indexes for aMR-PC expansion
+    results are required by sobol_idx_amrpc(...)
+
+    Parameters
+    ----------
+    pc_coefs : numpy.ndarray
+        polynomial coeficiens of the aMR-PC expansion.
+    rsc_dict : dictionary
+        dictionary of rescaling coefficients.
+    mk2sid : dictionary
+        multi-key -> sample id.
+    alphas : numpy.ndarray
+        polynomial degrees.
+    idx_list : frozenset
+        set of all source combinations.
+    eps : float, optional
+        variance threshold. The default is 1e-15.
+
+    Returns
+    -------
+    float / numpy.ndarray
+        input data for solbo_idx_amprc.
+
+    """
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
     p_max, dim = alphas.shape
     srcs = list(range(dim))
@@ -111,6 +209,23 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-
     #return sobol_ns
 
 def sobol_idx_amrpc(sobol_dict, idx_set):
+    """
+    Computes Sobol indexes for aMR-PC expansion using dictionary provided by
+    sobol_idx_amrpc_helper(...)
+
+    Parameters
+    ----------
+    sobol_dict : dicitonary
+        output of sobol_idx_amrpc_helper(...).
+    idx_set : list
+        list of sources to be considered.
+
+    Returns
+    -------
+    ret_val : float / numpy.ndarray
+        total sensitivities for sources in idx_set.
+
+    """
     idx_set_len = len(idx_set)
     ret_val = sobol_dict[idx_set]
     if idx_set_len > 1:
