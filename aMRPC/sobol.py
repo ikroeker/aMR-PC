@@ -10,9 +10,13 @@ import numpy as np
 import aMRPC.datatools as dt
 import aMRPC.utils as u
 
-# %% Sobol idx for aPC
+#  Sobol idx for aPC
 def sobol_idx_pc(pc_coefs, alphas, idx_set):
-    var_pc = pc_coefs[1:] @ pc_coefs[1:]
+    cf_tup = pc_coefs.shape
+    if len(cf_tup) == 1 or cf_tup[1] == 1:
+        var_pc = pc_coefs[1:] @ pc_coefs[1:]
+    else:
+        var_pc = np.add.reduce(pc_coefs[1:] * pc_coefs[1:], axis=0)
     p_max, dim = alphas.shape
     srcs = list(range(dim))
     assert max(idx_set) < dim
