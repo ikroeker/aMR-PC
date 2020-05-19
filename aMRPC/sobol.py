@@ -11,7 +11,7 @@ import aMRPC.datatools as dt
 import aMRPC.utils as u
 
 #  Sobol idx for aPC
-def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=0):
+def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=1e-15):
     cf_tup = pc_coefs.shape
     if len(cf_tup) == 1 or cf_tup[1] == 1:
         var_pc = pc_coefs[1:] @ pc_coefs[1:]
@@ -61,13 +61,22 @@ def sobol_tot_sens(sob_dict, src_idxs, idx_list):
             tot += sob_dict[idx_it]
     return tot
 
-def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list):
+def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
     p_max, dim = alphas.shape
     srcs = list(range(dim))
     assert max(idx_list) < dim
     not_in_idx_set = list(set(srcs)-set(idx_list))
     #loc_rsc_cf = 2**(- len(not_in_idx_set)*4)
+    # omit normalization for var <=eps
+    var_thresh = var <= eps
+    if max(var_thresh):
+        var[var_thresh] = 1
+    # replace np.array by scalars for len(mean) == 1
+    qnt_len = mean.shape[0]
+    if qnt_len == 1:
+        mean = mean[0]
+        var = var[0]
     sobol_ns = 0
 
     for mkey, sids in mk2sid.items():
@@ -96,9 +105,9 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list):
                         sobol_mk += loc_pc[pidx] * loc_pc_a[pidx]
         sobol_mk *= r_cf * c_cf
         sobol_ns += sobol_mk
-    sobol_ns -= mean[0]**2
+    sobol_ns -= mean**2
     #print(mean, var, 1/rsc_dict[mkey])
-    return sobol_ns / var[0]
+    return sobol_ns / var
     #return sobol_ns
 
 def sobol_idx_amrpc(sobol_dict, idx_set):
