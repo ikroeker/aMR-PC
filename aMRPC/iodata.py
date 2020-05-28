@@ -35,6 +35,47 @@ def write_eval_points(points, fname, **kwargs):
         f_h.write(str_line)
     f_h.close()
 
+def gen_file_url(fname, mydir=None):
+    """
+    generates file url for load routines
+
+    Parameters
+    ----------
+    fname : string
+        file name.
+    mydir : string, optional
+        directory. The default is None.
+
+    Returns
+    -------
+    string
+        file url.
+
+    """
+    if mydir is None:
+        mydir = inDir
+    return mydir + "/" + fname
+
+def chk_file_url(fname, mydir=None):
+    """
+    checks if file fname exists
+
+    Parameters
+    ----------
+    fname : string
+        file name.
+    mydir : string, optional
+        directory name. The default is None.
+
+    Returns
+    -------
+    bool
+        true or false depending of existence.
+
+    """
+    url = gen_file_url(fname, mydir)
+    return op.exists(url)
+
 def load_eval_points(fname, mydir=None):
     """
     loads eval points from an ascii file

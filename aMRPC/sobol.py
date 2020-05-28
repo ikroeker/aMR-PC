@@ -24,7 +24,7 @@ def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=1e-15):
     idx_set : list
         list of sources to be considered.
     eps : float, optional
-        threshold for minimal value for variance. Set var=1 vor var<=eps. 
+        threshold for minimal value for variance. Set var=1 vor var<=eps.
         The default is 1e-15.
 
     Returns
