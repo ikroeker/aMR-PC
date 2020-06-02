@@ -25,11 +25,14 @@ def write_eval_points(points, fname, **kwargs):
         template = kwargs['tmplt']
     else:
         template = ' {: 8.7e}  {: 8.7e}  {: 8.7e}  {: 8.7e}\n'
-    file = mydir + "/" + fname
+    file = gen_file_url(fname, mydir)
     lines, _ = points.shape
     f_h = open(file, 'w')
     for l_idx in range(lines):
-        data_line = points[l_idx]
+        if isinstance(points, np.ndarray):
+            data_line = points[l_idx]
+        else:
+            data_line = points.iloc[l_idx]
         #print(dataLine)
         str_line = template.format(*data_line)
         f_h.write(str_line)
