@@ -812,7 +812,7 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
     sid2mk_u = sid2mk.copy()
     for mkey in mk_list:
         b_msk = cmp_mv_quant_domain_mk(new_samples, nrb_dict, mkey)
-        new_mk2sid[mkey] = new_samples[b_msk]
+        new_mk2sid[mkey] = sids[b_msk]
         if mkey in mk2sid_u:
              mk2sid_u[mkey] = np.concatenate((mk2sid_u[mkey], sids[b_msk]), axis=0)
         else:
