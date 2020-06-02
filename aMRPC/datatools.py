@@ -852,7 +852,8 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_d
     """
 
     p_max = alphas.shape[0]
-    pol_vals = np.concatenate(pol_vals, np.zeros((p_max, new_samples_cnt)))
+    pol_vals = np.concatenate((pol_vals, np.zeros((p_max, new_samples_cnt))),
+                              axis=1)
 
     for mkey in new_mk2sid:
         sids = new_mk2sid[mkey]
