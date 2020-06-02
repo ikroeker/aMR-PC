@@ -80,9 +80,7 @@ def load_eval_points(fname, mydir=None):
     """
     loads eval points from an ascii file
     """
-    if mydir is None:
-        mydir = inDir
-    url = mydir + "/" + fname
+    url = gen_file_url(fname, mydir)
     if op.exists(url):
         dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
         #dataframe=np.loadtxt(url)
@@ -94,7 +92,7 @@ def store_data_dict(out_dict, fname, mydir=None):
     """ stores dictionary in {dir}/{fname}.p using pickle """
     if mydir is None:
         mydir = outDir
-    file = mydir +"/" + fname
+    file = gen_file_url(fname, mydir)
     try:
         f_h = open(file, "wb")
         pickle.dump(out_dict, f_h)
@@ -109,7 +107,7 @@ def load_data_dict(fname, mydir=None):
     """ load picle stored data from {dir}/{fname}.p """
     if mydir is None:
         mydir = outDir
-    file = mydir + "/" + fname
+    file = gen_file_url(fname, mydir)
     f_h = open(file, "rb")
     try:
         in_dict = pickle.load(f_h)
@@ -125,7 +123,7 @@ def store_np_arr(np_array, fname, mydir=None):
     """ stores numpy.array npArray in {dir}/{fname} """
     if mydir is None:
         mydir = outDir
-    file = mydir +"/" + fname
+    file = gen_file_url(fname, mydir)
     try:
         np.save(file, np_array)
     except (IOError, ValueError):
@@ -138,7 +136,7 @@ def load_np_arr(fname, mydir=None):
     """ loads numpy.array from {mydir}/{fname} """
     if mydir is None:
         mydir = outDir
-    file = mydir +"/" + fname
+    file = gen_file_url(fname, mydir)
     try:
         np_array = np.load(file)
     except (IOError, ValueError):
