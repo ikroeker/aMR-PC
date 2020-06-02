@@ -774,7 +774,7 @@ def add_samples(samples, new_samples):
     sdim = samples.shape[1]
     n_dim = new_samples.shape[1]
     assert sdim == n_dim
-    return np.concatenate((samples, new_samples), axis=1)
+    return np.concatenate((samples, new_samples), axis=0)
 
 def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid2mk):
     """
