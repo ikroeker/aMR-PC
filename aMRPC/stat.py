@@ -7,12 +7,12 @@ Created on Mon Aug 10 17:21:16 2020
 
 Provides statistic tools
 """
-from math import exp, sqrt, pi
+from math import sqrt, pi
 import numpy as np
 
-def cmp_likelihood_cf(std, number_of_measurments):
+def cmp_norm_likelihood_cf(std, number_of_measurments):
     """
-    Computes the coefficient of the likelihood function
+    Computes the coefficient of the Gaussian likelihood function
 
     Parameters
     ----------
@@ -29,9 +29,9 @@ def cmp_likelihood_cf(std, number_of_measurments):
     """
     return 1/pow(sqrt(2*pi)*std, number_of_measurments)
 
-def cmp_likelihood_core(observation, response_surface, covariance_matrix):
+def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     """
-    Computes the core part of the likelihood funciton
+    Computes the core part of the Gaussian likelihood function with cov. matrix
 
     Parameters
     ----------
