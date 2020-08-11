@@ -49,4 +49,11 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
 
     """
     deviation = observation - response_surface
-    return np.exp(-0.5*deviation.T @ np.linalg.inv(covariance_matrix) @ deviation)
+    deviation_shape = deviation.shape
+    if len(deviation_shape) == 1:
+        return np.exp(-0.5*deviation.T @ np.linalg.inv(covariance_matrix) @ deviation)
+    else:
+        ret_array = np.zeros(deviation_shape[1])
+        for i in range(deviation_shape[1]):
+            ret_array[i] = np.exp(-0.5*deviation[:,i].T @ np.linalg.inv(covariance_matrix) @ deviation[:,i])
+        return ret_array
