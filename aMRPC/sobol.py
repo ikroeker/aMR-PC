@@ -235,6 +235,7 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
         #print(idx_set, sub_idx)
         for idx in sub_idx:
             a_len = len(idx)
-            ret_val += ((-1)**(idx_set_len-a_len))*sobol_dict[idx]#[0]
+            ret_val += ((-1)**(idx_set_len-a_len))*sobol_dict[idx]
+            #ret_val += ((-1)**(a_len))*sobol_dict[idx]
             #ret_val -= sobol_idx_amrpc(sobol_dict, idx)
     return ret_val
