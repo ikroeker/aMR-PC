@@ -168,7 +168,7 @@ def gen_corr_rcf(mkey, srcs):
     return correct_cf
 
 def get_multi_entry(adict, anrs, nris, srcs):
-    """ returns dictionary entriy """
+    """ returns dictionary entry """
     key = gen_multi_key(anrs, nris, srcs)
     return adict[key]
 
