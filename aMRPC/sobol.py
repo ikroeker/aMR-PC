@@ -239,3 +239,11 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
             #ret_val -= ((-1)**(idx_set_len-a_len))*sobol_dict[idx]
             #ret_val -= sobol_idx_amrpc(sobol_dict, idx)
     return ret_val
+
+# def sobol_idx_amrpc_one(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+#    mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
+#    p_max, dim = alphas.shape
+#    srcs = list(range(dim))
+#    assert max(idx_list) < dim 
+#    not_in_idx_set = list(set(srcs)-set(idx_list))
+   
