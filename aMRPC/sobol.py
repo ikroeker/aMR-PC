@@ -223,7 +223,7 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
     Returns
     -------
     ret_val : float / numpy.ndarray
-        total sensitivities for sources in idx_set.
+        Sobol sensitivities for sources in idx_set.
 
     """
     idx_set_len = len(idx_set)
@@ -286,29 +286,42 @@ def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, a_idx_list,
     #print(mean, var, 1/rsc_dict[mkey])
     return sobol_ns / var
 
-def sobol_idx_amrpc_j(sobol_dict, idx_list):
+def gen_sobol_amroc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+    idx_list_len = len(idx_list)
+    sub_idx = [frozenset(t) for length in range(1, idx_list_len+1)
+               for t in it.combinations(idx_list, length)]
+    sobol_dict = {}
+    for j in sub_idx:
+        for k in sub_idx:
+            if k <= j:
+                sobol_dict[(j, k)] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
+                                                        mk2sid, alphas,
+                                                        list(j), list(k), eps)
+    return sobol_dict
+
+def sobol_idx_amrpc_j(sobol_dict, idx_set):
     """
     Computes Sobol indexes for aMR-PC expansion using dictionary provided by
-    sobol_idx_amrpc_jk(...)
+    gen_sobol_amrpc_dict(...)
 
     Parameters
     ----------
     sobol_dict : dicitonary
-        output of sobol_idx_amrpc_helper(...).
-    idx_list : list
+        output of sobol_idx_amrpc_jk(...).
+    idx_list : set
         list of sources to be considered.
 
     Returns
     -------
     ret_val : float / numpy.ndarray
-        total sensitivities for sources in idx_set.
+        Sobol sensitivities for sources in idx_list.
 
     """
-    idx_list_len = len(idx_list)
-    ret_val = sobol_dict[idx_list]
-    if idx_list_len > 1:
-        items = list(idx_list)
-        sub_idx = [frozenset(t) for length in range(1, idx_list_len)
+    idx_set_len = len(idx_set)
+    ret_val = sobol_dict[(idx_set, idx_set)]
+    if idx_set_len > 1:
+        items = list(idx_set)
+        sub_idx = [frozenset(t) for length in range(1, idx_set_len)
                    for t in it.combinations(items, length)]
         #print(idx_set, sub_idx)
         for j_idx in sub_idx:
@@ -317,5 +330,5 @@ def sobol_idx_amrpc_j(sobol_dict, idx_list):
             for k_idx in sub_idx:
                 if k_idx < j_idx:
                     k_len = len(k_idx)
-                    ret_val += 2*((-1)**(2*idx_list_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)]
+                    ret_val += 2*((-1)**(2*idx_set_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)]
     return ret_val
