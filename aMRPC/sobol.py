@@ -285,3 +285,37 @@ def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, a_idx_list,
     sobol_ns -= mean**2
     #print(mean, var, 1/rsc_dict[mkey])
     return sobol_ns / var
+
+def sobol_idx_amrpc_j(sobol_dict, idx_list):
+    """
+    Computes Sobol indexes for aMR-PC expansion using dictionary provided by
+    sobol_idx_amrpc_jk(...)
+
+    Parameters
+    ----------
+    sobol_dict : dicitonary
+        output of sobol_idx_amrpc_helper(...).
+    idx_list : list
+        list of sources to be considered.
+
+    Returns
+    -------
+    ret_val : float / numpy.ndarray
+        total sensitivities for sources in idx_set.
+
+    """
+    idx_list_len = len(idx_list)
+    ret_val = sobol_dict[idx_list]
+    if idx_list_len > 1:
+        items = list(idx_list)
+        sub_idx = [frozenset(t) for length in range(1, idx_list_len)
+                   for t in it.combinations(items, length)]
+        #print(idx_set, sub_idx)
+        for j_idx in sub_idx:
+            j_len = len(j_idx)
+            ret_val += sobol_dict[(j_idx, j_idx)]
+            for k_idx in sub_idx:
+                if k_idx < j_idx:
+                    k_len = len(k_idx)
+                    ret_val += 2*((-1)**(2*idx_list_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)]
+    return ret_val
