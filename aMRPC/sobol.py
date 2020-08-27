@@ -240,10 +240,48 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
             #ret_val -= sobol_idx_amrpc(sobol_dict, idx)
     return ret_val
 
-# def sobol_idx_amrpc_one(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
-#    mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
-#    p_max, dim = alphas.shape
-#    srcs = list(range(dim))
-#    assert max(idx_list) < dim 
-#    not_in_idx_set = list(set(srcs)-set(idx_list))
-   
+def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, a_idx_list,
+                       eps=1e-15):
+    mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
+    p_max, dim = alphas.shape
+    srcs = list(range(dim))
+    assert max(idx_list) < dim
+    not_in_idx_set = list(set(srcs)-set(idx_list))
+    a_not_in_idx_set = list(set(srcs)-set(a_idx_list))
+    var_thresh = var <= eps
+    if max(var_thresh):
+        var[var_thresh] = 1
+    # replace np.array by scalars for len(mean) == 1
+    qnt_len = mean.shape[0]
+    if qnt_len == 1:
+        mean = mean[0]
+        var = var[0]
+    sobol_ns = 0
+    for mkey, sids in mk2sid.items():
+        loc_pc = pc_coefs[sids[0], :]
+        sobol_mk = 0 #loc_pc[0]**2
+        r_cf = rsc_dict[mkey]
+        c_cf = u.gen_corr_rcf(mkey, not_in_idx_set)
+        for a_mkey, a_sids in mk2sid.items():
+            loc_pc_a = pc_coefs[a_sids[0], :]
+            mk_chk = u.compare_multi_key_for_idx(mkey, a_mkey, idx_list)
+            mk_chk = mk_chk and u.compare_multi_key_for_idx(mkey, a_mkey, a_idx_list)
+            if mk_chk:
+                for pidx in range(p_max):
+                    alpha = alphas[pidx, :]
+                    #chk_in = alpha[idx_list].min() > 0
+                    if not not_in_idx_set:
+                        chk_out = True
+                    else:
+                        chk_out = alpha[not_in_idx_set].max() == 0
+                    if not a_not_in_idx_set:
+                        a_chk_out = True
+                    else:
+                        a_chk_out = alpha[a_not_in_idx_set].max() == 0
+                    if chk_out and a_chk_out:
+                        sobol_mk += loc_pc[pidx] * loc_pc_a[pidx]
+        sobol_mk *= r_cf * c_cf
+        sobol_ns += sobol_mk
+    sobol_ns -= mean**2
+    #print(mean, var, 1/rsc_dict[mkey])
+    return sobol_ns / var
