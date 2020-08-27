@@ -5,6 +5,7 @@ Created on Wed Apr  1 16:15:45 2020
 
 @author: kroeker
 """
+import math
 import itertools as it
 import numpy as np
 import aMRPC.datatools as dt
@@ -264,9 +265,11 @@ def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, a_idx_list,
         c_cf = u.gen_corr_rcf(mkey, not_in_idx_set)
         for a_mkey, a_sids in mk2sid.items():
             loc_pc_a = pc_coefs[a_sids[0], :]
-            mk_chk = u.compare_multi_key_for_idx(mkey, a_mkey, idx_list)
-            mk_chk = mk_chk and u.compare_multi_key_for_idx(mkey, a_mkey, a_idx_list)
+            mk_chk = u.compare_multi_key_for_idx(mkey, a_mkey, 
+                                                 list(set(idx_list)|set(a_idx_list)))
+            #mk_chk = mk_chk and u.compare_multi_key_for_idx(mkey, a_mkey, a_idx_list)
             if mk_chk:
+                a_c_cf = u.gen_corr_rcf(a_mkey, a_not_in_idx_set)
                 for pidx in range(p_max):
                     alpha = alphas[pidx, :]
                     #chk_in = alpha[idx_list].min() > 0
@@ -279,14 +282,14 @@ def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, a_idx_list,
                     else:
                         a_chk_out = alpha[a_not_in_idx_set].max() == 0
                     if chk_out and a_chk_out:
-                        sobol_mk += loc_pc[pidx] * loc_pc_a[pidx]
-        sobol_mk *= r_cf * c_cf
+                        sobol_mk += loc_pc[pidx] * loc_pc_a[pidx] * math.sqrt(a_c_cf)
+        sobol_mk *= r_cf * math.sqrt(c_cf)
         sobol_ns += sobol_mk
     sobol_ns -= mean**2
     #print(mean, var, 1/rsc_dict[mkey])
     return sobol_ns / var
 
-def gen_sobol_amroc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
     idx_list_len = len(idx_list)
     sub_idx = [frozenset(t) for length in range(1, idx_list_len+1)
                for t in it.combinations(idx_list, length)]
@@ -318,17 +321,21 @@ def sobol_idx_amrpc_j(sobol_dict, idx_set):
 
     """
     idx_set_len = len(idx_set)
-    ret_val = sobol_dict[(idx_set, idx_set)]
+    ret_val = 0
     if idx_set_len > 1:
         items = list(idx_set)
-        sub_idx = [frozenset(t) for length in range(1, idx_set_len)
+        sub_idx = [frozenset(t) for length in range(1, idx_set_len+1)
                    for t in it.combinations(items, length)]
         #print(idx_set, sub_idx)
         for j_idx in sub_idx:
             j_len = len(j_idx)
+            print('jj:',j_idx, j_idx)
             ret_val += sobol_dict[(j_idx, j_idx)]
             for k_idx in sub_idx:
                 if k_idx < j_idx:
+                    print('jk:',j_idx, k_idx)
                     k_len = len(k_idx)
                     ret_val += 2*((-1)**(2*idx_set_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)]
+    else:
+        ret_val = sobol_dict[(idx_set, idx_set)]
     return ret_val
