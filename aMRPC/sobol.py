@@ -237,6 +237,7 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
         for idx in sub_idx:
             a_len = len(idx)
             ret_val += ((-1)**(idx_set_len-a_len))*sobol_dict[idx]
+            #ret_val -= sobol_dict[idx]
             #ret_val -= ((-1)**(idx_set_len-a_len))*sobol_dict[idx]
             #ret_val -= sobol_idx_amrpc(sobol_dict, idx)
     return ret_val
@@ -260,35 +261,41 @@ def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, a_idx_list,
         mean = mean[0]
         var = var[0]
         sobol_ns = 0
-    if len(joint_list) > 0:   
-        for mkey, sids in mk2sid.items():
-            loc_pc = pc_coefs[sids[0], :]
-            sobol_mk = 0 #loc_pc[0]**2
-            r_cf = rsc_dict[mkey]
-            c_cf = u.gen_corr_rcf(mkey, not_in_joint)
-            for a_mkey, a_sids in mk2sid.items():
+    
+    for mkey, sids in mk2sid.items():
+        loc_pc = pc_coefs[sids[0], :]
+        sobol_mk = 0 #loc_pc[0]**2
+        r_cf = rsc_dict[mkey]
+        # c_cf = u.gen_corr_rcf(mkey, not_in_joint)
+        c_cf = u.gen_corr_rcf(mkey, not_in_idx_set)
+        for a_mkey, a_sids in mk2sid.items():
+            if len(joint_list) > 0:   
                 mk_chk = u.compare_multi_key_for_idx(mkey, a_mkey, joint_list)
-                if mk_chk:
-                    loc_pc_a = pc_coefs[a_sids[0], :]
-                    a_r_cf = rsc_dict[a_mkey]
-                    a_c_cf = u.gen_corr_rcf(a_mkey, not_in_joint)
-                    for pidx in range(p_max):
-                        alpha = alphas[pidx, :]
-                        #chk_in = alpha[idx_list].min() > 0
-                        if not not_in_idx_set:
-                            chk_out = True
-                        else:
-                            chk_out = alpha[not_in_idx_set].max() == 0
-                        if not a_not_in_idx_set:
-                            a_chk_out = True
-                        else:
-                            a_chk_out = alpha[a_not_in_idx_set].max() == 0
-                        if chk_out and a_chk_out:
-                            sobol_mk += (loc_pc[pidx] * loc_pc_a[pidx] 
-                                         * math.sqrt(a_r_cf*a_c_cf))
-            sobol_mk *= math.sqrt(r_cf*c_cf)
-            sobol_ns += sobol_mk
-        sobol_ns -= mean**2
+            else:
+                mk_chk = True
+            if mk_chk:
+                loc_pc_a = pc_coefs[a_sids[0], :]
+                a_r_cf = rsc_dict[a_mkey]
+                a_c_cf = u.gen_corr_rcf(a_mkey, a_not_in_idx_set)
+                # a_c_cf = u.gen_corr_rcf(a_mkey, not_in_joint)
+                for pidx in range(p_max):
+                    alpha = alphas[pidx, :]
+                    #chk_in = alpha[idx_list].min() > 0
+                    if not not_in_idx_set:
+                        chk_out = True
+                    else:
+                        chk_out = alpha[not_in_idx_set].max() == 0
+                    if not a_not_in_idx_set:
+                        a_chk_out = True
+                    else:
+                        a_chk_out = alpha[a_not_in_idx_set].max() == 0
+                    if chk_out and a_chk_out:
+                        sobol_mk += (loc_pc[pidx] * loc_pc_a[pidx] 
+                                     * math.sqrt(a_r_cf*a_c_cf))
+                        
+        sobol_mk *= r_cf *math.sqrt(r_cf*c_cf)
+        sobol_ns += sobol_mk
+    sobol_ns -= mean**2
     return sobol_ns / var
 
     
@@ -300,10 +307,11 @@ def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15
     sobol_dict = {}
     for j in sub_idx:
         for k in sub_idx:
-            if k <= j:
-                sobol_dict[(j, k)] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
-                                                        mk2sid, alphas,
-                                                        list(j), list(k), eps)
+            # if len(k) <= len(j):
+            print(j,k)
+            sobol_dict[(j, k)] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
+                                                    mk2sid, alphas,
+                                                    list(j), list(k), eps)
     return sobol_dict
 
 def sobol_idx_amrpc_j(sobol_dict, idx_set):
@@ -333,16 +341,17 @@ def sobol_idx_amrpc_j(sobol_dict, idx_set):
         #print(idx_set, sub_idx)
         for j_idx in sub_idx:
             j_len = len(j_idx)
-            print('jj:',j_idx, j_idx, sobol_dict[(j_idx, j_idx)])
-            ret_val += sobol_dict[(j_idx, j_idx)]
+            #print('jj:',j_idx, j_idx, sobol_dict[(j_idx, j_idx)])
+            #ret_val += sobol_dict[(j_idx, j_idx)]
             print('ret=', ret_val)
             for k_idx in sub_idx:
-                if k_idx < j_idx:
-                    k_len = len(k_idx)
-                    print('jk:',(-1)**(2*idx_set_len-j_len-k_len), j_idx, k_idx,
-                          2*((-1)**(2*idx_set_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)])
-                    ret_val += 2*((-1)**(2*idx_set_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)]
-                    print('ret=', ret_val)
+                k_len = len(k_idx)
+                # if k_len <= j_len:
+                    
+                print('jk:',(-1)**(2*idx_set_len-j_len-k_len), j_idx, k_idx,
+                      ((-1)**(2*idx_set_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)])
+                ret_val += ((-1)**(2*idx_set_len-j_len-k_len))*sobol_dict[(j_idx, k_idx)]
+                print('ret=', ret_val)
     else:
         ret_val = sobol_dict[(idx_set, idx_set)]
     return ret_val
