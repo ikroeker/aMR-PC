@@ -176,8 +176,10 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-
     if qnt_len == 1:
         mean = mean[0]
         var = var[0]
-    sobol_ns = 0
-
+        sobol_ns = 0
+    else:
+        sobol_ns = np.zeros(mean.shape)
+        
     for mkey, sids in mk2sid.items():
         loc_pc = pc_coefs[sids[0], :]
         sobol_mk = 0 #loc_pc[0]**2
@@ -259,6 +261,8 @@ def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
         mean = mean[0]
         var = var[0]
         sobol_ns = 0
+    else:
+        sobol_ns = np.zeros(mean.shape)
     
     for mkey, sids in mk2sid.items():
         loc_pc = pc_coefs[sids[0], :]
