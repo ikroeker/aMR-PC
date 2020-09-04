@@ -298,7 +298,7 @@ def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15
                for t in it.combinations(idx_list, length)]
     sobol_dict = {}
     for j in sub_idx:
-        print(j)
+        #print(j)
         sobol_dict[j] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
                                             mk2sid, alphas,
                                             list(j), eps)
@@ -331,7 +331,7 @@ def sobol_idx_amrpc_j(help_sobol_dict, idx_set, tmp_sobol_dict):
         #print(idx_set, sub_idx)
         for j_idx in sub_idx:
             j_len = len(j_idx)
-            print('jj:',j_idx, help_sobol_dict[j_idx], j_len)
+            #print('jj:',j_idx, help_sobol_dict[j_idx], j_len)
             if j_idx not in tmp_sobol_dict.keys():
                 if j_len == 1:
                     tmp_sobol_dict[j_idx] = help_sobol_dict[j_idx]
@@ -339,7 +339,6 @@ def sobol_idx_amrpc_j(help_sobol_dict, idx_set, tmp_sobol_dict):
                     _, tmp_sobol_dict = sobol_idx_amrpc_j(help_sobol_dict, 
                                                           j_idx, tmp_sobol_dict)
             ret_val -= tmp_sobol_dict[j_idx]
-            #ret_val += sobol_dict[(j_idx, j_idx)]
-            print('ret=', ret_val)
+            #print('ret=', ret_val)
             tmp_sobol_dict[idx_set] = ret_val
     return ret_val, tmp_sobol_dict
