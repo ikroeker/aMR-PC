@@ -308,7 +308,7 @@ def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15
                                             list(j), eps)
     return sobol_dict
 
-def sobol_idx_amrpc_j(help_sobol_dict, idx_set, tmp_sobol_dict):
+def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
     """
     Computes Sobol indexes for aMR-PC expansion using dictionary provided by
     gen_sobol_amrpc_dict(...)
@@ -340,7 +340,7 @@ def sobol_idx_amrpc_j(help_sobol_dict, idx_set, tmp_sobol_dict):
                 if j_len == 1:
                     tmp_sobol_dict[j_idx] = help_sobol_dict[j_idx]
                 else:
-                    _, tmp_sobol_dict = sobol_idx_amrpc_j(help_sobol_dict, 
+                    _, tmp_sobol_dict = sobol_idx_amrpc_comb(help_sobol_dict, 
                                                           j_idx, tmp_sobol_dict)
             ret_val -= tmp_sobol_dict[j_idx]
             #print('ret=', ret_val)

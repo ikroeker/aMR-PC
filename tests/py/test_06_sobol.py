@@ -229,7 +229,7 @@ def test_amr_sobol_comb():
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
     #tmp_dict = {}
     tmp_dict = sob.gen_sobol_amrpc_dict(cf_ls_4s, rsc_dict, mk2sid, ALPHAS_MR, SRCS)
-    sob_idx, sobol_dict = sob.sobol_idx_amrpc_j(tmp_dict, frozenset(SRCS), {})
+    sob_idx, sobol_dict = sob.sobol_idx_amrpc_comb(tmp_dict, frozenset(SRCS), {})
     for src in src_idx:
         sob_idx = sobol_dict[src]
         sob_idx_ex = sob_cfs[src]
