@@ -93,7 +93,7 @@ def test_sobol():
     """
     x, _ = gen_rv(SAMPLE_CNT)
     dataset = pd.DataFrame(x) #  dataframe
-    # %% gen aPC polynomials and roots
+    #%% gen aPC polynomials and roots
     pc_nr_range = [0]
     h_dict = dt.genHankel(dataset, SRCS, pc_nr_range, P)
     pc_roots, pc_weights = dt.gen_roots_weights(h_dict, METHOD)
@@ -120,7 +120,7 @@ def test_sobol():
             phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
-    # %% Compute Sobol coefs
+    #%% Compute Sobol coefs
     pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
     src_idx = sob.gen_idx_subsets(DIM)
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
@@ -169,7 +169,7 @@ def test_amr_sobol():
             phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
-    # %% Compute Sobol coefs
+    #%% Compute Sobol coefs
     #pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
     src_idx = sob.gen_idx_subsets(DIM)
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
@@ -186,7 +186,7 @@ def test_amr_sobol():
 
 def test_amr_sobol_comb():
     """
-    Tests Sobol indexes for aMR-PC again analytical solution
+    Tests Sobol indexes for combinatoric aMR-PC again analytical solution
 
     Returns
     -------
@@ -223,7 +223,7 @@ def test_amr_sobol_comb():
             phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
-    # %% Compute Sobol coefs
+    #%% Compute Sobol coefs
     #pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
     src_idx = sob.gen_idx_subsets(DIM)
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
@@ -232,5 +232,61 @@ def test_amr_sobol_comb():
     sob_idx, sobol_dict = sob.sobol_idx_amrpc_comb(tmp_dict, frozenset(SRCS), {})
     for src in src_idx:
         sob_idx = sobol_dict[src]
+        sob_idx_ex = sob_cfs[src]
+        assert abs(sob_idx - sob_idx_ex) < TOL
+
+def test_amr_sobol_dynamic():
+    """
+    Tests Sobol indexes for dynamic aMR-PC again analytical solution
+
+    Returns
+    -------
+    None.
+
+    """
+    x, _ = gen_rv(SAMPLE_CNT)
+    dataset = pd.DataFrame(x) #  dataframe
+    nr_range = np.arange(NR, NR+1)
+    h_dict = dt.genHankel(dataset, SRCS, nr_range, NO)
+    roots, weights = dt.gen_roots_weights(h_dict, METHOD)
+    pc_dict = dt.gen_pcs(h_dict, METHOD)
+    npc_dict = dt.gen_npcs_mm(pc_dict, h_dict)
+    nrb_dict = dt.gen_nr_range_bds(dataset, SRCS, nr_range)
+    # get roots and weights and long MK-list for the output
+    roots_eval, _, mk_lst_l = dt.get_rw_4nrs(NR*np.ones(DIM), SRCS,
+                                             roots, weights)
+    mk_lst = list(set(mk_lst_l))
+    rsc_dict = dt.gen_rcf_dict(mk_lst)# rescaling coefficients for proj-> Nr=n_r
+
+    _, mk2sid = dt.gen_mkey_sid_rel(roots_eval, mk_lst, nrb_dict)
+    pol_vals = dt.gen_pol_on_samples_arr(roots_eval, npc_dict, ALPHAS_MR, mk2sid)
+    y_rt = ISH_FCT(roots_eval)
+
+    cf_ls_4s = np.zeros((len(y_rt), P_MR)) # Fct coefs on each sample, (sid, p, x): by LS
+
+    for sids in mk2sid.values():
+        phi = pol_vals[:, sids].T
+
+        # v, resid, rank, sigma = linalg.lstsq(A,y)
+        # solves Av = y using least squares
+        # sigma - singular values of A
+        v_ls, _, _, _ = np.linalg.lstsq(
+            phi, y_rt[sids], rcond=-1) # LS - output
+        cf_ls_4s[sids, :] = v_ls
+
+    #%% Compute Sobol coefs
+    #pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
+    src_idx = sob.gen_idx_subsets(DIM)
+    _, sob_cfs = ishigami_exact_sensitivity(A, B)
+    sobol_dict = {}
+    help_sobol_dict = {}
+    for src in src_idx:
+        sob_idx, sobol_dict, help_sobol_dict = sob.sobol_idx_amrpc_dynamic(src, 
+                                                                           cf_ls_4s, 
+                                                                           rsc_dict, 
+                                                                           mk2sid, 
+                                                                           ALPHAS,
+                                                                           sobol_dict,
+                                                                           help_sobol_dict)
         sob_idx_ex = sob_cfs[src]
         assert abs(sob_idx - sob_idx_ex) < TOL
