@@ -93,7 +93,7 @@ def test_sobol():
     """
     x, _ = gen_rv(SAMPLE_CNT)
     dataset = pd.DataFrame(x) #  dataframe
-    #%% gen aPC polynomials and roots
+    #% gen aPC polynomials and roots
     pc_nr_range = [0]
     h_dict = dt.genHankel(dataset, SRCS, pc_nr_range, P)
     pc_roots, pc_weights = dt.gen_roots_weights(h_dict, METHOD)
@@ -120,7 +120,7 @@ def test_sobol():
             phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
-    #%% Compute Sobol coefs
+    # % Compute Sobol coefs
     pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
     src_idx = sob.gen_idx_subsets(DIM)
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
@@ -169,7 +169,7 @@ def test_amr_sobol():
             phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
-    #%% Compute Sobol coefs
+    # % Compute Sobol coefs
     #pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
     src_idx = sob.gen_idx_subsets(DIM)
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
@@ -223,7 +223,7 @@ def test_amr_sobol_comb():
             phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
-    #%% Compute Sobol coefs
+    #% Compute Sobol coefs
     #pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
     src_idx = sob.gen_idx_subsets(DIM)
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
@@ -274,17 +274,17 @@ def test_amr_sobol_dynamic():
             phi, y_rt[sids], rcond=-1) # LS - output
         cf_ls_4s[sids, :] = v_ls
 
-    #%% Compute Sobol coefs
+    #% Compute Sobol coefs
     #pc_cfs = cf_ls_4s[0] # pol cfs 4 Nr=0, (identical for all samples)
     src_idx = sob.gen_idx_subsets(DIM)
     _, sob_cfs = ishigami_exact_sensitivity(A, B)
     sobol_dict = {}
     help_sobol_dict = {}
     for src in src_idx:
-        sob_idx, sobol_dict, help_sobol_dict = sob.sobol_idx_amrpc_dynamic(src, 
-                                                                           cf_ls_4s, 
-                                                                           rsc_dict, 
-                                                                           mk2sid, 
+        sob_idx, sobol_dict, help_sobol_dict = sob.sobol_idx_amrpc_dynamic(src,
+                                                                           cf_ls_4s,
+                                                                           rsc_dict,
+                                                                           mk2sid,
                                                                            ALPHAS_MR,
                                                                            sobol_dict,
                                                                            help_sobol_dict)
