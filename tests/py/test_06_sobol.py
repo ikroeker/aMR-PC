@@ -285,7 +285,7 @@ def test_amr_sobol_dynamic():
                                                                            cf_ls_4s, 
                                                                            rsc_dict, 
                                                                            mk2sid, 
-                                                                           ALPHAS,
+                                                                           ALPHAS_MR,
                                                                            sobol_dict,
                                                                            help_sobol_dict)
         sob_idx_ex = sob_cfs[src]
