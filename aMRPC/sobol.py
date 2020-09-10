@@ -348,7 +348,7 @@ def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
     return ret_val, tmp_sobol_dict
 
 def sobol_idx_amrpc_dynamic(idx_set, pc_coefs, rsc_dict, mk2sid, alphas,
-                            help_sobol_dict, tmp_sobol_dict, eps=1e-15):
+                            sobol_dict, help_sobol_dict, eps=1e-15):
     idx_set_len = len(idx_set)
     if idx_set not in help_sobol_dict.keys():
         help_sobol_dict[idx_set] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
@@ -363,21 +363,21 @@ def sobol_idx_amrpc_dynamic(idx_set, pc_coefs, rsc_dict, mk2sid, alphas,
         for j_idx in sub_idx:
             j_len = len(j_idx)
             #print('jj:',j_idx, help_sobol_dict[j_idx], j_len)
-            if j_idx not in tmp_sobol_dict.keys():
+            if j_idx not in sobol_dict.keys():
                 if j_len == 1:
                     if j_idx not in help_sobol_dict.keys():
                         help_sobol_dict[j_idx] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
                                                                     mk2sid, alphas,
                                                                     list(j_idx), eps)
-                    tmp_sobol_dict[j_idx] = help_sobol_dict[j_idx]
+                    sobol_dict[j_idx] = help_sobol_dict[j_idx]
                 else:
-                    _, tmp_sobol_dict, help_sobol_dict = sobol_idx_amrpc_dynamic(j_idx, pc_coefs,
+                    _, sobol_dict, help_sobol_dict = sobol_idx_amrpc_dynamic(j_idx, pc_coefs,
                                                                                  rsc_dict, mk2sid,
                                                                                  alphas,
+                                                                                 sobol_dict,
                                                                                  help_sobol_dict,
-                                                                                 tmp_sobol_dict,
                                                                                  eps)
-            ret_val -= tmp_sobol_dict[j_idx]
+            ret_val -= sobol_dict[j_idx]
             #print('ret=', ret_val)
-            tmp_sobol_dict[idx_set] = ret_val
-    return ret_val, tmp_sobol_dict, help_sobol_dict
+            sobol_dict[idx_set] = ret_val
+    return ret_val, sobol_dict, help_sobol_dict
