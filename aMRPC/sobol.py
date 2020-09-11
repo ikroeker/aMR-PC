@@ -187,6 +187,8 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-
         c_cf = u.gen_corr_rcf(mkey, not_in_idx_set)
         for a_mkey, a_sids in mk2sid.items():
             loc_pc_a = pc_coefs[a_sids[0], :]
+            a_r_cf = rsc_dict[a_mkey]
+            a_c_cf = u.gen_corr_rcf(a_mkey, not_in_idx_set)
             #idx_diff = u.multi_key_intersect_srcs(mkey, a_mkey)
             #if set(idx_diff) <= set(idx_set):
             #mk_chk = mkey == a_mkey
@@ -203,8 +205,9 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-
                     else:
                         chk_out = alpha[not_in_idx_set].max() == 0
                     if chk_out:
-                        sobol_mk += loc_pc[pidx] * loc_pc_a[pidx]
-        sobol_mk *= r_cf * c_cf
+                        sobol_mk += (loc_pc[pidx] * loc_pc_a[pidx]
+                                     * math.sqrt(a_r_cf*a_c_cf))
+        sobol_mk *= math.sqrt(r_cf * c_cf)
         sobol_ns += sobol_mk
     sobol_ns -= mean**2
     #print(mean, var, 1/rsc_dict[mkey])
@@ -237,8 +240,7 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
                    for t in it.combinations(items, length)]
         #print(idx_set, sub_idx)
         for idx in sub_idx:
-            a_len = len(idx)
-            ret_val += ((-1)**(idx_set_len-a_len))*sobol_dict[idx]
+            ret_val += ((-1)**(len(idx_set-idx)))*sobol_dict[idx]
             #ret_val -= sobol_dict[idx]
             #ret_val -= ((-1)**(idx_set_len-a_len))*sobol_dict[idx]
             #ret_val -= sobol_idx_amrpc(sobol_dict, idx)
