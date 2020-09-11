@@ -244,7 +244,7 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
             #ret_val -= sobol_idx_amrpc(sobol_dict, idx)
     return ret_val
 
-def sobol_idx_amrpc_jk(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
     p_max, dim = alphas.shape
     srcs = list(range(dim))
@@ -303,7 +303,7 @@ def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15
     sobol_dict = {}
     for j in sub_idx:
         #print(j)
-        sobol_dict[j] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
+        sobol_dict[j] = sobol_idx_amrpc_jj(pc_coefs, rsc_dict,
                                            mk2sid, alphas,
                                            list(j), eps)
     return sobol_dict
@@ -344,14 +344,17 @@ def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
                                                              j_idx, tmp_sobol_dict)
             ret_val -= tmp_sobol_dict[j_idx]
             #print('ret=', ret_val)
-            tmp_sobol_dict[idx_set] = ret_val
+    tmp_sobol_dict[idx_set] = ret_val
     return ret_val, tmp_sobol_dict
 
 def sobol_idx_amrpc_dynamic(idx_set, pc_coefs, rsc_dict, mk2sid, alphas,
                             sobol_dict, help_sobol_dict, eps=1e-15):
     idx_set_len = len(idx_set)
+    if idx_set in sobol_dict.keys():
+        return sobol_dict[idx_set], sobol_dict, help_sobol_dict
+    
     if idx_set not in help_sobol_dict.keys():
-        help_sobol_dict[idx_set] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
+        help_sobol_dict[idx_set] = sobol_idx_amrpc_jj(pc_coefs, rsc_dict,
                                                       mk2sid, alphas,
                                                       list(idx_set), eps)
     ret_val = help_sobol_dict[idx_set]
@@ -366,7 +369,7 @@ def sobol_idx_amrpc_dynamic(idx_set, pc_coefs, rsc_dict, mk2sid, alphas,
             if j_idx not in sobol_dict.keys():
                 if j_len == 1:
                     if j_idx not in help_sobol_dict.keys():
-                        help_sobol_dict[j_idx] = sobol_idx_amrpc_jk(pc_coefs, rsc_dict,
+                        help_sobol_dict[j_idx] = sobol_idx_amrpc_jj(pc_coefs, rsc_dict,
                                                                     mk2sid, alphas,
                                                                     list(j_idx), eps)
                     sobol_dict[j_idx] = help_sobol_dict[j_idx]
@@ -379,5 +382,5 @@ def sobol_idx_amrpc_dynamic(idx_set, pc_coefs, rsc_dict, mk2sid, alphas,
                                                                                  eps)
             ret_val -= sobol_dict[j_idx]
             #print('ret=', ret_val)
-            sobol_dict[idx_set] = ret_val
+    sobol_dict[idx_set] = ret_val
     return ret_val, sobol_dict, help_sobol_dict
