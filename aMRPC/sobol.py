@@ -81,6 +81,12 @@ def gen_idx_subsets(dim):
                for t in it.combinations(items, length)]
     return set(sub_idx)
 
+def gen_sidx_subsets(sidx):
+    items = list(sidx)
+    sub_idx = [frozenset(t) for length in range(1, len(sidx)+1)
+               for t in it.combinations(items, length)]
+    return set(sub_idx)
+
 def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
     """
     Computes total sensitivity coeficients for polynomial-chaos (PC) expansion
@@ -233,17 +239,15 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
 
     """
     idx_set_len = len(idx_set)
-    ret_val = sobol_dict[idx_set]
+    ret_val = 0 #sobol_dict[idx_set]
     if idx_set_len > 1:
-        items = list(idx_set)
-        sub_idx = [frozenset(t) for length in range(1, idx_set_len)
-                   for t in it.combinations(items, length)]
+        sub_idx = gen_sidx_subsets(idx_set)
         #print(idx_set, sub_idx)
         for idx in sub_idx:
+            #print(((-1)**(len(idx_set-idx))), idx_set, idx)
             ret_val += ((-1)**(len(idx_set-idx)))*sobol_dict[idx]
-            #ret_val -= sobol_dict[idx]
-            #ret_val -= ((-1)**(idx_set_len-a_len))*sobol_dict[idx]
-            #ret_val -= sobol_idx_amrpc(sobol_dict, idx)
+    else:
+        ret_val = sobol_dict[idx_set]
     return ret_val
 
 def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
@@ -294,14 +298,16 @@ def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
         sobol_mk *= math.sqrt(r_cf*c_cf)
         sobol_ns += sobol_mk
     sobol_ns -= mean**2
+    #var_ths = var >= eps
     return sobol_ns / var
 
 
 
 def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
-    idx_list_len = len(idx_list)
-    sub_idx = [frozenset(t) for length in range(1, idx_list_len+1)
-               for t in it.combinations(idx_list, length)]
+    # idx_list_len = len(idx_list)
+    # sub_idx = [frozenset(t) for length in range(1, idx_list_len+1)
+    #            for t in it.combinations(idx_list, length)]
+    sub_idx = gen_sidx_subsets(set(idx_list))
     sobol_dict = {}
     for j in sub_idx:
         #print(j)
@@ -319,7 +325,7 @@ def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
     ----------
     sobol_dict : dicitonary
         output of sobol_idx_amrpc_jk(...).
-    idx_list : set
+    idx_set : set
         list of sources to be considered.
 
     Returns
@@ -331,9 +337,10 @@ def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
     idx_set_len = len(idx_set)
     ret_val = help_sobol_dict[idx_set]
     if idx_set_len > 1:
+        #sub_idx = gen_sidx_subsets(list(idx_set)) - idx_set
         items = list(idx_set)
         sub_idx = [frozenset(t) for length in range(1, idx_set_len)
-                   for t in it.combinations(items, length)]
+                    for t in it.combinations(items, length)]
         #print(idx_set, sub_idx)
         for j_idx in sub_idx:
             j_len = len(j_idx)
@@ -346,6 +353,7 @@ def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
                                                              j_idx, tmp_sobol_dict)
             ret_val -= tmp_sobol_dict[j_idx]
             #print('ret=', ret_val)
+
     tmp_sobol_dict[idx_set] = ret_val
     return ret_val, tmp_sobol_dict
 
