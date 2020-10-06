@@ -668,6 +668,67 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
             cf_ls_4s[sids, :, idx_x] = v_ls
     return cf_ls_4s
 
+def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
+    """
+    computes the armpc-decomposition coefficients f_p of
+    f(x,theta) = sum_p f_p(x) * pol_p(sample)
+    on each multikey, mkey -> (p, x) by least-squares
+
+    Parameters
+    ----------
+    data : np.array[sample_id, space_point_nr]
+        evaluations of f on samples theta for each space point x
+    pol_vals : np.array[sample_id, pol_degree]
+        eval of picevise polynomials for each sample_id and pol_degree.
+    mk2sid : dictionary
+        MR-related multi-key -> sample id.
+    x_start: integer
+        first space_point_nr to eval.
+    x_len: integer
+        length of the x-vector to eval
+
+    Returns
+    -------
+    cf_ls_4mkeys: dictionary of np.arrays of f_i for mkey-> [p, x_i]
+
+    """
+    # compute function coefficients by least-squares
+    # Fct coefs on each sample, (sid, p, x): by LS
+    n_tup = data.shape
+    if len(n_tup) > 1:
+        n_x = n_tup[1]
+    else:
+        n_x = 1
+    if x_len < 0:
+        x_len = n_x
+    assert x_start + x_len <= n_x
+    n_s = n_tup[0]
+    p_max = pol_vals.shape[0]
+    cf_ls_4mkeys = {}
+    cf_ls_4mk = np.zeros((p_max, x_len))
+    for mkey, sids in mk2sid.items():
+        phi = pol_vals[:, sids].T
+        for idx_x in range(x_len):
+            # v, resid, rank, sigma = linalg.lstsq(A,y)
+            # solves Av = y using least squares
+            # sigma - singular values of A
+            dt_idx_x = x_start + idx_x
+               
+            if n_s > 1:
+                if n_s == len(sids):
+                    v_ls, _, _, _ = np.linalg.lstsq(
+                            phi, data[:, dt_idx_x], rcond=None) # LS - output
+                else:
+                    #v_ls, resid, rank, sigma = np.linalg.lstsq(
+                    #    Phi, data[sids, idx_x], rcond=None) # LS - output
+                    v_ls, _, _, _ = np.linalg.lstsq(
+                        phi, data[sids, dt_idx_x], rcond=None) # LS - output
+            else:
+                v_ls = data[dt_idx_x]/phi
+            cf_ls_4mk[:, idx_x] = v_ls
+        cf_ls_4mkeys[mkey] = cf_ls_4mk
+    return cf_ls_4mkeys
+
 def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
     """
     computes the armpc-decomposition coefficients f_p of
@@ -753,6 +814,53 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
     variance -= mean**2
 
     return mean, variance
+
+def mkey_cf_2_mean_var(cf_4mk, rc_dict, mk2sid):
+    """
+    Computes mean and variance from the aMR-PC decompositions coeficients
+
+    Parameters
+    ----------
+    cf_4mk : dictionary of np.array's
+        mkey -> [pol_degree, x_idx], function coefs.
+    rc_dict : dictionary
+        (multi-key)->rescaling coefficent.
+    mk2sid : dictionary
+        (multi-key)->[sample_id].
+
+    Returns
+    -------
+    mean : np.array
+        expectation for all x.
+    variance : np.array
+        variance for all x.
+
+    """
+    #_, p_max, n_x = cf_4s.shape
+    n_x = 0
+    
+    for mkey, cfs in cf_4mk.items():
+        if n_x == 0:
+            tup = cfs.shape
+            if len(tup) < 2:
+                n_x = 1
+            else:
+                n_x = tup[1]
+            p_max = tup[0]
+            mean = np.zeros(n_x)
+            variance = np.zeros(n_x)
+        if n_x > 1:
+            mean += cfs[0, :] * rc_dict[mkey]
+            for p_d in range(p_max):
+                variance += rc_dict[mkey] * (cfs[p_d, :]**2)
+        else:
+            mean += cfs[0] * rc_dict[mkey]
+            for p_d in range(p_max):
+                variance += (cfs[p_d]**2) *rc_dict[mkey]
+    variance -= mean**2
+
+    return mean, variance
+
 
 def add_samples(samples, new_samples):
     """
