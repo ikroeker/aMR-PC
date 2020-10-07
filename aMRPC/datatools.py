@@ -854,9 +854,7 @@ def cf_2_mean_var_4mkey(cf_4mk, rc_dict):
         mkey -> [pol_degree, x_idx], function coefs.
     rc_dict : dictionary
         (multi-key)->rescaling coefficent.
-    mk2sid : dictionary
-        (multi-key)->[sample_id].
-
+ 
     Returns
     -------
     mean : np.array
