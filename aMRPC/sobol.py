@@ -164,7 +164,7 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-
     Returns
     -------
     float / numpy.ndarray
-        input data for solbo_idx_amprc.
+        input data for solbol_idx_amprc.
 
     """
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)

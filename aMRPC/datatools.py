@@ -713,11 +713,11 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
             # solves Av = y using least squares
             # sigma - singular values of A
             dt_idx_x = x_start + idx_x
-               
+
             if n_s > 1:
                 if n_s == len(sids):
                     v_ls, _, _, _ = np.linalg.lstsq(
-                            phi, data[:, dt_idx_x], rcond=None) # LS - output
+                        phi, data[:, dt_idx_x], rcond=None) # LS - output
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
@@ -770,8 +770,37 @@ def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
                 else:
                     cf_q_4s[sids, p, idx_x] = data_pol_4_p[idx_x]
     return cf_q_4s
+def cf_2_mean_var(cfs, rc_dict, mk2sid):
+    """
+    Computes mean and variance from the aMR-PC decompositions coeficients
+    depending on type of cfs starts .._4s or _4mkey version of.
 
-def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
+    Parameters
+    ----------
+    cfs : np.array
+        [sample_id, pol_degree, x_idx], function coefs.
+        or
+        dictionary of np.array's
+        mkey -> [pol_degree, x_idx], function coefs.
+    rc_dict : dictionary
+        (multi-key)->rescaling coefficent.
+    mk2sid : dictionary
+        (multi-key)->[sample_id].
+
+    Returns
+    -------
+    mean : np.array
+        expectation for all x.
+    variance : np.array
+        variance for all x.
+
+    """
+    if isinstance(cfs, dict):
+        return cf_2_mean_var_4mkey(cfs, rc_dict)
+    else:
+        return cf_2_mean_var_4s(cfs, rc_dict, mk2sid)
+
+def cf_2_mean_var_4s(cf_4s, rc_dict, mk2sid):
     """
     Computes mean and variance from the aMR-PC decompositions coeficients
 
@@ -815,7 +844,7 @@ def cf_2_mean_var(cf_4s, rc_dict, mk2sid):
 
     return mean, variance
 
-def mkey_cf_2_mean_var(cf_4mk, rc_dict, mk2sid):
+def cf_2_mean_var_4mkey(cf_4mk, rc_dict):
     """
     Computes mean and variance from the aMR-PC decompositions coeficients
 
@@ -838,7 +867,7 @@ def mkey_cf_2_mean_var(cf_4mk, rc_dict, mk2sid):
     """
     #_, p_max, n_x = cf_4s.shape
     n_x = 0
-    
+
     for mkey, cfs in cf_4mk.items():
         if n_x == 0:
             tup = cfs.shape
@@ -922,7 +951,7 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
         b_msk = cmp_mv_quant_domain_mk(new_samples, nrb_dict, mkey)
         new_mk2sid[mkey] = sids[b_msk]
         if mkey in mk2sid_u:
-             mk2sid_u[mkey] = np.concatenate((mk2sid_u[mkey], sids[b_msk]), axis=0)
+            mk2sid_u[mkey] = np.concatenate((mk2sid_u[mkey], sids[b_msk]), axis=0)
         else:
             mk2sid_u[mkey] = sids[b_msk]
         for sid in sids[b_msk]:
