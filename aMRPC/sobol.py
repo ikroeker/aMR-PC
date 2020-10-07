@@ -251,6 +251,12 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
     return ret_val
 
 def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+    if isinstance(pc_coefs, dict):
+        return sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15)
+    else:
+        return sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15)
+
+def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
     p_max, dim = alphas.shape
     srcs = list(range(dim))
@@ -301,6 +307,53 @@ def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
     #var_ths = var >= eps
     return sobol_ns / var
 
+def sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15):
+    mean, var = dt.cf_2_mean_var_4mkey(pc_coefs, rsc_dict)
+    p_max, dim = alphas.shape
+    srcs = list(range(dim))
+    assert max(idx_list) < dim
+
+    not_in_idx_set = list(set(srcs)-set(idx_list))
+
+    var_thresh = var <= eps
+    if max(var_thresh):
+        var[var_thresh] = 1
+    # replace np.array by scalars for len(mean) == 1
+    qnt_len = mean.shape[0]
+    if qnt_len == 1:
+        mean = mean[0]
+        var = var[0]
+        sobol_ns = 0
+    else:
+        sobol_ns = np.zeros(mean.shape)
+
+    for mkey, loc_pc in pc_coefs.items():
+        sobol_mk = 0 #loc_pc[0]**2
+        r_cf = rsc_dict[mkey]
+        c_cf = u.gen_corr_rcf(mkey, not_in_idx_set)
+        #c_cf = u.gen_corr_rcf(mkey, not_in_idx_set)
+        for a_mkey, a_loc_pc in pc_coefs.items():
+            mk_chk = u.compare_multi_key_for_idx(mkey, a_mkey, idx_list)
+            if mk_chk:
+                a_r_cf = rsc_dict[a_mkey]
+                a_c_cf = u.gen_corr_rcf(a_mkey, not_in_idx_set)
+                for pidx in range(p_max):
+                    alpha = alphas[pidx, :]
+                    #chk_in = alpha[idx_list].min() > 0
+                    if not not_in_idx_set:
+                        chk_out = True
+                    else:
+                        chk_out = alpha[not_in_idx_set].max() == 0
+
+                    if chk_out:
+                        sobol_mk += (loc_pc[pidx] * a_loc_pc[pidx]
+                                     * math.sqrt(a_r_cf*a_c_cf))
+
+        sobol_mk *= math.sqrt(r_cf*c_cf)
+        sobol_ns += sobol_mk
+    sobol_ns -= mean**2
+    #var_ths = var >= eps
+    return sobol_ns / var
 
 
 def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
