@@ -252,9 +252,9 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
 
 def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
     if isinstance(pc_coefs, dict):
-        return sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15)
+        return sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps)
     else:
-        return sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15)
+        return sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps)
 
 def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
