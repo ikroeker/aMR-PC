@@ -55,11 +55,12 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     else:
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
-            ret_array[i] = np.exp(-0.5*deviation[:,i].T @ np.linalg.inv(covariance_matrix) @ deviation[:,i])
+            ret_array[i] = np.exp(-0.5*deviation[:, i].T @
+                                  np.linalg.inv(covariance_matrix) @ deviation[:, i])
         return ret_array
-    
+
 def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
-       """
+    """
     Computes the core part of the Gaussian log-likelihood function with cov. matrix
 
     Parameters
@@ -84,5 +85,6 @@ def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
     else:
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
-            ret_array[i] = -0.5*deviation[:,i].T @ np.linalg.inv(covariance_matrix) @ deviation[:,i]
+            ret_array[i] = (-0.5*deviation[:, i].T
+                            @ np.linalg.inv(covariance_matrix) @ deviation[:, i])
         return ret_array
