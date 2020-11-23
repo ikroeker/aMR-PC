@@ -16,6 +16,12 @@ def write_eval_points(points, fname, **kwargs):
     """
     writes evals points in asci file
     additionals args: dir and template
+    
+    Parameters
+    ----------
+    points : DataFrame
+    fname : string
+    kwargs : dictionary with output template, directory
     """
     if 'dir' in kwargs.keys():
         mydir = kwargs['dir']
