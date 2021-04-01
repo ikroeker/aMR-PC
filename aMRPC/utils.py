@@ -35,6 +35,17 @@ def gen_multi_idx(n_o, dim):
             l_idx = l_idx+1
     return alphas
 
+def gen_midx_mask(alphas, no_max):
+    """
+    generates a mask for alphas, such that all multi-index polynomial degrees
+    are below ( <=)no_max
+    """
+    p_cnt = alphas.shape[0]
+    a_mask = np.zeros(p_cnt, dtype=bool)
+    for i in range(p_cnt):
+        a_mask[i] = alphas[i, :].sum() <= no_max
+    return a_mask
+
 def gen_nri_range(nrs):
     """
     generates an array with Nri-entries
