@@ -962,7 +962,7 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
 def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_dict,
                                alphas, new_mk2sid):
     """
-    Updates polnyomial values after update of the samples
+    Updates polynomial values after update of the samples
 
     Parameters
     ----------

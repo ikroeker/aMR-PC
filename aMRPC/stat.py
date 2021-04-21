@@ -29,6 +29,10 @@ def cmp_norm_likelihood_cf(std, number_of_measurments):
     """
     return 1/pow(sqrt(2*pi)*std, number_of_measurments)
 
+def cmp_norm_likelihood_cf_mv(covariance_matrix):
+    dim = covariance_matrix.shape[0]
+    return 1/sqrt(pow(2*pi, dim)*np.linalg.det(covariance_matrix))
+
 def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     """
     Computes the core part of the Gaussian likelihood function with cov. matrix
@@ -88,3 +92,19 @@ def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
             ret_array[i] = (-0.5*deviation[:, i].T
                             @ np.linalg.inv(covariance_matrix) @ deviation[:, i])
         return ret_array
+
+def cmp_norm_bme_response(observation, response_surfaces, covariance_matrix):
+    dim = len(observation)
+    n, m = response_surfaces.shape
+    if m == dim:
+        sample_cnt = n
+    else:
+        sample_cnt = m
+        response_surfaces = response_surfaces.T
+    lhs = np.zeros(dim)
+    cf = cmp_norm_likelihood_cf_mv(covariance_matrix)
+    for sample in range(sample_cnt):
+        lhs[sample] = cf * cmp_norm_likelihood_core(observation,
+                                                    response_surfaces[sample, :],
+                                                    covariance_matrix)
+    return lhs.mean()
