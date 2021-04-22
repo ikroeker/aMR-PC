@@ -127,5 +127,6 @@ def d_kl_prior_response(observation, response_surfaces, covariance_matrix):
                                                        covariance_matrix)
         llhs[sample] = cmp_log_likelihood_core(observation,
                                                response_surfaces[sample, :],
-                                               covariance_matrix) - llh_cf
-    return llhs.mean() - np.log(lhs.mean())
+                                               covariance_matrix) + llh_cf
+    bme = lhs.mean()
+    return np.mean(llhs*lhs)/bme - np.log(bme)
