@@ -122,11 +122,12 @@ def d_kl_prior_response(observation, response_surfaces, covariance_matrix):
     lhs = np.zeros(sample_cnt)
     llhs = np.zeros(sample_cnt)
     for sample in range(sample_cnt):
-        lhs[sample] = lh_cf * cmp_norm_likelihood_core(observation,
-                                                       response_surfaces[sample, :],
-                                                       covariance_matrix)
+        lhs[sample] = cmp_norm_likelihood_core(observation,
+                                               response_surfaces[sample, :],
+                                               covariance_matrix)
         llhs[sample] = cmp_log_likelihood_core(observation,
                                                response_surfaces[sample, :],
                                                covariance_matrix) + llh_cf
-    bme = lhs.mean()
-    return np.mean(llhs*lhs)/bme - np.log(bme)
+    mask = lhs >= lhs.max() * np.random.uniform(0, 1, lhs.shape)
+    bme = lh_cf*lhs.mean()
+    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
