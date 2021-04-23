@@ -130,4 +130,5 @@ def d_kl_prior_response(observation, response_surfaces, covariance_matrix):
                                                covariance_matrix) + llh_cf
     mask = lhs >= lhs.max() * np.random.uniform(0, 1, lhs.shape)
     bme = lh_cf*lhs.mean()
-    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
+#    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
+    return np.mean(llhs[mask]) - np.log(bme)
