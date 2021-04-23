@@ -109,9 +109,9 @@ def cmp_norm_bme_response(observation, response_surfaces, covariance_matrix):
                                                        covariance_matrix)
     return lhs.mean()
 
-def d_kl_prior_response(observation, response_surfaces, covariance_matrix):
-    lh_cf = cmp_norm_likelihood_cf_mv(covariance_matrix)
-    llh_cf = np.log(lh_cf)
+def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
+#    lh_cf = cmp_norm_likelihood_cf_mv(covariance_matrix)
+#    llh_cf = np.log(lh_cf)
     dim = len(observation)
     n, m = response_surfaces.shape
     if m == dim:
@@ -119,16 +119,16 @@ def d_kl_prior_response(observation, response_surfaces, covariance_matrix):
     else:
         sample_cnt = m
         response_surfaces = response_surfaces.T
-    lhs = np.zeros(sample_cnt)
+#    lhs = np.zeros(sample_cnt)
     llhs = np.zeros(sample_cnt)
     for sample in range(sample_cnt):
-        lhs[sample] = cmp_norm_likelihood_core(observation,
-                                               response_surfaces[sample, :],
-                                               covariance_matrix)
+#        lhs[sample] = cmp_norm_likelihood_core(observation,
+#                                               response_surfaces[sample, :],
+#                                               covariance_matrix)
         llhs[sample] = cmp_log_likelihood_core(observation,
                                                response_surfaces[sample, :],
-                                               covariance_matrix) + llh_cf
-    mask = lhs >= lhs.max() * np.random.uniform(0, 1, lhs.shape)
-    bme = lh_cf*lhs.mean()
+                                               covariance_matrix)
+    mask = np.exp(llhs) >= np.exp(llhs.max()) * np.random.uniform(0, 1, llhs.shape)
+    bme = np.exp(llhs).mean()
 #    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
     return np.mean(llhs[mask]) - np.log(bme)
