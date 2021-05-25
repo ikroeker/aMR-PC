@@ -551,7 +551,7 @@ def gen_rcf_dict(mk_list):
     return rcf_dict
 
 def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
-                  mk2sid):
+                  mk2sid, alpha_masks=None):
     """
     Generates function reconstruction
     f(sample, x) = sum_(p in alphas) f_cfs(sample, p,  x) * pol(alpha_p, sample)
@@ -572,7 +572,8 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         dictionary of stochastic-element boundaries.
     mk2sid : dict
         (multi key) -> sample id dictionary.
-
+    alpha_masks: dict
+        (multi key) -> mask for alphas, such that only true degrees were used
     Returns
     -------
     f_rec : np.array
@@ -585,9 +586,14 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
     p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc)
+    idxs_p = np.arange(alphas.shape[0])
+    if alpha_masks is None:
+        alpha_mask = np.ones(alphas.shape[0], dtype=bool)
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
-        for idx_p in range(alphas.shape[0]):
+        if alpha_masks is not None:
+            alpha_mask = alpha_masks[mkey]
+        for idx_p in idxs_p[alpha_mask]:
             for sid_l in sids_l:
                 f_rec[sid_l, :] += f_cfs[sids[0], idx_p, :] * p_vals[idx_p, sid_l]
 
@@ -1060,17 +1066,17 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_d
 def main():
     """ some tests """
     # data location
-    url = '../data/InputParameters.txt'
+#    url = '../data/InputParameters.txt'
 
-    # load data
-    dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
-    n_r = 2
-    nr_range = np.arange(n_r+1)
-    n_o = 2
-    srcs = np.arange(0, 1)
-    method = 0
-    h_dict = genHankel(dataframe, srcs, nr_range, n_o)
-    print(h_dict)
-    # further with test004
-    roots, weights = gen_roots_weights(h_dict, method)
-    print(roots, weights)
+#    # load data
+#    dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
+#    n_r = 2
+#    nr_range = np.arange(n_r+1)
+#    n_o = 2
+#    srcs = np.arange(0, 1)
+#    method = 0
+#    h_dict = genHankel(dataframe, srcs, nr_range, n_o)
+#    print(h_dict)
+#    # further with test004
+#    roots, weights = gen_roots_weights(h_dict, method)
+#    print(roots, weights)
