@@ -558,7 +558,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     Parameters
     ----------
-    samples : mp.array
+    samples : np.array
         samples for evaluation, samples[i] = [s_0, s_1, ..., s_n].
     mk_list : list of tuples
         (unique) list of multi-keys ((key,0),...,(key, n)).
