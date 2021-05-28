@@ -93,7 +93,7 @@ def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
                             @ np.linalg.inv(covariance_matrix) @ deviation[:, i])
         return ret_array
 
-def cmp_norm_bme_response(observation, response_surfaces, covariance_matrix):
+def bme_norm_response(observation, response_surfaces, covariance_matrix):
     dim = len(observation)
     n, m = response_surfaces.shape
     if m == dim:
