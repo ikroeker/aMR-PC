@@ -726,6 +726,8 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
                 #    Phi, data[sids, idx_x], rcond=None) # LS - output
                 v_ls, _, _, _ = np.linalg.lstsq(
                     phi, data[sids, dt_idx_x], rcond=None) # LS - output
+            elif len(n_tup) > 1:
+                v_ls = np.ravel(data[0, dt_idx_x]/phi)
             else:
                 v_ls = data[dt_idx_x]/phi
             tmp = np.zeros(p_max)
