@@ -551,14 +551,14 @@ def gen_rcf_dict(mk_list):
     return rcf_dict
 
 def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
-                  mk2sid):
+                  mk2sid, alpha_masks=None):
     """
     Generates function reconstruction
     f(sample, x) = sum_(p in alphas) f_cfs(sample, p,  x) * pol(alpha_p, sample)
 
     Parameters
     ----------
-    samples : mp.array
+    samples : np.array
         samples for evaluation, samples[i] = [s_0, s_1, ..., s_n].
     mk_list : list of tuples
         (unique) list of multi-keys ((key,0),...,(key, n)).
@@ -572,7 +572,8 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         dictionary of stochastic-element boundaries.
     mk2sid : dict
         (multi key) -> sample id dictionary.
-
+    alpha_masks: dict
+        (multi key) -> mask for alphas, such that only true degrees were used
     Returns
     -------
     f_rec : np.array
@@ -585,9 +586,14 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
     p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc)
+    idxs_p = np.arange(alphas.shape[0])
+    if alpha_masks is None:
+        alpha_mask = np.ones(alphas.shape[0], dtype=bool)
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
-        for idx_p in range(alphas.shape[0]):
+        if alpha_masks is not None:
+            alpha_mask = alpha_masks[mkey]
+        for idx_p in idxs_p[alpha_mask]:
             for sid_l in sids_l:
                 f_rec[sid_l, :] += f_cfs[sids[0], idx_p, :] * p_vals[idx_p, sid_l]
 
@@ -667,6 +673,67 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
                 v_ls = data[dt_idx_x]/phi
             cf_ls_4s[sids, :, idx_x] = v_ls
     return cf_ls_4s
+
+def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1):
+    """
+    computes the armpc-decomposition coefficients f_p of
+    f(x,theta) = sum_p f_p(x) * pol_p(sample)
+    on each sample, (sid, p, x) by least-squares
+
+    Parameters
+    ----------
+    data : np.array[sample_id, space_point_nr]
+        evaluations of f on samples theta for each space point x
+    pol_vals : np.array[sample_id, pol_degree]
+        eval of picevise polynomials for each sample_id and pol_degree.
+    mk2sid : dictionary
+        MR-related multi-key -> sample id.
+    mask_dict : dictionary
+        MR-related multi-key -> numpy mask for used pc coefficients.
+    x_start: integer
+        first space_point_nr to eval.
+    x_len: integer
+        length of the x-vector to eval
+
+    Returns
+    -------
+    ret_cf_ls_4s: np.array of f_i for [sid, p, x_i]
+
+    """
+    # compute function coefficients by least-squares
+    # Fct coefs on each sample, (sid, p, x): by LS
+    n_tup = data.shape
+    if len(n_tup) > 1:
+        n_x = n_tup[1]
+    else:
+        n_x = 1
+    if x_len < 0:
+        x_len = n_x
+    assert x_start + x_len <= n_x
+    n_s = n_tup[0]
+    p_max = pol_vals.shape[0]
+    ret_cf_ls_4s = np.zeros((n_s, p_max, x_len))
+    for mkey, sids in mk2sid.items():
+        alpha_mask = mask_dict[mkey]
+        phi = (pol_vals[:, sids][alpha_mask, :]).T
+        for idx_x in range(x_len):
+            # v, resid, rank, sigma = linalg.lstsq(A,y)
+            # solves Av = y using least squares
+            # sigma - singular values of A
+            dt_idx_x = x_start + idx_x
+            if n_s > 1:
+                #v_ls, resid, rank, sigma = np.linalg.lstsq(
+                #    Phi, data[sids, idx_x], rcond=None) # LS - output
+                v_ls, _, _, _ = np.linalg.lstsq(
+                    phi, data[sids, dt_idx_x], rcond=None) # LS - output
+            elif len(n_tup) > 1:
+                v_ls = np.ravel(data[0, dt_idx_x]/phi)
+            else:
+                v_ls = data[dt_idx_x]/phi
+            tmp = np.zeros(p_max)
+            tmp[alpha_mask] = v_ls
+            ret_cf_ls_4s[sids, :, idx_x] = tmp
+    return ret_cf_ls_4s
 
 def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
     """
@@ -854,7 +921,7 @@ def cf_2_mean_var_4mkey(cf_4mk, rc_dict):
         mkey -> [pol_degree, x_idx], function coefs.
     rc_dict : dictionary
         (multi-key)->rescaling coefficent.
- 
+
     Returns
     -------
     mean : np.array
@@ -962,7 +1029,7 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
 def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_dict,
                                alphas, new_mk2sid):
     """
-    Updates polnyomial values after update of the samples
+    Updates polynomial values after update of the samples
 
     Parameters
     ----------
@@ -1001,17 +1068,17 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_d
 def main():
     """ some tests """
     # data location
-    url = '../data/InputParameters.txt'
+#    url = '../data/InputParameters.txt'
 
-    # load data
-    dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
-    n_r = 2
-    nr_range = np.arange(n_r+1)
-    n_o = 2
-    srcs = np.arange(0, 1)
-    method = 0
-    h_dict = genHankel(dataframe, srcs, nr_range, n_o)
-    print(h_dict)
-    # further with test004
-    roots, weights = gen_roots_weights(h_dict, method)
-    print(roots, weights)
+#    # load data
+#    dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
+#    n_r = 2
+#    nr_range = np.arange(n_r+1)
+#    n_o = 2
+#    srcs = np.arange(0, 1)
+#    method = 0
+#    h_dict = genHankel(dataframe, srcs, nr_range, n_o)
+#    print(h_dict)
+#    # further with test004
+#    roots, weights = gen_roots_weights(h_dict, method)
+#    print(roots, weights)

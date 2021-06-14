@@ -91,10 +91,15 @@ def load_eval_points(fname, mydir=None):
     """
     url = gen_file_url(fname, mydir)
     if op.exists(url):
-        dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
-        #dataframe=np.loadtxt(url)
-    else:
+        try:
+            dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
+        
+        except(IOError, ValueError):
+            print("An I/O error or a ValueError occurred")
+            raise
+    else:        
         print(url, " does not exist!")
+        return
     return dataframe
 
 def store_data_dict(out_dict, fname, mydir=None):
