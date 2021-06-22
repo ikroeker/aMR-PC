@@ -619,8 +619,7 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     p_max = alphas.shape[0]
     pol_vals = np.zeros((p_max, n_s))
 
-    for mkey in mk2sid:
-        sids = mk2sid[mkey]
+    for mkey, sids in mk2sid.items():
         for idx_p in range(p_max):
             pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
             pvals = pt.pc_eval(pcfs, samples[sids, :])
