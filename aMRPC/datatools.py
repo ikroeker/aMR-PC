@@ -551,7 +551,7 @@ def gen_rcf_dict(mk_list):
     return rcf_dict
 
 def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
-                  mk2sid, alpha_masks=None):
+                  mk2sid, alpha_masks=None, **kwargs):
     """
     Generates function reconstruction
     f(sample, x) = sum_(p in alphas) f_cfs(sample, p,  x) * pol(alpha_p, sample)
@@ -583,17 +583,24 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     n_s = samples.shape[0]
     n_x = f_cfs.shape[2]
     f_rec = np.zeros((n_s, n_x))
-
-    _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
-    p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc)
+    key = "mk2sid_samples"
+    if key in kwargs:
+        mk2sid_loc = kwargs[key]
+    else:
+        _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
+    key = 'p_vals'
+    if key in kwargs:
+        p_vals = kwargs[key]
+    else:
+        p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc)
     idxs_p = np.arange(alphas.shape[0])
-    if alpha_masks is None:
-        alpha_mask = np.ones(alphas.shape[0], dtype=bool)
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
         if alpha_masks is not None:
-            alpha_mask = alpha_masks[mkey]
-        for idx_p in idxs_p[alpha_mask]:
+            idxs_pm = idxs_p[alpha_masks[mkey]]
+        else:
+            idxs_pm = idxs_p
+        for idx_p in idxs_pm:
             for sid_l in sids_l:
                 f_rec[sid_l, :] += f_cfs[sids[0], idx_p, :] * p_vals[idx_p, sid_l]
 
@@ -612,8 +619,7 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     p_max = alphas.shape[0]
     pol_vals = np.zeros((p_max, n_s))
 
-    for mkey in mk2sid:
-        sids = mk2sid[mkey]
+    for mkey, sids in mk2sid.items():
         for idx_p in range(p_max):
             pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
             pvals = pt.pc_eval(pcfs, samples[sids, :])
@@ -631,7 +637,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
     data : np.array[sample_id, space_point_nr]
         evaluations of f on samples theta for each space point x
     pol_vals : np.array[sample_id, pol_degree]
-        eval of picevise polynomials for each sample_id and pol_degree.
+        eval of piecevise polynomials for each sample_id and pol_degree.
     mk2sid : dictionary
         MR-related multi-key -> sample id.
     x_start: integer
@@ -685,7 +691,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
     data : np.array[sample_id, space_point_nr]
         evaluations of f on samples theta for each space point x
     pol_vals : np.array[sample_id, pol_degree]
-        eval of picevise polynomials for each sample_id and pol_degree.
+        eval of piecevise polynomials for each sample_id and pol_degree.
     mk2sid : dictionary
         MR-related multi-key -> sample id.
     mask_dict : dictionary
@@ -746,7 +752,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
     data : np.array[sample_id, space_point_nr]
         evaluations of f on samples theta for each space point x
     pol_vals : np.array[sample_id, pol_degree]
-        eval of picevise polynomials for each sample_id and pol_degree.
+        eval of piecevise polynomials for each sample_id and pol_degree.
     mk2sid : dictionary
         MR-related multi-key -> sample id.
     x_start: integer
