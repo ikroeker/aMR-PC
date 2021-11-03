@@ -10,6 +10,7 @@ datatools.py - provides data management functions,
 """
 import pandas as pd
 import numpy as np
+from scipy.linalg import lstsq
 from . import polytools as pt
 from . import utils as u
 #from . import wavetools as wt
@@ -554,7 +555,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
                   mk2sid, alpha_masks=None, **kwargs):
     """
     Generates function reconstruction
-    f(sample, x) = sum_(p in alphas) f_cfs(sample, p,  x) * pol(alpha_p, sample)
+    f(sample, x) = sum_(p in alphas) f_cfs(sample_mk, p,  x) * pol(alpha_p, sample)
 
     Parameters
     ----------
@@ -673,8 +674,10 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
             if n_s > 1:
                 #v_ls, resid, rank, sigma = np.linalg.lstsq(
                 #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                v_ls, _, _, _ = np.linalg.lstsq(
-                    phi, data[sids, dt_idx_x], rcond=None) # LS - output
+                v_ls, _, _, _ = lstsq(
+                    phi, data[sids, dt_idx_x]) # LS - output
+#                v_ls, _, _, _ = np.linalg.lstsq(
+#                    phi, data[sids, dt_idx_x], rcond=None) # LS - output
             else:
                 v_ls = data[dt_idx_x]/phi
             cf_ls_4s[sids, :, idx_x] = v_ls
