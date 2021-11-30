@@ -3,6 +3,7 @@ polytools.py - generates aPC basis and related Gaussian quadrature
 
 @author:: kroeker
 """
+#import sys
 import math
 import numpy as np
 from numpy.polynomial import polynomial as P
@@ -43,6 +44,11 @@ def apc_cfs(H, k=-1, alen=-1):
         rH[k, j] = 0
     rH[k, k] = 1
     cfs = np.linalg.solve(rH, rs)
+    #if not np.allclose(np.dot(rH, cfs), rs):
+    #    cfs, _, _, _ = np.linalg.lstsq(rH, rs, rcond=-1)
+    
+    #assert np.allclose(np.dot(rH, cfs), rs), "problems with aPC coeffs"
+
     cfs.resize(alen, refcheck=False) # np.ndarray.resize() -> not np.resize(a)
 
     return cfs
