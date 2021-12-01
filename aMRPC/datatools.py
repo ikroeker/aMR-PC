@@ -33,6 +33,32 @@ def genHankel(dataframe, srcs, nr_range, n_o):
                 #print(H)
     return h_dict
 
+def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
+    """ generates Hankel matrixes for uniform distribution with
+    Input:
+        lb_v: list of lower bounds
+        ub_v: list of upper bounds
+        srcs: list of used sources
+        nr_range: list of refinement levels NR
+        n_o: polynomial degree
+
+    Output:
+        h_dict: dictionaly of Hankel matrices (np.array)
+        """
+    h_dict = {}
+    for src in srcs:
+        lb_s = lb_v[src]
+        ub_s = ub_v[src]
+        trans = lambda x: x*(ub_s - lb_s) + lb_s
+        for nr_a in nr_range:
+            for nr_i in range(2**nr_a):
+                lb_i, ub_i = cmp_lrb(nr_a, nr_i)
+                lb_ir = trans(lb_i)
+                ub_ir = trans(ub_i)
+                key = u.gen_dict_key(nr_a, nr_i, src)
+                h_dict[key] = pt.uniHank(n_o+1, lb_ir, ub_ir)
+    return h_dict
+
 def gen_nr_range_bds(dataframe, srcs, nr_range):
     """ generates dictionary with boundaries of MR-elements """
     nrb_dict = {}

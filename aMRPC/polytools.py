@@ -46,7 +46,7 @@ def apc_cfs(H, k=-1, alen=-1):
     cfs = np.linalg.solve(rH, rs)
     #if not np.allclose(np.dot(rH, cfs), rs):
     #    cfs, _, _, _ = np.linalg.lstsq(rH, rs, rcond=-1)
-    
+
     #assert np.allclose(np.dot(rH, cfs), rs), "problems with aPC coeffs"
 
     cfs.resize(alen, refcheck=False) # np.ndarray.resize() -> not np.resize(a)
@@ -164,7 +164,7 @@ def cmp_norm_cf(cfs, roots, weights, eps=0):
         nc += (p(roots[i])**2)*weights[i]
     if nc < eps: # ugly workarround, should be improved
         #print(nc)
-        nc = eps 
+        nc = eps
     return math.sqrt(nc)
 
 def cmp_norm_cf_moments(cfs, H_mx, eps=0):
@@ -177,19 +177,19 @@ def cmp_norm_cf_moments(cfs, H_mx, eps=0):
         ltwo_norm += cfs[i] * np.add.reduce(mx_line)
     if ltwo_norm < eps: # ugly workarround, should be improved
         #print(nc)
-        ltwo_norm = eps     
+        ltwo_norm = eps
     return math.sqrt(ltwo_norm)
 
 def uniHank(n, a=0, b=1):
     """Generates Hankel Matrix H_n for U(a,b), uses m_n=1/n+1 sum_k=0^n a^k b^(n-k)"""
-    H = np.zeros([n, n])
+    H = np.zeros([n+1, n+1])
     lva = a*np.ones(2*n+1)
     lvb = b*np.ones(2*n+1)
     for i in range(2*n+1):
         lva[i] = lva[i]**i
         lvb[i] = lvb[i]**(2*n-i)
-    for k in range(n):
-        for l in range(n):
+    for k in range(n+1):
+        for l in range(n+1):
             m = k+l
             va = lva[0:m+1]
             vb = lvb[2*n-m:]
@@ -246,7 +246,7 @@ def gen_npc_mx(cf, r, w, No=-1):
     return ncf
 
 def gen_npc_mx_mm(cf, H_mx, No=-1):
-    
+
     n = cf.shape[0]
     assert No <= n
     if No < 0:
