@@ -56,7 +56,7 @@ def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
                 lb_ir = trans(lb_i)
                 ub_ir = trans(ub_i)
                 key = u.gen_dict_key(nr_a, nr_i, src)
-                h_dict[key] = pt.uniHank(n_o+1, lb_ir, ub_ir)
+                h_dict[key] = pt.uniHank(n_o+2, lb_ir, ub_ir)
     return h_dict
 
 def gen_nr_range_bds(dataframe, srcs, nr_range):
