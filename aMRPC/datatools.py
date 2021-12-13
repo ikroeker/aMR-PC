@@ -717,7 +717,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, use_pinv=False
             cf_ls_4s[sids, :, idx_x] = v_ls
     return cf_ls_4s
 
-def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1):
+def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1, use_pinv=False):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
@@ -737,6 +737,8 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
         first space_point_nr to eval.
     x_len: integer
         length of the x-vector to eval
+    use_pinv :  bool
+        switches between least-squares and psedo-inverse based lsq
 
     Returns
     -------
@@ -765,10 +767,13 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
             # sigma - singular values of A
             dt_idx_x = x_start + idx_x
             if n_s > 1:
-                #v_ls, resid, rank, sigma = np.linalg.lstsq(
-                #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                v_ls, _, _, _ = np.linalg.lstsq(
-                    phi, data[sids, dt_idx_x], rcond=None) # LS - output
+                if use_pinv:
+                    v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
+                else:
+                    #v_ls, resid, rank, sigma = np.linalg.lstsq(
+                    #    Phi, data[sids, idx_x], rcond=None) # LS - output
+                    v_ls, _, _, _ = np.linalg.lstsq(
+                        phi, data[sids, dt_idx_x], rcond=None) # LS - output
             elif len(n_tup) > 1:
                 v_ls = np.ravel(data[0, dt_idx_x]/phi)
             else:
@@ -778,7 +783,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
             ret_cf_ls_4s[sids, :, idx_x] = tmp
     return ret_cf_ls_4s
 
-def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
+def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, use_pinv=False):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
@@ -796,7 +801,9 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
         first space_point_nr to eval.
     x_len: integer
         length of the x-vector to eval
-
+    use_pinv :  bool
+        switches between least-squares and psedo-inverse based lsq
+        
     Returns
     -------
     cf_ls_4mkeys: dictionary of np.arrays of f_i for mkey-> [p, x_i]
@@ -825,14 +832,17 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1):
             dt_idx_x = x_start + idx_x
 
             if n_s > 1:
-                if n_s == len(sids):
-                    v_ls, _, _, _ = np.linalg.lstsq(
-                        phi, data[:, dt_idx_x], rcond=None) # LS - output
+                if use_pinv:
+                    v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
                 else:
-                    #v_ls, resid, rank, sigma = np.linalg.lstsq(
-                    #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                    v_ls, _, _, _ = np.linalg.lstsq(
-                        phi, data[sids, dt_idx_x], rcond=None) # LS - output
+                    if n_s == len(sids):
+                        v_ls, _, _, _ = np.linalg.lstsq(
+                            phi, data[:, dt_idx_x], rcond=None) # LS - output
+                    else:
+                        #v_ls, resid, rank, sigma = np.linalg.lstsq(
+                        #    Phi, data[sids, idx_x], rcond=None) # LS - output
+                        v_ls, _, _, _ = np.linalg.lstsq(
+                            phi, data[sids, dt_idx_x], rcond=None) # LS - output
             else:
                 v_ls = data[dt_idx_x]/phi
             cf_ls_4mk[:, idx_x] = v_ls
