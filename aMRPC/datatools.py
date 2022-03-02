@@ -619,10 +619,8 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     else:
         _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
     key = 'p_vals'
-    if key in kwargs:
-        p_vals = kwargs[key]
-    else:
-        p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc)
+    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
+
     idxs_p = np.arange(alphas.shape[0])
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
@@ -656,11 +654,11 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
             pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
     return pol_vals
 
-def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, use_pinv=False):
+def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
-    on each sample, (sid, p, x) by least-squares
+    on each sample, (sid, p, x) by (pseudo inverse) least-squares
 
     Parameters
     ----------
@@ -670,12 +668,13 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, use_pinv=False
         eval of piecevise polynomials for each sample_id and pol_degree.
     mk2sid : dictionary
         MR-related multi-key -> sample id.
-    x_start: integer
-        first space_point_nr to eval.
-    x_len: integer
-        length of the x-vector to eval
-    use_pinv :  bool
-        switches between least-squares and psedo-inverse based lsq
+    kwargs:
+        x_start: integer
+            first space_point_nr to eval.
+        x_len: integer
+            length of the x-vector to eval
+        method :   'pinv', 'pinvt', 'pinvth', 'ls'
+            switches between least-squares and psedo-inverse based lsq
 
     Returns
     -------
@@ -689,8 +688,11 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, use_pinv=False
         n_x = n_tup[1]
     else:
         n_x = 1
-    if x_len < 0:
-        x_len = n_x
+
+    x_start = kwargs.get('x_start', 0)
+    x_len = kwargs.get("x_len", n_x)
+    method = kwargs.get("method", 'pinv')
+
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -703,8 +705,13 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, use_pinv=False
             # sigma - singular values of A
             dt_idx_x = x_start + idx_x
             if n_s > 1:
-                if use_pinv:
+                if method == 'pinv':
                     v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
+                elif method == 'pinvt':
+                    v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
+                elif method == 'pinvth':
+                    v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
+                            @ phi.T @ data[sids, dt_idx_x])
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
@@ -717,11 +724,11 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, use_pinv=False
             cf_ls_4s[sids, :, idx_x] = v_ls
     return cf_ls_4s
 
-def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1, use_pinv=False):
+def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
-    on each sample, (sid, p, x) by least-squares
+    on each sample, (sid, p, x) by (pseudo-inverse) least-squares
 
     Parameters
     ----------
@@ -733,12 +740,13 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
         MR-related multi-key -> sample id.
     mask_dict : dictionary
         MR-related multi-key -> numpy mask for used pc coefficients.
-    x_start: integer
-        first space_point_nr to eval.
-    x_len: integer
-        length of the x-vector to eval
-    use_pinv :  bool
-        switches between least-squares and psedo-inverse based lsq
+    kwargs:
+        x_start: integer
+            first space_point_nr to eval.
+        x_len: integer
+            length of the x-vector to eval
+        method :   'pinv', 'pinvt', 'pinvth', 'ls'
+            switches between least-squares and psedo-inverse based lsq
 
     Returns
     -------
@@ -752,8 +760,10 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
         n_x = n_tup[1]
     else:
         n_x = 1
-    if x_len < 0:
-        x_len = n_x
+    x_start = kwargs.get('x_start', 0)
+    x_len = kwargs.get("x_len", n_x)
+    method = kwargs.get("method", 'pinv')
+
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -767,8 +777,14 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
             # sigma - singular values of A
             dt_idx_x = x_start + idx_x
             if n_s > 1:
-                if use_pinv:
+                if method == 'pinv':
                     v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
+                elif method == 'pinvt':
+                    v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
+                elif method == 'pinvth':
+                    v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
+                            @ phi.T @ data[sids, dt_idx_x])
+
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
@@ -783,11 +799,11 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, x_start=0, x_len=-1
             ret_cf_ls_4s[sids, :, idx_x] = tmp
     return ret_cf_ls_4s
 
-def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, method='pinv'):
+def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     """
     computes the armpc-decomposition coefficients f_p of
     f(x,theta) = sum_p f_p(x) * pol_p(sample)
-    on each multikey, mkey -> (p, x) by least-squares
+    on each multikey, mkey -> (p, x) by (pseudo inverse) least-squares
 
     Parameters
     ----------
@@ -797,13 +813,14 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, method='pin
         eval of piecevise polynomials for each sample_id and pol_degree.
     mk2sid : dictionary
         MR-related multi-key -> sample id.
-    x_start: integer
-        first space_point_nr to eval.
-    x_len: integer
-        length of the x-vector to eval
-    use_pinv :  'pinv', 'pinvt', 'pinvth', 'ls'
-        switches between least-squares and psedo-inverse based lsq
-        
+    kwargs:
+        x_start: integer
+            first space_point_nr to eval.
+        x_len: integer
+            length of the x-vector to eval
+        method :  'pinv', 'pinvt', 'pinvth', 'ls'
+            switches between least-squares and psedo-inverse based lsq
+
     Returns
     -------
     cf_ls_4mkeys: dictionary of np.arrays of f_i for mkey-> [p, x_i]
@@ -816,8 +833,11 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, method='pin
         n_x = n_tup[1]
     else:
         n_x = 1
-    if x_len < 0:
-        x_len = n_x
+
+    x_start = kwargs.get('x_start', 0)
+    x_len = kwargs.get("x_len", n_x)
+    method = kwargs.get("method", 'pinv')
+
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -837,7 +857,8 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, x_start=0, x_len=-1, method='pin
                 elif method == 'pinvt':
                     v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
                 elif method == 'pinvth':
-                    v_ls = np.linalg.pinv(phi.T @ phi, hermitian=True) @ phi.T @ data[sids, dt_idx_x]
+                    v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
+                            @ phi.T @ data[sids, dt_idx_x])
                 else:
                     if n_s == len(sids):
                         v_ls, _, _, _ = np.linalg.lstsq(
