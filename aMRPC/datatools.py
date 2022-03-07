@@ -109,7 +109,7 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
     for key in h_dict:
         r, w = pt.gen_rw(h_dict[key], method)
         roots[key] = r
-        if not nr_bounds == None:
+        if not nr_bounds is None:
             assert min(r) >= nr_bounds[key][0], "roots violate the lower boundary"
             assert max(r) <= nr_bounds[key][1], "roots violate the upper boudnary"
         weights[key] = w
@@ -672,7 +672,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
         x_start: integer
             first space_point_nr to eval.
         x_len: integer
-            length of the x-vector to eval
+            length of the x-vector to eval, default x_len=-1
         method :   'pinv', 'pinvt', 'pinvth', 'ls'
             switches between least-squares and psedo-inverse based lsq
 
@@ -691,6 +691,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
 
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
+    x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
 
     assert x_start + x_len <= n_x
@@ -744,7 +745,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         x_start: integer
             first space_point_nr to eval.
         x_len: integer
-            length of the x-vector to eval
+            length of the x-vector to eval, default x_len=-1 -> all.
         method :   'pinv', 'pinvt', 'pinvth', 'ls'
             switches between least-squares and psedo-inverse based lsq
 
@@ -762,6 +763,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         n_x = 1
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
+    x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
 
     assert x_start + x_len <= n_x
@@ -817,7 +819,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
         x_start: integer
             first space_point_nr to eval.
         x_len: integer
-            length of the x-vector to eval
+            length of the x-vector to eval, default x_len=-1
         method :  'pinv', 'pinvt', 'pinvth', 'ls'
             switches between least-squares and psedo-inverse based lsq
 
@@ -836,6 +838,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
 
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
+    x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
 
     assert x_start + x_len <= n_x
