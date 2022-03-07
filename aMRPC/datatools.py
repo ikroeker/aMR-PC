@@ -109,7 +109,7 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
     for key in h_dict:
         r, w = pt.gen_rw(h_dict[key], method)
         roots[key] = r
-        if not nr_bounds is None:
+        if not (nr_bounds is None):
             assert min(r) >= nr_bounds[key][0], "roots violate the lower boundary"
             assert max(r) <= nr_bounds[key][1], "roots violate the upper boudnary"
         weights[key] = w
