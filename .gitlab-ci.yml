@@ -4,13 +4,12 @@ image: "python:latest"
 # only cache local items.
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
 cache:
   paths:
     - .cache/pip
 
 before_script:
-  - apt-get update -qy
-  - apt-get install -y python-dev python3-pip 
   - python --version
   - pip install pytest
   - pip install -r requirements.txt
