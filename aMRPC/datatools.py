@@ -109,7 +109,7 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
     for key in h_dict:
         r, w = pt.gen_rw(h_dict[key], method)
         roots[key] = r
-        if not (nr_bounds is None):
+        if not nr_bounds is None:
             assert min(r) >= nr_bounds[key][0], "roots violate the lower boundary"
             assert max(r) <= nr_bounds[key][1], "roots violate the upper boudnary"
         weights[key] = w
@@ -624,7 +624,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     idxs_p = np.arange(alphas.shape[0])
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
-        if alpha_masks is not None:
+        if alpha_masks is not None and len(alpha_masks) != 0:
             idxs_pm = idxs_p[alpha_masks[mkey]]
         else:
             idxs_pm = idxs_p
