@@ -131,4 +131,4 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
     mask = np.exp(llhs) >= np.exp(llhs.max()) * np.random.uniform(0, 1, llhs.shape)
     bme = np.exp(llhs).mean()
 #    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
-    return np.mean(llhs[mask]) - np.log(bme)
+    return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
