@@ -95,7 +95,7 @@ def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
 
 def bme_norm_response(observation, response_surfaces, covariance_matrix):
     dim = len(observation)
-    n, m = response_surfaces.shape
+    n, m = response_surfaces.shape[0:2]
     if m == dim:
         sample_cnt = n
     else:
