@@ -46,6 +46,21 @@ def gen_midx_mask(alphas, no_max):
         a_mask[i] = alphas[i, :].sum() <= no_max
     return a_mask
 
+def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
+    """
+    generates a mask for alphas, such that all multi-index polynomial degrees
+    are below ( <=)no_max for idxs in idx_set only
+    for idx not in idx_st pol degree <=no_min
+    """
+    p_cnt, dim = alphas.shape
+    a_mask = np.zeros(p_cnt, dtype=bool)
+    for i in range(p_cnt):
+        a_mask[i] = alphas[i, :].sum() <= no_max
+        for d in range(dim):
+            if d not in idx_set:
+                a_mask[i] = a_mask[i] and alphas[i, d] <= no_min
+    return a_mask
+
 def gen_nri_range(nrs):
     """
     generates an array with Nri-entries

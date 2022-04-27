@@ -597,7 +597,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     f_cfs : np.array
         reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
     npc_dict : dict
-        dictionary of normed picewise polynomials.
+        dictionary of normed piecewise polynomials.
     nrb_dict : dict
         dictionary of stochastic-element boundaries.
     mk2sid : dict
@@ -614,10 +614,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     n_x = f_cfs.shape[2]
     f_rec = np.zeros((n_s, n_x))
     key = "mk2sid_samples"
-    if key in kwargs:
-        mk2sid_loc = kwargs[key]
-    else:
-        _, mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)
+    mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
     key = 'p_vals'
     p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
 
@@ -761,6 +758,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         n_x = n_tup[1]
     else:
         n_x = 1
+        data = data.reshape((n_tup[0], n_x))
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
