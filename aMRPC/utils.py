@@ -152,8 +152,7 @@ def gen_multi_key(anrs, nris, srcs):
     Nris - Nr indices for each entree in src
     """
     dims = len(srcs)
-    key_list = [gen_dict_key(anrs[d], nris[d], srcs[d]) for d in range(dims)]
-    return tuple(key_list)
+    return tuple([gen_dict_key(anrs[d], nris[d], srcs[d]) for d in range(dims)])
 
 def multi_key2srcs(mkey):
     """ generates srcs list from multi-key """
@@ -165,16 +164,14 @@ def multi_key_diff_srcs(mkey_one, mkey_two):
     assert mk_len == len(mkey_two)
     #spos = ParPos['src']
     srcs = multi_key2srcs(mkey_one)
-    diff = [srcs[src] for src in range(mk_len) if mkey_one[src] != mkey_two[src]]
-    return diff
+    return [srcs[src] for src in range(mk_len) if mkey_one[src] != mkey_two[src]]
 
 def multi_key_intersect_srcs(mkey_one, mkey_two):
     mk_len = len(mkey_one)
     assert mk_len == len(mkey_two)
     #spos = ParPos['src']
     srcs = multi_key2srcs(mkey_one)
-    diff = [srcs[src] for src in range(mk_len) if mkey_one[src] == mkey_two[src]]
-    return diff
+    return [srcs[src] for src in range(mk_len) if mkey_one[src] == mkey_two[src]]
 
 def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
     mkey_len = len(mkey_two)

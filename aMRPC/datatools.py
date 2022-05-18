@@ -47,9 +47,7 @@ def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
         """
     h_dict = {}
     for src in srcs:
-        lb_s = lb_v[src]
-        ub_s = ub_v[src]
-        trans = lambda x: x*(ub_s - lb_s) + lb_s
+        trans = lambda x: x*(ub_v[src] - lb_v[src]) + lb_v[src]
         for nr_a in nr_range:
             for nr_i in range(2**nr_a):
                 lb_i, ub_i = cmp_lrb(nr_a, nr_i)

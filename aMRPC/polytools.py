@@ -264,5 +264,4 @@ def pc_eval(cfs, X):
     """ application of polyval with Cfs on X """
     C = cfs.T
     #print(C)
-    R = P.polyval(X, C, tensor=False)
-    return R
+    return P.polyval(X, C, tensor=False)
