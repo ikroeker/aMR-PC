@@ -741,9 +741,10 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             first space_point_nr to eval.
         x_len: integer
             length of the x-vector to eval, default x_len=-1 -> all.
-        method :   'pinv', 'pinvt', 'pinvth', 'ls'
+        method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg'
             switches between least-squares and psedo-inverse based lsq
-
+        sigma_n : sigma_noise, Tikhonov / ridge regularization parameter for 'reg'
+        sigma_p : sigma_prior  parameter for 'reg'
     Returns
     -------
     ret_cf_ls_4s: np.array of f_i for [sid, p, x_i]
@@ -761,7 +762,9 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
-
+    if method == 'reg':
+        sigma_n = kwargs.get('sigma_n', 1e-10)
+        sigma_p = kwargs.get('sigma_p',  1)
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -782,7 +785,9 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                 elif method == 'pinvth':
                     v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
                             @ phi.T @ data[sids, dt_idx_x])
-
+                elif method == 'reg':
+                    v_ls = (np.linalg.pinv(1/sigma_n * phi.T @ phi) @ phi.T / sigma_n
+                            @ data[sids, dt_idx_x])
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
@@ -851,7 +856,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
             dt_idx_x = x_start + idx_x
 
             if n_s > 1:
-                if method == 'pinv':
+                if method == 'pinv' or method == 'reg':
                     v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
                 elif method == 'pinvt':
                     v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
