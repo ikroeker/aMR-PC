@@ -741,10 +741,11 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             first space_point_nr to eval.
         x_len: integer
             length of the x-vector to eval, default x_len=-1 -> all.
-        method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg'
+        method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
             switches between least-squares and psedo-inverse based lsq
-        sigma_n : sigma_noise, Tikhonov / ridge regularization parameter for 'reg'
-        sigma_p : sigma_prior  parameter for 'reg'
+        sigma_n : sigma_noise, LS-weighting parameter
+        sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization 
+                    parameter for 'reg'
     Returns
     -------
     ret_cf_ls_4s: np.array of f_i for [sid, p, x_i]
@@ -762,7 +763,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
-    if method == 'reg':
+    if method == 'reg_n' or method == 'reg_t':
         sigma_n = kwargs.get('sigma_n', 1e-10)
         sigma_p = kwargs.get('sigma_p',  1)
     assert x_start + x_len <= n_x
@@ -780,13 +781,17 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             if n_s > 1:
                 if method == 'pinv':
                     v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
-                elif method == 'pinvt':
+                elif method == 'unbias':
                     v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
-                elif method == 'pinvth':
+                elif method == 'unbias_herm':
                     v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
                             @ phi.T @ data[sids, dt_idx_x])
-                elif method == 'reg':
+                elif method == 'reg_n':
                     v_ls = (np.linalg.pinv(1/sigma_n * phi.T @ phi) @ phi.T / sigma_n
+                            @ data[sids, dt_idx_x])
+                elif method == 'reg_t':
+                    P = (phi.T / sigma_n) @ phi + np.eye(phi.shape[1]) / sigma_p
+                    v_ls = (np.linalg.pinv(P) @ phi.T / sigma_n
                             @ data[sids, dt_idx_x])
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
