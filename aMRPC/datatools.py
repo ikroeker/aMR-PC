@@ -755,6 +755,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         sigma_n : sigma_noise, LS-weighting parameter
         sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization 
                     parameter for 'reg'
+        return_std: bool, default=False, returns std-of the coeffs. for reg_t
     Returns
     -------
     ret_cf_ls_4s: np.array of f_i for [sid, p, x_i]
@@ -779,6 +780,10 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     ret_cf_ls_4s = np.zeros((n_s, p_max, x_len))
+    ret_std = kwargs.get('return_std', False) and method == 'reg_t'
+    if ret_std:
+        ret_std_4s  = np.zeros((n_s, p_max, x_len))
+        
     for mkey, sids in mk2sid.items():
         alpha_mask = mask_dict[mkey]
         phi = (pol_vals[:, sids][alpha_mask, :]).T
@@ -799,9 +804,11 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                     v_ls = (np.linalg.pinv(1/sigma_n * phi.T @ phi) @ phi.T / sigma_n
                             @ data[sids, dt_idx_x])
                 elif method == 'reg_t':
-                    P = (phi.T / sigma_n) @ phi + np.eye(phi.shape[1]) / sigma_p
-                    v_ls = (np.linalg.pinv(P) @ phi.T / sigma_n
+                    P_inv = np.linalg.pinv((phi.T / sigma_n) @ phi + np.eye(phi.shape[1]) / sigma_p)
+                    v_ls = (P_inv @ phi.T / sigma_n
                             @ data[sids, dt_idx_x])
+                    if ret_std:
+                        ret_std_4s[sids, :, idx_x] = np.diag(P_inv)
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
@@ -814,7 +821,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             tmp = np.zeros(p_max)
             tmp[alpha_mask] = v_ls
             ret_cf_ls_4s[sids, :, idx_x] = tmp
-    return ret_cf_ls_4s
+    return ret_cf_ls_4s, ret_std_4s if ret_std else ret_cf_ls_4s
 
 def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     """
