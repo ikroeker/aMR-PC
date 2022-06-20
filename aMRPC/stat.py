@@ -103,8 +103,8 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
     
     lh_cf = cmp_norm_likelihood_cf_mv(covariance_matrix)
     return np.mean([lh_cf * cmp_norm_likelihood_core(observation,
-                                                       response_surfaces[sample, :],
-                                                       covariance_matrix)
+                                                     response_surfaces[sample, :],
+                                                     covariance_matrix)
                     for sample in range(sample_cnt)])
     #lhs = np.zeros(sample_cnt)
 #    for sample in range(sample_cnt):

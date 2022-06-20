@@ -808,7 +808,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                     v_ls = (P_inv @ phi.T / sigma_n
                             @ data[sids, dt_idx_x])
                     if ret_std:
-                        ret_std_4s[sids, :, idx_x] = np.diag(P_inv)
+                        ret_std_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
@@ -821,7 +821,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             tmp = np.zeros(p_max)
             tmp[alpha_mask] = v_ls
             ret_cf_ls_4s[sids, :, idx_x] = tmp
-    return ret_cf_ls_4s, ret_std_4s if ret_std else ret_cf_ls_4s
+    return (ret_cf_ls_4s, ret_std_4s) if ret_std else ret_cf_ls_4s
 
 def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     """
