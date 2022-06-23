@@ -688,9 +688,9 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
-    if method == 'reg_n' or method == 'reg_t':
+    if method in ('reg_n', 'reg_t'):
         sigma_n = kwargs.get('sigma_n', 1e-10)
-        sigma_p = kwargs.get('sigma_p',  1)
+        sigma_p = kwargs.get('sigma_p', 1)
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -753,7 +753,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
             switches between least-squares and psedo-inverse based lsq
         sigma_n : sigma_noise, LS-weighting parameter
-        sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization 
+        sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
                     parameter for 'reg'
         return_std: bool, default=False, returns std-of the coeffs. for reg_t
     Returns
@@ -773,17 +773,17 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
-    if method == 'reg_n' or method == 'reg_t':
+    if method in ('reg_n', 'reg_t'):
         sigma_n = kwargs.get('sigma_n', 1e-10)
-        sigma_p = kwargs.get('sigma_p',  1)
+        sigma_p = kwargs.get('sigma_p', 1)
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     ret_cf_ls_4s = np.zeros((n_s, p_max, x_len))
     ret_std = kwargs.get('return_std', False) and method == 'reg_t'
     if ret_std:
-        ret_std_4s  = np.zeros((n_s, p_max, x_len))
-        
+        ret_std_4s = np.zeros((n_s, p_max, x_len))
+
     for mkey, sids in mk2sid.items():
         alpha_mask = mask_dict[mkey]
         phi = (pol_vals[:, sids][alpha_mask, :]).T
@@ -862,9 +862,9 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
-    if method == 'reg_n' or method == 'reg_t':
+    if method in ('reg_n', 'reg_t'):
         sigma_n = kwargs.get('sigma_n', 1e-10)
-        sigma_p = kwargs.get('sigma_p',  1)
+        sigma_p = kwargs.get('sigma_p', 1)
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -879,7 +879,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
             dt_idx_x = x_start + idx_x
 
             if n_s > 1:
-                if method == 'pinv' or method == 'reg':
+                if method in ('pinv', 'reg'):
                     v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
                 elif method == 'pinvt':
                     v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
