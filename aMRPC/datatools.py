@@ -773,20 +773,31 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
-    if method in ('reg_n', 'reg_t'):
-        sigma_n = kwargs.get('sigma_n', 1e-10)
-        sigma_p = kwargs.get('sigma_p', 1)
+    #if method in ('reg_n', 'reg_t'):
+    sigma_n = kwargs.get('sigma_n', 1e-10)
+    sigma_p = kwargs.get('sigma_p', 1)
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     ret_cf_ls_4s = np.zeros((n_s, p_max, x_len))
-    ret_std = kwargs.get('return_std', False) and method == 'reg_t'
+    ret_std = kwargs.get('return_std', False) 
+    ret_cov = kwargs.get('return_cov', False)
     if ret_std:
-        ret_std_4s = np.zeros((n_s, p_max, x_len))
+        ret_std_cov_4s = np.zeros((n_s, p_max, x_len))
+    elif ret_cov:
+        ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len))
 
     for mkey, sids in mk2sid.items():
         alpha_mask = mask_dict[mkey]
         phi = (pol_vals[:, sids][alpha_mask, :]).T
+        if isinstance(sigma_n, dict):
+            sigma_n_mk = sigma_n[mkey]
+        else:
+            sigma_n_mk = sigma_n
+        if isinstance(sigma_p, dict):
+            sigma_p_mk = sigma_p[mkey]
+        else:
+            sigma_p_mk = sigma_p
         for idx_x in range(x_len):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
             # solves Av = y using least squares
@@ -801,19 +812,26 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                     v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
                             @ phi.T @ data[sids, dt_idx_x])
                 elif method == 'reg_n':
-                    v_ls = (np.linalg.pinv(1/sigma_n * phi.T @ phi) @ phi.T / sigma_n
-                            @ data[sids, dt_idx_x])
-                elif method == 'reg_t':
-                    P_inv = np.linalg.pinv((phi.T / sigma_n) @ phi + np.eye(phi.shape[1]) / sigma_p)
-                    v_ls = (P_inv @ phi.T / sigma_n
+                    cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
+                    v_ls = (cov_op @ phi.T / sigma_n_mk
                             @ data[sids, dt_idx_x])
                     if ret_std:
-                        ret_std_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
+                        ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(cov_op))
+                    elif ret_cov:
+                        ret_std_cov_4s[sids, :, :, idx_x] = cov_op
+                    
+                elif method == 'reg_t':
+                    P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi + np.eye(phi.shape[1]) / sigma_p_mk)
+                    v_ls = (P_inv @ phi.T / sigma_n_mk
+                            @ data[sids, dt_idx_x])
+                    if ret_std:
+                        ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
+                    elif ret_cov:
+                        ret_std_cov_4s[sids, :, :, idx_x] = P_inv
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                    v_ls, _, _, _ = np.linalg.lstsq(
-                        phi, data[sids, dt_idx_x], rcond=None) # LS - output
+                    v_ls, _, _, _ = np.linalg.lstsq(phi, data[sids, dt_idx_x], rcond=None) # LS - output
             elif len(n_tup) > 1:
                 v_ls = np.ravel(data[0, dt_idx_x]/phi)
             else:
@@ -821,7 +839,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             tmp = np.zeros(p_max)
             tmp[alpha_mask] = v_ls
             ret_cf_ls_4s[sids, :, idx_x] = tmp
-    return (ret_cf_ls_4s, ret_std_4s) if ret_std else ret_cf_ls_4s
+    return (ret_cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else ret_cf_ls_4s
 
 def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     """
