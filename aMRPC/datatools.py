@@ -578,6 +578,66 @@ def gen_rcf_dict(mk_list):
         rcf_dict[mkey] = cmp_resc_cf(mkey)
     return rcf_dict
 
+def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
+                     npc_dict, nrb_dict,
+                     mk2sid, alpha_masks=None, **kwargs):
+    """
+    Generates function reconstruction
+    f(sample, x) = sum_(p in alphas) f_cfs(sample_mk, p,  x) * pol(alpha_p, sample)
+
+    Parameters
+    ----------
+    samples : np.array
+        samples/input parameters for evaluation, samples[i] = [s_0, s_1, ..., s_n].
+    mk_list : list of tuples
+        (unique) list of multi-keys ((key,0),...,(key, n)).
+    alphas : np.array
+        matrix of multi-indexes representing pol. degrees of multi-variate polynomials.
+    f_cfs : np.array
+        reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
+    f_cov_mx : np.array
+        reconstr. cov_matrices f_cov_mx[sample,alpha_p, alpha_p,idx_x].
+    npc_dict : dict
+        dictionary of normed piecewise polynomials.
+    nrb_dict : dict
+        dictionary of stochastic-element boundaries.
+    mk2sid : dict
+        (multi key) -> sample id dictionary.
+    alpha_masks: dict
+        (multi key) -> mask for alphas, such that only true degrees were used
+    kwargs.n_samples_out: int default 1
+        number of samples for each input parameter combination in samples
+    Returns
+    -------
+    f_rec : np.array
+        ampc reconstruction of the function f, f_rec[sample_out, sample_id, idx_x].
+
+    """
+    n_s = samples.shape[0]
+    n_x = f_cfs.shape[2]
+    n_so = kwargs.get('n_samples_out', 1)
+    f_rec = np.zeros((n_so, n_s, n_x))
+    key = "mk2sid_samples"
+    mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
+    key = 'p_vals'
+    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
+
+    idxs_p = np.arange(alphas.shape[0])
+    for mkey, sids_l in mk2sid_loc.items():
+        sids = mk2sid[mkey]
+        if alpha_masks is not None and len(alpha_masks) != 0:
+            idxs_pm = idxs_p[alpha_masks[mkey]]
+        else:
+            idxs_pm = idxs_p
+        for idx_x in range(n_x):
+            f_cfs_s = np.random.multivariate_normal(f_cfs[sids[0], idxs_pm, idx_x],
+                                                    f_cov_mx[sids[0], idxs_pm, idxs_pm, idx_x],
+                                                    n_so)
+            for sid_l in sids_l:
+                f_rec[:, sid_l, idx_x] = f_cfs_s @ p_vals[idxs_pm, sid_l]
+
+    return f_rec
+
 def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
                   mk2sid, alpha_masks=None, **kwargs):
     """
@@ -780,7 +840,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     ret_cf_ls_4s = np.zeros((n_s, p_max, x_len))
-    ret_std = kwargs.get('return_std', False) 
+    ret_std = kwargs.get('return_std', False)
     ret_cov = kwargs.get('return_cov', False)
     if ret_std:
         ret_std_cov_4s = np.zeros((n_s, p_max, x_len))
@@ -819,9 +879,10 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                         ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(cov_op))
                     elif ret_cov:
                         ret_std_cov_4s[sids, :, :, idx_x] = cov_op
-                    
+
                 elif method == 'reg_t':
-                    P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi + np.eye(phi.shape[1]) / sigma_p_mk)
+                    P_inv = (np.linalg.pinv((phi.T / sigma_n_mk) @ phi
+                                            + np.eye(phi.shape[1]) / sigma_p_mk))
                     v_ls = (P_inv @ phi.T / sigma_n_mk
                             @ data[sids, dt_idx_x])
                     if ret_std:
@@ -831,7 +892,8 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                    v_ls, _, _, _ = np.linalg.lstsq(phi, data[sids, dt_idx_x], rcond=None) # LS - output
+                    v_ls, _, _, _ = np.linalg.lstsq(phi, data[sids, dt_idx_x],
+                                                    rcond=None) # LS - output
             elif len(n_tup) > 1:
                 v_ls = np.ravel(data[0, dt_idx_x]/phi)
             else:
