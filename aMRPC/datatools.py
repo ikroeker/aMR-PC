@@ -71,6 +71,22 @@ def gen_nr_range_bds(dataframe, srcs, nr_range):
                 nrb_dict[key] = (qlb, qrb)
     return nrb_dict
 
+def gen_nr_range_bds_4list(bds_list, srcs, nr_range):
+    """ generates dictionary with boundaries of MR-elements """
+    nrb_dict = {}
+    for src in srcs:
+        g_lb = bds_list[src][0]
+        g_ub = bds_list[src][1]
+        delta = g_ub - g_lb
+        for anr in nr_range:
+            for nri in range(2**anr):
+                l_b, r_b = cmp_lrb(anr, nri)
+                qlb = g_lb + l_b * delta
+                qrb = g_lb + r_b * delta
+                key = u.gen_dict_key(anr, nri, src)
+                nrb_dict[key] = (qlb, qrb)
+    return nrb_dict
+
 def get_nr_bds(nrb_dict, srcs, n_r):
     """
     get element boundaries for given refinement level n_r
@@ -621,7 +637,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
     mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
     key = 'p_vals'
     p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
-
+    rng = np.random.default_rng()
     idxs_p = np.arange(alphas.shape[0])
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
@@ -630,11 +646,11 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
         else:
             idxs_pm = idxs_p
         for idx_x in range(n_x):
-            f_cfs_s = np.random.multivariate_normal(f_cfs[sids[0], idxs_pm, idx_x],
-                                                    f_cov_mx[sids[0], idxs_pm, idxs_pm, idx_x],
-                                                    n_so)
+            f_cfs_s = rng.multivariate_normal(f_cfs[sids[0], :, idx_x],
+                                              f_cov_mx[sids[0], :, :, idx_x],
+                                              n_so)
             for sid_l in sids_l:
-                f_rec[:, sid_l, idx_x] = f_cfs_s @ p_vals[idxs_pm, sid_l]
+                f_rec[:, sid_l, idx_x] = f_cfs_s[:, idxs_pm] @ p_vals[idxs_pm, sid_l]
 
     return f_rec
 
