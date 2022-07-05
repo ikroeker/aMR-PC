@@ -54,7 +54,7 @@ def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
                 lb_ir = trans(lb_i)
                 ub_ir = trans(ub_i)
                 key = u.gen_dict_key(nr_a, nr_i, src)
-                h_dict[key] = pt.uniHank(n_o+2, lb_ir, ub_ir)
+                h_dict[key] = pt.uniHank(n_o+1, lb_ir, ub_ir)
     return h_dict
 
 def gen_nr_range_bds(dataframe, srcs, nr_range):
@@ -904,7 +904,10 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                     if ret_std:
                         ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
                     elif ret_cov:
-                        ret_std_cov_4s[sids, :, :, idx_x] = P_inv
+#                        b_cov = np.broadcast_to(P_inv, (len(sids), *P_inv.shape))
+                        cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
+                        for sid in sids:
+                            ret_std_cov_4s[sid, cov_mask, idx_x] = P_inv.flatten()
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
