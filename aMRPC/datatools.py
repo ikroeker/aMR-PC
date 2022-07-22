@@ -594,6 +594,38 @@ def gen_rcf_dict(mk_list):
         rcf_dict[mkey] = cmp_resc_cf(mkey)
     return rcf_dict
 
+def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
+    sids = mk2sid[mkey]
+    if alpha_dict is None or mkey not in alpha_dict:
+        phi = (pol_vals[:, sids][:, :]).T
+    else:
+        phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
+    return phi
+def gen_cov_mx_4lh(phi, sigma_n, sigma_p):
+    """
+    generates covariance etc. matrixes for likelihood
+    
+    Parameters
+    ----------
+    phi: np.array, [sid, p] pol vals
+    sigma_n : float,  std noise ~ Q
+    sigma_p : float, std prioir ~ R
+                    
+    Returns
+    --------
+    cov_mx_inv inverse cov. matrix
+    """
+    Q = sigma_n**2 * np.eye(phi.shape[0])
+    R = sigma_p**2 * np.eye(phi.shape[1])
+    #Q_inv = np.linalg.inv(Q)
+    #R_inv = np.linalg.inv(R)
+    #K = np.linalg.pinv(phi.T @ Q_inv @ phi) @ phi.T @ Q_inv
+#    P = phi.T @ Q_inv @ phi + R_inv
+#    cov_mx_inv = Q_inv + K.T @ np.linalg.pinv(P) @ K
+    #cov_mx_inv =  Q_inv + K.T @ R_inv @ K
+    cov_mx = phi @ R @ phi.T + Q
+    return cov_mx
+    
 def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
                      npc_dict, nrb_dict,
                      mk2sid, alpha_masks=None, **kwargs):
@@ -639,18 +671,33 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
     p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
     rng = np.random.default_rng()
     idxs_p = np.arange(alphas.shape[0])
+    
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
         if alpha_masks is not None and len(alpha_masks) != 0:
             idxs_pm = idxs_p[alpha_masks[mkey]]
+            alpha_mask = alpha_masks[mkey]
         else:
             idxs_pm = idxs_p
+            alpha_mask = np.ones(alphas.shape[0], dtype=bool)
+        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
+        if len(f_cov_mx.shape) < 4:
+            f_cov_mx = np.expand_dims(f_cov_mx, 0)
+#        phi_all = p_vals[idxs_pm, :]
+#        phi = phi_all[:, sids_l].T
+        phi = (p_vals[:, sids_l][idxs_pm, :]).T
         for idx_x in range(n_x):
-            f_cfs_s = rng.multivariate_normal(f_cfs[sids[0], :, idx_x],
-                                              f_cov_mx[sids[0], :, :, idx_x],
+#            f_cfs_s = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, idx_x],
+#                                              f_cov_mx[sids[0], cov_pmask, idx_x].reshape((alpha_mask.sum(), -1)),
+#                                              n_so)
+#            for sid_l in sids_l:
+#                f_rec[:, sid_l, idx_x] = f_cfs_s @ p_vals[idxs_pm, sid_l]
+            
+            f_cfs_s = rng.multivariate_normal(phi @ f_cfs[sids[0], alpha_mask, idx_x],
+                                              phi @ f_cov_mx[sids[0], cov_pmask, idx_x].reshape((alpha_mask.sum(), -1)) @ phi.T,
                                               n_so)
-            for sid_l in sids_l:
-                f_rec[:, sid_l, idx_x] = f_cfs_s[:, idxs_pm] @ p_vals[idxs_pm, sid_l]
+            #for sid_l in sids_l:
+            f_rec[:, :, idx_x] = f_cfs_s
 
     return f_rec
 
@@ -699,9 +746,14 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
             idxs_pm = idxs_p[alpha_masks[mkey]]
         else:
             idxs_pm = idxs_p
-        for idx_p in idxs_pm:
-            for sid_l in sids_l:
-                f_rec[sid_l, :] += f_cfs[sids[0], idx_p, :] * p_vals[idx_p, sid_l]
+
+#        phi_all = p_vals[idxs_pm, :]
+#        f_rec[sids_l, :] = phi_all[:, sids_l].T @ f_cfs[sids[0], idxs_pm, :]
+        #phi = gen_phi(mkey, p_vals, mk2sid_loc, alpha_masks)
+        phi = (p_vals[:, sids_l][idxs_pm, :]).T
+        f_rec[sids_l, :] = phi @ f_cfs[sids[0], idxs_pm, :]
+#        for sid_l in sids_l:
+#            f_rec[sid_l, :] = f_cfs[sids[0], idxs_pm, :].T @ p_vals[idxs_pm, sid_l]
 
     return f_rec
 
@@ -851,7 +903,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     method = kwargs.get("method", 'pinv')
     #if method in ('reg_n', 'reg_t'):
     sigma_n = kwargs.get('sigma_n', 1e-10)
-    sigma_p = kwargs.get('sigma_p', 1)
+    sigma_p = kwargs.get('sigma_p', 1.0)
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -865,15 +917,16 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
 
     for mkey, sids in mk2sid.items():
         alpha_mask = mask_dict[mkey]
-        phi = (pol_vals[:, sids][alpha_mask, :]).T
+#        phi = (pol_vals[:, sids][alpha_mask, :]).T
+        phi = gen_phi(mkey, pol_vals, mk2sid, mask_dict)
         if isinstance(sigma_n, dict):
-            sigma_n_mk = sigma_n[mkey]
-        else:
-            sigma_n_mk = sigma_n
+            sigma_n_mk = sigma_n[mkey]**2
+        elif isinstance(sigma_n, float):
+            sigma_n_mk = sigma_n**2
         if isinstance(sigma_p, dict):
-            sigma_p_mk = sigma_p[mkey]
-        else:
-            sigma_p_mk = sigma_p
+            sigma_p_mk = sigma_p[mkey]**2
+        elif isinstance(sigma_p, float):
+            sigma_p_mk = sigma_p**2
         for idx_x in range(x_len):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
             # solves Av = y using least squares
