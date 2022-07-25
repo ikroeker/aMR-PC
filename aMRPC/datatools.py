@@ -601,24 +601,24 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
     else:
         phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
     return phi
-def gen_cov_mx_4lh(phi, sigma_n, sigma_p):
+def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
     
     Parameters
     ----------
     phi: np.array, [sid, p] pol vals
-    sigma_n : float,  std noise ~ Q
-    sigma_p : float, std prioir ~ R
+    s_sigma_n : float,  var noise ~ Q
+    s_sigma_p : float, var prioir ~ R
                     
     Returns
     --------
     cov_mx_inv inverse cov. matrix
     """
-    Q = sigma_n**2 * np.eye(phi.shape[0])
-    R = sigma_p**2 * np.eye(phi.shape[1])
-    Q_inv = np.linalg.inv(Q)
-    R_inv = np.linalg.inv(R)
+    Q = np.eye(phi.shape[0]) * s_sigma_n
+    R = np.eye(phi.shape[1]) * s_sigma_p
+    Q_inv = np.eye(phi.shape[0]) / s_sigma_n
+    R_inv = np.eye(phi.shape[1]) / s_sigma_p
     #K = np.linalg.pinv(phi.T @ Q_inv @ phi) @ phi.T @ Q_inv
     P = phi.T @ Q_inv @ phi + R_inv
 #    cov_mx_inv = Q_inv + K.T @ np.linalg.pinv(P) @ K
