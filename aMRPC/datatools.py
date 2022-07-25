@@ -623,7 +623,11 @@ def gen_cov_mx_4lh(phi, sigma_n, sigma_p):
     P = phi.T @ Q_inv @ phi + R_inv
 #    cov_mx_inv = Q_inv + K.T @ np.linalg.pinv(P) @ K
     #cov_mx_inv =  Q_inv + K.T @ R_inv @ K
-    cov_mx_inv = Q_inv - Q_inv @ phi @ np.linalg.pinv(P) @ phi.T @ Q_inv
+    if np.linalg.det(P) > 0:
+        # inverse according to eq. (A.9) in Rasmussen and Williams
+        cov_mx_inv = Q_inv - Q_inv @ phi @ np.linalg.pinv(P) @ phi.T @ Q_inv
+    else:
+        cov_mx_inv = np.nan
     cov_mx = phi @ R @ phi.T + Q
     return cov_mx, cov_mx_inv
     
