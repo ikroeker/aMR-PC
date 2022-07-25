@@ -86,20 +86,55 @@ def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
         Log-likelihood for each observation / realization.
 
     """
+    ret = np.inf
     deviation = observation - response_surface
     deviation_shape = deviation.shape
 #    cov_inv = np.linalg.inv(covariance_matrix)
-#    cov_inv = np.linalg.pinv(covariance_matrix)
-    L = np.linalg.cholesky(covariance_matrix)
-    cov_inv = np.linalg.inv(L.T) @ np.linalg.inv(L)
+    cov_inv = np.linalg.pinv(covariance_matrix)
+#    L = np.linalg.cholesky(covariance_matrix)
+#    cov_inv = np.linalg.inv(L.T) @ np.linalg.inv(L)
     if len(deviation_shape) == 1:
-        return -0.5*deviation.T @ cov_inv @ deviation
+        ret = -0.5*deviation.T @ cov_inv @ deviation
     else:
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
             ret_array[i] = (-0.5*deviation[:, i].T
-                            @ cov_inv(covariance_matrix) @ deviation[:, i])
-        return ret_array
+                            @ cov_inv @ deviation[:, i])
+        ret = ret_array
+    return ret
+
+def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
+    """
+    Computes the core part of the Gaussian log-likelihood function with cov. matrix
+
+    Parameters
+    ----------
+    observation : numpy array
+        Array of observations.
+    response_surface : numpy array
+        Array of evaluations of response surface.
+    cov_matrix_inv : numpy array
+        inverse of the covariance matrix.
+
+    Returns
+    -------
+    numpy array
+        Log-likelihood for each observation / realization.
+
+    """
+    ret = np.inf
+    deviation = observation - response_surface
+    deviation_shape = deviation.shape
+#    cov_inv = np.linalg.inv(covariance_matrix)
+    if len(deviation_shape) == 1:
+        ret = -0.5*deviation.T @ cov_matrix_inv @ deviation
+    else:
+        ret_array = np.zeros(deviation_shape[1])
+        for i in range(deviation_shape[1]):
+            ret_array[i] = (-0.5*deviation[:, i].T
+                            @ cov_matrix_inv @ deviation[:, i])
+        ret = ret_array
+    return ret
 
 def bme_norm_response(observation, response_surfaces, covariance_matrix):
     n, m = response_surfaces.shape[0:2]

@@ -617,14 +617,15 @@ def gen_cov_mx_4lh(phi, sigma_n, sigma_p):
     """
     Q = sigma_n**2 * np.eye(phi.shape[0])
     R = sigma_p**2 * np.eye(phi.shape[1])
-    #Q_inv = np.linalg.inv(Q)
-    #R_inv = np.linalg.inv(R)
+    Q_inv = np.linalg.inv(Q)
+    R_inv = np.linalg.inv(R)
     #K = np.linalg.pinv(phi.T @ Q_inv @ phi) @ phi.T @ Q_inv
-#    P = phi.T @ Q_inv @ phi + R_inv
+    P = phi.T @ Q_inv @ phi + R_inv
 #    cov_mx_inv = Q_inv + K.T @ np.linalg.pinv(P) @ K
     #cov_mx_inv =  Q_inv + K.T @ R_inv @ K
+    cov_mx_inv = Q_inv - Q_inv @ phi @ np.linalg.pinv(P) @ phi.T @ Q_inv
     cov_mx = phi @ R @ phi.T + Q
-    return cov_mx
+    return cov_mx, cov_mx_inv
     
 def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
                      npc_dict, nrb_dict,
