@@ -601,6 +601,7 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
     else:
         phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
     return phi
+
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
@@ -615,19 +616,25 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     --------
     cov_mx_inv inverse cov. matrix
     """
+#    if s_sigma_n < 1e-42 or s_sigma_p < 1e-42:
+#        print("sigma n/p", s_sigma_n, s_sigma_p)
+#        return np.nan, np.nan
     Q = np.eye(phi.shape[0]) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
     Q_inv = np.eye(phi.shape[0]) / s_sigma_n
     R_inv = np.eye(phi.shape[1]) / s_sigma_p
-    #K = np.linalg.pinv(phi.T @ Q_inv @ phi) @ phi.T @ Q_inv
     P = phi.T @ Q_inv @ phi + R_inv
-#    cov_mx_inv = Q_inv + K.T @ np.linalg.pinv(P) @ K
-    #cov_mx_inv =  Q_inv + K.T @ R_inv @ K
-    if np.linalg.det(P) > 0:
-        # inverse according to eq. (A.9) in Rasmussen and Williams
-        cov_mx_inv = Q_inv - Q_inv @ phi @ np.linalg.pinv(P) @ phi.T @ Q_inv
-    else:
+
+    try:
+        if np.linalg.det(P) > 0:
+            P_inv = np.linalg.pinv(P)
+            # inverse according to eq. (A.9) in Rasmussen and Williams
+            cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+        else:
+            cov_mx_inv = np.nan
+    except (RuntimeError, ValueError):
         cov_mx_inv = np.nan
+        
     cov_mx = phi @ R @ phi.T + Q
     return cov_mx, cov_mx_inv
     
@@ -685,7 +692,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
         else:
             idxs_pm = idxs_p
             alpha_mask = np.ones(alphas.shape[0], dtype=bool)
-        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
+#        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
         if len(f_cov_mx.shape) < 4:
             f_cov_mx = np.expand_dims(f_cov_mx, 0)
 #        phi_all = p_vals[idxs_pm, :]
@@ -699,7 +706,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
 #                f_rec[:, sid_l, idx_x] = f_cfs_s @ p_vals[idxs_pm, sid_l]
             
             f_cfs_s = rng.multivariate_normal(phi @ f_cfs[sids[0], alpha_mask, idx_x],
-                                              phi @ f_cov_mx[sids[0], cov_pmask, idx_x].reshape((alpha_mask.sum(), -1)) @ phi.T,
+                                              phi @ f_cov_mx[sids[0], alpha_mask, :, idx_x][:, alpha_mask] @ phi.T,
                                               n_so)
             #for sid_l in sids_l:
             f_rec[:, :, idx_x] = f_cfs_s

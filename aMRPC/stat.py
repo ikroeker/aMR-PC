@@ -29,13 +29,32 @@ def cmp_norm_likelihood_cf(std, number_of_measurments):
     """
     return 1/pow(sqrt(2*pi)*std, number_of_measurments)
 
+def cmp_log_likelihood_cf(std, number_of_measurments):
+    """
+    Computes the logarithhm of the coefficient of the Gaussian likelihood function
+
+    Parameters
+    ----------
+    std : float
+        standard deviation.
+    number_of_measurments : int
+        number of observations.
+
+    Returns
+    -------
+    float
+        likelihood coefficient.
+
+    """
+    return -(np.log(2*pi)/2 + np.log(std)) * number_of_measurments 
+
 def cmp_norm_likelihood_cf_mv(covariance_matrix):
     dim = covariance_matrix.shape[0]
-    return 1/sqrt(pow(2*pi, dim)*np.linalg.det(covariance_matrix))
+    return 1/sqrt(pow(2*pi, dim)*np.multiply.reduce(np.diag(np.linalg.cholesky(covariance_matrix))))
 
 def cmp_log_likelihood_cf_mv(covariance_matrix):
     dim = covariance_matrix.shape[0]
-    return (-np.log(2*pi)*dim - np.log(np.linalg.det(covariance_matrix)) ) / 2
+    return (-np.log(2*pi)*dim/2 - np.log(np.diag(np.linalg.cholesky(covariance_matrix))).sum()) 
 
 def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     """
@@ -58,13 +77,14 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     """
     deviation = observation - response_surface
     deviation_shape = deviation.shape
+    cov_inv = np.linalg.pinv(covariance_matrix)
     if len(deviation_shape) == 1:
-        return np.exp(-0.5*deviation.T @ np.linalg.inv(covariance_matrix) @ deviation)
+        return np.exp(-0.5*deviation.T @ cov_inv @ deviation)
     else:
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
             ret_array[i] = np.exp(-0.5*deviation[:, i].T @
-                                  np.linalg.inv(covariance_matrix) @ deviation[:, i])
+                                  cov_inv @ deviation[:, i])
         return ret_array
 
 def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
