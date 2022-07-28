@@ -605,13 +605,13 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
-    
+
     Parameters
     ----------
     phi: np.array, [sid, p] pol vals
     s_sigma_n : float,  var noise ~ Q
     s_sigma_p : float, var prioir ~ R
-                    
+
     Returns
     --------
     cov_mx_inv inverse cov. matrix
@@ -634,10 +634,10 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
             cov_mx_inv = np.nan
     except (RuntimeError, ValueError):
         cov_mx_inv = np.nan
-        
+
     cov_mx = phi @ R @ phi.T + Q
     return cov_mx, cov_mx_inv
-    
+
 def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
                      npc_dict, nrb_dict,
                      mk2sid, alpha_masks=None, **kwargs):
@@ -670,7 +670,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
     Returns
     -------
     f_rec : np.array
-        ampc reconstruction of the function f, f_rec[sample_out, sample_id, idx_x].
+        amrpc reconstruction of the function f, f_rec[sample_out, sample_id, idx_x].
 
     """
     n_s = samples.shape[0]
@@ -683,7 +683,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
     p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
     rng = np.random.default_rng()
     idxs_p = np.arange(alphas.shape[0])
-    
+
     for mkey, sids_l in mk2sid_loc.items():
         sids = mk2sid[mkey]
         if alpha_masks is not None and len(alpha_masks) != 0:
@@ -699,17 +699,14 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
 #        phi = phi_all[:, sids_l].T
         phi = (p_vals[:, sids_l][idxs_pm, :]).T
         for idx_x in range(n_x):
-#            f_cfs_s = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, idx_x],
-#                                              f_cov_mx[sids[0], cov_pmask, idx_x].reshape((alpha_mask.sum(), -1)),
-#                                              n_so)
 #            for sid_l in sids_l:
 #                f_rec[:, sid_l, idx_x] = f_cfs_s @ p_vals[idxs_pm, sid_l]
-            
+
             f_cfs_s = rng.multivariate_normal(phi @ f_cfs[sids[0], alpha_mask, idx_x],
                                               phi @ f_cov_mx[sids[0], alpha_mask, :, idx_x][:, alpha_mask] @ phi.T,
                                               n_so)
             #for sid_l in sids_l:
-            f_rec[:, :, idx_x] = f_cfs_s
+            f_rec[:, sids_l, idx_x] = f_cfs_s
 
     return f_rec
 
@@ -728,7 +725,8 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     alphas : np.array
         matrix of multi-indexes representing pol. degrees of multi-variate polynomials.
     f_cfs : np.array
-        reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
+        reconstr. coefficients f_cfs[sample_mkey,alpha_p,idx_x]
+        or f_cfs[sample_cf, sample_mkey, ,alpha_p,idx_x].
     npc_dict : dict
         dictionary of normed piecewise polynomials.
     nrb_dict : dict
@@ -737,6 +735,8 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         (multi key) -> sample id dictionary.
     alpha_masks: dict
         (multi key) -> mask for alphas, such that only true degrees were used
+
+
     Returns
     -------
     f_rec : np.array
@@ -744,8 +744,16 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     """
     n_s = samples.shape[0]
-    n_x = f_cfs.shape[2]
-    f_rec = np.zeros((n_s, n_x))
+    f_n_tuple = f_cfs.shape
+    if len(f_n_tuple) > 3:
+        n_so = f_n_tuple[0]
+        n_x = f_n_tuple[3]
+        f_rec = np.zeros((n_so, n_s, n_x))
+    else:
+        n_x = f_cfs.shape[2]
+        n_so = 0
+        f_rec = np.zeros((n_s, n_x))
+
     key = "mk2sid_samples"
     mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
     key = 'p_vals'
@@ -763,7 +771,11 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 #        f_rec[sids_l, :] = phi_all[:, sids_l].T @ f_cfs[sids[0], idxs_pm, :]
         #phi = gen_phi(mkey, p_vals, mk2sid_loc, alpha_masks)
         phi = (p_vals[:, sids_l][idxs_pm, :]).T
-        f_rec[sids_l, :] = phi @ f_cfs[sids[0], idxs_pm, :]
+        if n_so > 0:
+            for idx_x in range(n_x):
+                f_rec[:, sids_l, idx_x] = phi @ f_cfs[:, sids[0], idxs_pm, idx_x].T
+        else:
+            f_rec[sids_l, :] = phi @ f_cfs[sids[0], idxs_pm, :]
 #        for sid_l in sids_l:
 #            f_rec[sid_l, :] = f_cfs[sids[0], idxs_pm, :].T @ p_vals[idxs_pm, sid_l]
 
@@ -789,6 +801,65 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
             pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
     return pol_vals
 
+def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
+                     mk2sid, alpha_masks=None, **kwargs):
+    """
+    samples the polynomial-coeficients f_cfs(sample_mk, p, x) for
+    f(sample, x) = sum_(p in alphas) f_cfs(sample_mk, p,  x) * pol(alpha_p, sample)
+        Parameters
+    ----------
+    mk_list : list of tuples
+        (unique) list of multi-keys ((key,0),...,(key, n)).
+    alphas : np.array
+        matrix of multi-indexes representing pol. degrees of multi-variate polynomials.
+    f_cfs : np.array
+        reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
+    f_cov_mx : np.array
+        reconstr. cov_matrices f_cov_mx[sample,alpha_p, alpha_p,idx_x].
+    mk2sid : dict
+        (multi key) -> sample id dictionary.
+    alpha_masks: dict
+        (multi key) -> mask for alphas, such that only true degrees were used
+    kwargs:
+        n_samples_out: int default 1
+            number of samples for each input parameter combination in samples
+        x_start: integer
+            first space_point_nr to eval.
+        x_len: integer
+            length of the x-vector to eval, default x_len=-1 -> all.
+    Returns
+    -------
+    f_cfs : np.array
+        amrpc coeficients f, f_cfs[sample_out, sample_id, alpha_p, idx_x].
+    """
+    n_tup = f_cfs.shape
+    if len(n_tup) > 2:
+        n_x = n_tup[2]
+    else:
+        n_x = 1
+    n_so = kwargs.get('n_samples_out', 1)
+    n_p = n_tup[1]
+    n_s = n_tup[0]
+    x_start = kwargs.get('x_start', 0)
+    x_len = kwargs.get("x_len", n_x)
+    x_len = n_x if x_len < 0 else x_len
+    ret_f_cfs = np.zeros((n_so, n_s, n_p, n_x))
+    rng = np.random.default_rng()
+    #idxs_p = np.arange(n_p)
+    for mkey in mk_list:
+        sids = mk2sid[mkey]
+        if alpha_masks is not None and len(alpha_masks) != 0:
+            alpha_mask = alpha_masks[mkey]
+        else:
+            alpha_mask = np.ones(alphas.shape[0], dtype=bool)
+
+        for idx_x in range(x_len):
+            dt_idx_x = x_start + idx_x
+            ret_f_cfs[:, sids, alpha_mask, idx_x] = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
+                                                                            f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
+                                                                            n_so)
+
+    return ret_f_cfs
 def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
     """
     computes the armpc-decomposition coefficients f_p of
