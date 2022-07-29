@@ -174,7 +174,7 @@ def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey):
 def gen_pcs(h_dict, method):
     """
     generated dictionaries with matrices of monic orthogonal
-    polynomials, method 0: Gautschi style, 1: Sergey Style.
+    polynomials, method 0: Gautschi style, 1: Sergey Style (aPC).
     """
     cfs = {}
     for key in h_dict:
@@ -773,7 +773,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         phi = (p_vals[:, sids_l][idxs_pm, :]).T
         if n_so > 0:
             for idx_x in range(n_x):
-                f_rec[:, sids_l, idx_x] = phi @ f_cfs[:, sids[0], idxs_pm, idx_x].T
+                f_rec[:, sids_l, idx_x] = (phi @ f_cfs[:, sids[0], idxs_pm, idx_x].T).T
         else:
             f_rec[sids_l, :] = phi @ f_cfs[sids[0], idxs_pm, :]
 #        for sid_l in sids_l:
@@ -855,11 +855,15 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
 
         for idx_x in range(x_len):
             dt_idx_x = x_start + idx_x
-            ret_f_cfs[:, sids, alpha_mask, idx_x] = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
-                                                                            f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
-                                                                            n_so)
+            s_cfs = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
+                                            f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
+                                            n_so)
+            #print(s_cfs.shape)
+            for sid in sids:
+                ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
 
     return ret_f_cfs
+
 def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
     """
     computes the armpc-decomposition coefficients f_p of
