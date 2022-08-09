@@ -883,12 +883,18 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
             first space_point_nr to eval.
         x_len: integer
             length of the x-vector to eval, default x_len=-1
-        method :   'pinv', 'pinvt', 'pinvth', 'ls'
+        method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
             switches between least-squares and psedo-inverse based lsq
-
+        sigma_n : sigma_noise, LS-weighting parameter
+        sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
+                    parameter for 'reg'
+        return_std: bool, default=False, returns std-of the coeffs. for reg_t
+        return_cov: bool, default=False, returns cov-mx of the coeffs. for reg_t
     Returns
     -------
     cf_ls_4s: np.array of f_i for [sid, p, x_i]
+    [ret_std_cf or ret_cov_cf] depending on return_std or return_cov: np.array
+    for [sid, p, x_i] or [sid, p, p, x_i]
 
     """
     # compute function coefficients by least-squares
@@ -910,8 +916,22 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     cf_ls_4s = np.zeros((n_s, p_max, x_len))
-    for sids in mk2sid.values():
+    ret_std = kwargs.get('return_std', False)
+    ret_cov = kwargs.get('return_cov', False)
+    if ret_std:
+        ret_std_cov_4s = np.zeros((n_s, p_max, x_len))
+    elif ret_cov:
+        ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len))
+    for mkey, sids in mk2sid.items():
         phi = pol_vals[:, sids].T
+        if isinstance(sigma_n, dict):
+            sigma_n_mk = sigma_n[mkey]**2
+        elif isinstance(sigma_n, float):
+            sigma_n_mk = sigma_n**2
+        if isinstance(sigma_p, dict):
+            sigma_p_mk = sigma_p[mkey]**2
+        elif isinstance(sigma_p, float):
+            sigma_p_mk = sigma_p**2
         for idx_x in range(x_len):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
             # solves Av = y using least squares
@@ -926,12 +946,16 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
                     v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
                             @ phi.T @ data[sids, dt_idx_x])
                 elif method == 'reg_n':
-                    v_ls = (np.linalg.pinv(1/sigma_n * phi.T @ phi) @ phi.T / sigma_n
+                    v_ls = (np.linalg.pinv(1/sigma_n_mk * phi.T @ phi) @ phi.T / sigma_n_mk
                             @ data[sids, dt_idx_x])
                 elif method == 'reg_t':
-                    P = (phi.T / sigma_n) @ phi + np.eye(phi.shape[1]) / sigma_p
-                    v_ls = (np.linalg.pinv(P) @ phi.T / sigma_n
-                            @ data[sids, dt_idx_x])
+                    P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi 
+                                           + np.eye(phi.shape[1]) / sigma_p_mk)
+                    v_ls = (P_inv @ phi.T / sigma_n @ data[sids, dt_idx_x])
+                    if ret_std:
+                        ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
+                    elif ret_cov:
+                        ret_std_cov_4s[sids, :, :, idx_x] = P_inv
                 else:
                     #v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
@@ -942,7 +966,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
             else:
                 v_ls = data[dt_idx_x]/phi
             cf_ls_4s[sids, :, idx_x] = v_ls
-    return cf_ls_4s
+    return (cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else cf_ls_4s
 
 def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     """
@@ -971,9 +995,12 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
                     parameter for 'reg'
         return_std: bool, default=False, returns std-of the coeffs. for reg_t
+        return_cov: bool, default=False, returns cov-mx of the coeffs. for reg_t
     Returns
     -------
     ret_cf_ls_4s: np.array of f_i for [sid, p, x_i]
+    [ret_std_cf or ret_cov_cf] depending on return_std or return_cov: np.array
+    for [sid, p, x_i] or [sid, p, p, x_i]
 
     """
     # compute function coefficients by least-squares
