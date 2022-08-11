@@ -533,12 +533,13 @@ def gen_mkey_sid_rel(samples, mk_lst, nrb_dict):
     mk2sids = {}
     for mkey in mk_lst:
         B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey)
-        mk2sids[mkey] = sids[B]
-        for sid in mk2sids[mkey]:
-            if sid in sid2mk:
-                sid2mk[sid] += mkey
-            else:
-                sid2mk[sid] = [mkey]
+        if B.sum() > 0:
+            mk2sids[mkey] = sids[B]
+            for sid in mk2sids[mkey]:
+                if sid in sid2mk:
+                    sid2mk[sid] += mkey
+                else:
+                    sid2mk[sid] = [mkey]
     return sid2mk, mk2sids
 
 def sample2mkey(sample, mk_lst, nrb_dict, find_all_mkeys=False):
