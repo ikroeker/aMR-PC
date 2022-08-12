@@ -201,3 +201,32 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
     bme = np.exp(llhs).mean()
 #    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
+
+def entropy_norm_response(observation, response_surfaces, covariance_matrix):
+    n, m = response_surfaces.shape
+    if m == len(observation):
+        sample_cnt = n
+    else:
+        sample_cnt = m
+        response_surfaces = response_surfaces.T
+
+    llhs = np.array([cmp_log_likelihood_core(observation,
+                                             response_surfaces[sample, :],
+                                             covariance_matrix)
+                     for sample in range(sample_cnt)])    
+
+    mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
+    bme = np.exp(llhs).mean()
+    rs_mean = response_surfaces.mean(axis=0)
+    rs_cov = np.cov(response_surfaces, rowvar=False)
+    
+    rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
+    f_gs = lambda sid : (cmp_log_likelihood_core(rs_mean,
+                                                 response_surfaces[sid, :],
+                                                 rs_cov)
+                         + rs_cov_cf)
+    llhs_gs_it = map(f_gs, range(sample_cnt))
+    llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
+    
+    return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan   
+ 
