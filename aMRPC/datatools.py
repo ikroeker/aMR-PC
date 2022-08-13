@@ -911,8 +911,8 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
     if method in ('reg_n', 'reg_t'):
-        sigma_n = kwargs.get('sigma_n', 1e-10)
-        sigma_p = kwargs.get('sigma_p', 1)
+        sigma_n = kwargs.get('sigma_n', 1e-5)
+        sigma_p = kwargs.get('sigma_p', 1.0)
     assert x_start + x_len <= n_x
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
@@ -952,7 +952,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
                 elif method == 'reg_t':
                     P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi 
                                            + np.eye(phi.shape[1]) / sigma_p_mk)
-                    v_ls = (P_inv @ phi.T / sigma_n @ data[sids, dt_idx_x])
+                    v_ls = (P_inv @ phi.T / sigma_n_mk @ data[sids, dt_idx_x])
                     if ret_std:
                         ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
                     elif ret_cov:
