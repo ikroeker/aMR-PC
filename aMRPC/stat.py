@@ -46,15 +46,26 @@ def cmp_log_likelihood_cf(std, number_of_measurments):
         likelihood coefficient.
 
     """
-    return -(np.log(2*pi)/2 + np.log(std)) * number_of_measurments 
+    return -(np.log(2*pi)/2 + np.log(std)) * number_of_measurments
 
 def cmp_norm_likelihood_cf_mv(covariance_matrix):
     dim = covariance_matrix.shape[0]
-    return 1/sqrt(pow(2*pi, dim)*np.multiply.reduce(np.diag(np.linalg.cholesky(covariance_matrix))))
+    if np.all(covariance_matrix == np.diag(np.diagonal(covariance_matrix))):
+        det = np.multiply.reduce(np.diag(covariance_matrix))
+    else:
+        det = np.multiply.reduce(np.diag(np.linalg.cholesky(covariance_matrix)))
+    return 1/sqrt(pow(2*pi, dim)*det)
 
 def cmp_log_likelihood_cf_mv(covariance_matrix):
     dim = covariance_matrix.shape[0]
-    return (-np.log(2*pi)*dim/2 - np.log(np.diag(np.linalg.cholesky(covariance_matrix))).sum()) 
+    if np.all(covariance_matrix == np.diag(np.diagonal(covariance_matrix))):
+        logdet = np.log(np.diagonal(covariance_matrix)).sum()
+        # print("cov_mx:", covariance_matrix.diagonal())
+    else:
+        # logdet = np.linalg.slogdet(covariance_matrix)[1]
+        logdet = np.log(np.diag(np.linalg.cholesky(covariance_matrix))).sum()
+    # return (-np.log(2*pi)*dim/2 - np.log(np.diag(np.linalg.cholesky(covariance_matrix))).sum())
+    return -np.log(2*pi)*dim/2 - logdet
 
 def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     """
@@ -163,7 +174,7 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
     else:
         sample_cnt = m
         response_surfaces = response_surfaces.T
-    
+
     lh_cf = cmp_norm_likelihood_cf_mv(covariance_matrix)
     return np.mean([lh_cf * cmp_norm_likelihood_core(observation,
                                                      response_surfaces[sample, :],
@@ -187,7 +198,7 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
     llhs = np.array([cmp_log_likelihood_core(observation,
                                              response_surfaces[sample, :],
                                              covariance_matrix)
-                     for sample in range(sample_cnt)])    
+                     for sample in range(sample_cnt)])
 #    llhs = np.zeros(sample_cnt)
 #    for sample in range(sample_cnt):
 ##        lhs[sample] = cmp_norm_likelihood_core(observation,
@@ -202,7 +213,8 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
 #    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
 
-def entropy_norm_response(observation, response_surfaces, covariance_matrix):
+def entropy_norm_response(observation, response_surfaces, covariance_matrix, **kwargs):
+    eps = kwargs.get('eps', 1e-10)
     n, m = response_surfaces.shape
     if m == len(observation):
         sample_cnt = n
@@ -213,13 +225,19 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix):
     llhs = np.array([cmp_log_likelihood_core(observation,
                                              response_surfaces[sample, :],
                                              covariance_matrix)
-                     for sample in range(sample_cnt)])    
+                     for sample in range(sample_cnt)])
 
     mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
     bme = np.exp(llhs).mean()
     rs_mean = response_surfaces.mean(axis=0)
     rs_cov = np.cov(response_surfaces, rowvar=False)
-    
+    eps_v = rs_cov.diagonal() < eps
+    if eps_v.sum() > 0:
+        rs_cov += eps * np.eye(len(observation))
+        #print("stat.entr: reg. cov_diag", rs_cov.diagonal())
+        # eps_mx = np.diag(eps_v)
+        # rs_cov[eps_mx] = eps
+
     rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
     f_gs = lambda sid : (cmp_log_likelihood_core(rs_mean,
                                                  response_surfaces[sid, :],
@@ -227,6 +245,5 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix):
                          + rs_cov_cf)
     llhs_gs_it = map(f_gs, range(sample_cnt))
     llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
-    
-    return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan   
- 
+
+    return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan

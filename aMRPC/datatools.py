@@ -15,6 +15,8 @@ from . import polytools as pt
 from . import utils as u
 #from . import wavetools as wt
 
+EPS = 1e-20 # epsilon
+
 def genHankel(dataframe, srcs, nr_range, n_o):
     """ generates Hankel matrixes for each Nri, writes in h_dict """
     #Nr=max(NrRange)
@@ -83,6 +85,11 @@ def gen_nr_range_bds_4list(bds_list, srcs, nr_range):
                 l_b, r_b = cmp_lrb(anr, nri)
                 qlb = g_lb + l_b * delta
                 qrb = g_lb + r_b * delta
+                
+                if nri == 0:
+                    qlb -= EPS
+                elif nri == 2**anr-1:
+                    qrb += EPS
                 key = u.gen_dict_key(anr, nri, src)
                 nrb_dict[key] = (qlb, qrb)
     return nrb_dict
@@ -627,7 +634,7 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     P = phi.T @ Q_inv @ phi + R_inv
 
     try:
-        if np.linalg.det(P) > 0:
+        if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
             P_inv = np.linalg.pinv(P)
             # inverse according to eq. (A.9) in Rasmussen and Williams
             cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
