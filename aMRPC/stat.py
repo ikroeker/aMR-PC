@@ -214,7 +214,7 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
 
 def entropy_norm_response(observation, response_surfaces, covariance_matrix, **kwargs):
-    eps = kwargs.get('eps', 1e-10)
+    eps = kwargs.get('eps', 1e-15)
     n, m = response_surfaces.shape
     if m == len(observation):
         sample_cnt = n
@@ -231,8 +231,8 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix, **k
     bme = np.exp(llhs).mean()
     rs_mean = response_surfaces.mean(axis=0)
     rs_cov = np.cov(response_surfaces, rowvar=False)
-    eps_v = rs_cov.diagonal() < eps
-    if eps_v.sum() > 0:
+    #eps_v = rs_cov.diagonal() < eps
+    if eps > 0:
         rs_cov += eps * np.eye(len(observation))
         #print("stat.entr: reg. cov_diag", rs_cov.diagonal())
         # eps_mx = np.diag(eps_v)
@@ -243,7 +243,8 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix, **k
                                                  response_surfaces[sid, :],
                                                  rs_cov)
                          + rs_cov_cf)
-    llhs_gs_it = map(f_gs, range(sample_cnt))
-    llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
-
-    return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
+    llhs_gs_it = map(f_gs, np.arange(sample_cnt)[mask])
+    #llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
+    return (np.log(bme) - np.mean(llhs[mask]) - np.mean(np.fromiter(llhs_gs_it, dtype=float)) 
+            if bme > 0 else np.nan)
+    # return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
