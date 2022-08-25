@@ -85,7 +85,7 @@ def gen_nr_range_bds_4list(bds_list, srcs, nr_range):
                 l_b, r_b = cmp_lrb(anr, nri)
                 qlb = g_lb + l_b * delta
                 qrb = g_lb + r_b * delta
-                
+
                 if nri == 0:
                     qlb -= EPS
                 elif nri == 2**anr-1:
@@ -752,15 +752,32 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     """
     n_s = samples.shape[0]
-    f_n_tuple = f_cfs.shape
-    if len(f_n_tuple) > 3:
-        n_so = f_n_tuple[0]
-        n_x = f_n_tuple[3]
-        f_rec = np.zeros((n_so, n_s, n_x))
+    if isinstance(f_cfs, dict):
+        mkey_type = True
+        f_n_tuple = f_cfs[next(iter(f_cfs))].shape
+        if len(f_n_tuple) > 2:
+            n_so = f_n_tuple[0]
+            n_x = f_n_tuple[2]
+            f_rec = np.zeros((n_so, n_s, n_x))
+        else:
+            n_x = f_n_tuple[1]
+            n_so = 0
+            f_rec = np.zeros((n_s, n_x))
+        
     else:
-        n_x = f_cfs.shape[2]
-        n_so = 0
-        f_rec = np.zeros((n_s, n_x))
+        mkey_type = False
+        f_n_tuple = f_cfs.shape
+
+        if len(f_n_tuple) > 3:
+            n_so = f_n_tuple[0]
+            n_x = f_n_tuple[3]
+            f_rec = np.zeros((n_so, n_s, n_x))
+        else:
+            n_x = f_n_tuple[2]
+            n_so = 0
+            f_rec = np.zeros((n_s, n_x))
+
+
 
     key = "mk2sid_samples"
     mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
@@ -779,11 +796,18 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 #        f_rec[sids_l, :] = phi_all[:, sids_l].T @ f_cfs[sids[0], idxs_pm, :]
         #phi = gen_phi(mkey, p_vals, mk2sid_loc, alpha_masks)
         phi = (p_vals[:, sids_l][idxs_pm, :]).T
-        if n_so > 0:
-            for idx_x in range(n_x):
-                f_rec[:, sids_l, idx_x] = (phi @ f_cfs[:, sids[0], idxs_pm, idx_x].T).T
+        if mkey_type:
+            if n_so > 0:
+                for idx_x in range(n_x):
+                    f_rec[:, sids_l, idx_x] = (phi @ f_cfs[mkey][:, idxs_pm, idx_x].T).T
+            else:
+                f_rec[sids_l, :] = phi @ f_cfs[mkey][:, idxs_pm]
         else:
-            f_rec[sids_l, :] = phi @ f_cfs[sids[0], idxs_pm, :]
+            if n_so > 0:
+                for idx_x in range(n_x):
+                    f_rec[:, sids_l, idx_x] = (phi @ f_cfs[:, sids[0], idxs_pm, idx_x].T).T
+            else:
+                f_rec[sids_l, :] = phi @ f_cfs[sids[0], idxs_pm, :]
 #        for sid_l in sids_l:
 #            f_rec[sid_l, :] = f_cfs[sids[0], idxs_pm, :].T @ p_vals[idxs_pm, sid_l]
 
@@ -835,10 +859,13 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
             first space_point_nr to eval.
         x_len: integer
             length of the x-vector to eval, default x_len=-1 -> all.
+        mkey_out: bool, default False
+            switchs to mkey-wise return if True
     Returns
     -------
-    f_cfs : np.array
+    f_cfs : np.array or dictionary of np.arrays
         amrpc coeficients f, f_cfs[sample_out, sample_id, alpha_p, idx_x].
+        aMR-PC coefficients f, f_cfs[mkey] -> [sample_out, alpha_p, idx_x]
     """
     n_tup = f_cfs.shape
     if len(n_tup) > 2:
@@ -848,14 +875,20 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
     n_so = kwargs.get('n_samples_out', 1)
     n_p = n_tup[1]
     n_s = n_tup[0]
+    mkey_out = kwargs.get('mkey_out', False)
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
-    ret_f_cfs = np.zeros((n_so, n_s, n_p, n_x))
+    if mkey_out:
+        ret_f_cfs = {}
+    else:
+        ret_f_cfs = np.zeros((n_so, n_s, n_p, n_x))
     rng = np.random.default_rng()
     #idxs_p = np.arange(n_p)
     for mkey in mk_list:
         sids = mk2sid[mkey]
+        if mkey_out:
+            ret_f_cfs[mkey] = np.zeros((n_so, n_p, n_x))
         if alpha_masks is not None and len(alpha_masks) != 0:
             alpha_mask = alpha_masks[mkey]
         else:
@@ -867,8 +900,12 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
                                             f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
                                             n_so)
             #print(s_cfs.shape)
-            for sid in sids:
-                ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
+
+            if mkey_out:
+                ret_f_cfs[mkey][:, alpha_mask, idx_x] = s_cfs
+            else:
+                for sid in sids:
+                    ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
 
     return ret_f_cfs
 
@@ -957,7 +994,7 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
                     v_ls = (np.linalg.pinv(1/sigma_n_mk * phi.T @ phi) @ phi.T / sigma_n_mk
                             @ data[sids, dt_idx_x])
                 elif method == 'reg_t':
-                    P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi 
+                    P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi
                                            + np.eye(phi.shape[1]) / sigma_p_mk)
                     v_ls = (P_inv @ phi.T / sigma_n_mk @ data[sids, dt_idx_x])
                     if ret_std:
