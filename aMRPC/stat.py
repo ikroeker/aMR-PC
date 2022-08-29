@@ -187,7 +187,9 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
 #                                                       covariance_matrix)
 #    return lhs.mean()
 
-def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
+def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix, 
+                             **kwargs):
+    eps = kwargs.get('eps', 0)
     n, m = response_surfaces.shape
     if m == len(observation):
         sample_cnt = n
@@ -209,7 +211,7 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix):
 #                                               covariance_matrix)
     #mask = np.exp(llhs) >= np.exp(llhs.max()) * np.random.uniform(0, 1, llhs.shape)
     mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
-    bme = np.exp(llhs).mean()
+    bme = np.exp(llhs).mean() + eps
 #    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
 
@@ -228,7 +230,7 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix, **k
                      for sample in range(sample_cnt)])
 
     mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
-    bme = np.exp(llhs).mean()
+    bme = np.exp(llhs).mean() + eps
     rs_mean = response_surfaces.mean(axis=0)
     rs_cov = np.cov(response_surfaces, rowvar=False)
     #eps_v = rs_cov.diagonal() < eps
