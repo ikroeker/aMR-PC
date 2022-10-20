@@ -969,14 +969,15 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
         ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len))
     for mkey, sids in mk2sid.items():
         phi = pol_vals[:, sids].T
-        if isinstance(sigma_n, dict):
-            sigma_n_mk = sigma_n[mkey]**2
-        elif isinstance(sigma_n, float):
-            sigma_n_mk = sigma_n**2
-        if isinstance(sigma_p, dict):
-            sigma_p_mk = sigma_p[mkey]**2
-        elif isinstance(sigma_p, float):
-            sigma_p_mk = sigma_p**2
+        if method in ('reg_n', 'reg_t'):
+            if isinstance(sigma_n, dict):
+                sigma_n_mk = sigma_n[mkey]**2
+            elif isinstance(sigma_n, float):
+                sigma_n_mk = sigma_n**2
+            if isinstance(sigma_p, dict):
+                sigma_p_mk = sigma_p[mkey]**2
+            elif isinstance(sigma_p, float):
+                sigma_p_mk = sigma_p**2
         for idx_x in range(x_len):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
             # solves Av = y using least squares
