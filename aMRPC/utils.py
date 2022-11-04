@@ -56,9 +56,9 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     a_mask = np.zeros(p_cnt, dtype=bool)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
-        for d in range(dim):
-            if d not in idx_set:
-                a_mask[i] = a_mask[i] and alphas[i, d] <= no_min
+        for _d in range(dim):
+            if _d not in idx_set:
+                a_mask[i] = a_mask[i] and alphas[i, _d] <= no_min
     return a_mask
 
 def gen_nri_range(nrs):
@@ -152,7 +152,7 @@ def gen_multi_key(anrs, nris, srcs):
     Nris - Nr indices for each entree in src
     """
     dims = len(srcs)
-    return tuple([gen_dict_key(anrs[d], nris[d], srcs[d]) for d in range(dims)])
+    return tuple(gen_dict_key(anrs[d], nris[d], srcs[d]) for d in range(dims))
 
 def multi_key2srcs(mkey):
     """ generates srcs list from multi-key """
@@ -160,6 +160,22 @@ def multi_key2srcs(mkey):
     return [c[src_pos] for c in mkey]
 
 def multi_key_diff_srcs(mkey_one, mkey_two):
+    """
+    Computes difference between two multi keys
+
+    Parameters
+    ----------
+    mkey_one : tuple
+        multi-key one.
+    mkey_two : tuple
+        multie-key two.
+
+    Returns
+    -------
+    list
+        difference between mkey_one and mkey_two.
+
+    """
     mk_len = len(mkey_one)
     assert mk_len == len(mkey_two)
     #spos = ParPos['src']
@@ -167,6 +183,22 @@ def multi_key_diff_srcs(mkey_one, mkey_two):
     return [srcs[src] for src in range(mk_len) if mkey_one[src] != mkey_two[src]]
 
 def multi_key_intersect_srcs(mkey_one, mkey_two):
+    """
+    Computes intersection between two multi keys
+
+    Parameters
+    ----------
+    mkey_one : tuple
+        multi-key one.
+    mkey_two : tuple
+        multie-key two.
+
+    Returns
+    -------
+    list
+        intersection between mkey_one and mkey_two.
+
+    """
     mk_len = len(mkey_one)
     assert mk_len == len(mkey_two)
     #spos = ParPos['src']
@@ -174,6 +206,24 @@ def multi_key_intersect_srcs(mkey_one, mkey_two):
     return [srcs[src] for src in range(mk_len) if mkey_one[src] == mkey_two[src]]
 
 def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
+    """
+    Comapres two multi-keys for indexes given in srcs
+
+    Parameters
+    ----------
+    mkey_one : tuple
+        multi-key one.
+    mkey_two : tuple
+        multi-key tow.
+    srcs : list
+        input indexes to compare.
+
+    Returns
+    -------
+    ret : bool
+        true if all equal.
+
+    """
     mkey_len = len(mkey_two)
     chk_a = len(mkey_one) == mkey_len
     chk_b = max(srcs) < mkey_len
@@ -184,6 +234,22 @@ def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
     return ret
 
 def gen_corr_rcf(mkey, srcs):
+    """
+    Generates multi-resolution correcting/re-scalling coefficient for a multi-key
+
+    Parameters
+    ----------
+    mkey : tuple
+        multi-key.
+    srcs : list
+        indexes to be considered.
+
+    Returns
+    -------
+    correct_cf : float
+        correcting/res-calling cofficient.
+
+    """
     nr_pos = ParPos['aNr']
     correct_cf = 1
     for src in srcs:
