@@ -548,6 +548,6 @@ def pc_eval(cfs, X):
         p(X).
 
     """
-    C = cfs.T
+    c = cfs.T
     #print(C)
-    return P.polyval(X, C, tensor=False)
+    return P.polyval(X, c, tensor=False)
