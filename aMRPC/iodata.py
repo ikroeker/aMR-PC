@@ -16,33 +16,27 @@ def write_eval_points(points, fname, **kwargs):
     """
     writes evals points in asci file
     additionals args: dir and template
-    
+
     Parameters
     ----------
     points : DataFrame
     fname : string
     kwargs : dictionary with output template, directory
     """
-    if 'dir' in kwargs.keys():
-        mydir = kwargs['dir']
-    else:
-        mydir = outDir
-    if 'tmplt' in kwargs.keys():
-        template = kwargs['tmplt']
-    else:
-        template = ' {: 8.7e}  {: 8.7e}  {: 8.7e}  {: 8.7e}\n'
+    mydir = kwargs.get('dir', outDir)
+    template = kwargs.get('tmplt', ' {: 8.7e}  {: 8.7e}  {: 8.7e}  {: 8.7e}\n')
     file = gen_file_url(fname, mydir)
     lines, _ = points.shape
-    f_h = open(file, 'w')
-    for l_idx in range(lines):
-        if isinstance(points, np.ndarray):
-            data_line = points[l_idx]
-        else:
-            data_line = points.iloc[l_idx]
-        #print(dataLine)
-        str_line = template.format(*data_line)
-        f_h.write(str_line)
-    f_h.close()
+    with open(file, 'w') as f_h:
+        for l_idx in range(lines):
+            if isinstance(points, np.ndarray):
+                data_line = points[l_idx]
+            else:
+                data_line = points.iloc[l_idx]
+            #print(dataLine)
+            str_line = template.format(*data_line)
+            f_h.write(str_line)
+    # f_h.close()
 
 def gen_file_url(fname, mydir=None):
     """
@@ -92,14 +86,14 @@ def load_eval_points(fname, mydir=None):
     url = gen_file_url(fname, mydir)
     if op.exists(url):
         try:
-            dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
-        
+            dataframe = pd.read_csv(url, header=None, delim_whitespace=True, engine='python')
+            #dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
         except(IOError, ValueError):
             print("An I/O error or a ValueError occurred")
             raise
-    else:        
+    else:
         print(url, " does not exist!")
-        return
+        dataframe = pd.DataFrame([]) # returns empty dataframe
     return dataframe
 
 def store_data_dict(out_dict, fname, mydir=None):
@@ -108,9 +102,9 @@ def store_data_dict(out_dict, fname, mydir=None):
         mydir = outDir
     file = gen_file_url(fname, mydir)
     try:
-        f_h = open(file, "wb")
-        pickle.dump(out_dict, f_h)
-        f_h.close()
+        with open(file, "wb") as f_h:
+            pickle.dump(out_dict, f_h)
+
     except (IOError, ValueError):
         print("An I/O error or a ValueError occurred")
     except:
@@ -122,15 +116,14 @@ def load_data_dict(fname, mydir=None):
     if mydir is None:
         mydir = outDir
     file = gen_file_url(fname, mydir)
-    f_h = open(file, "rb")
-    try:
-        in_dict = pickle.load(f_h)
-        f_h.close()
-    except (IOError, ValueError):
-        print("An I/O error or a ValueError occurred")
-    except:
-        print("An unexpected error occurred")
-        raise
+    with open(file, "rb") as f_h:
+        try:
+            in_dict = pickle.load(f_h)
+        except (IOError, ValueError):
+            print("An I/O error or a ValueError occurred")
+        except:
+            print("An unexpected error occurred")
+            raise
     return in_dict
 
 def store_np_arr(np_array, fname, mydir=None):
@@ -191,18 +184,18 @@ FileSfx = {
 }
 def gen_fname(fkt, **kwargs):
     """ generates filename"""
-    pfx_chk = fkt in FilePfx.keys()
-    sfx_chk = fkt in FileSfx.keys()
+    pfx_chk = fkt in FilePfx
+    sfx_chk = fkt in FileSfx
     assert pfx_chk and sfx_chk
     fname = FilePfx.get(fkt)
 
-    if 'txt' in kwargs.keys():
+    if 'txt' in kwargs:
         fname += kwargs['txt']
-    if 'Nr' in kwargs.keys():
+    if 'Nr' in kwargs:
         fname += '_Nr'+kwargs['Nr']
-    if 'No' in kwargs.keys():
+    if 'No' in kwargs:
         fname += '_No' +kwargs['No']
-    if 'ths' in kwargs.keys():
+    if 'ths' in kwargs:
         fname += '_ths'+kwargs['ths']
 
     fname += FileSfx.get(fkt) # add sfx to the filename
