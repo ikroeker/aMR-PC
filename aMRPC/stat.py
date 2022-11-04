@@ -49,6 +49,20 @@ def cmp_log_likelihood_cf(std, number_of_measurments):
     return -(np.log(2*pi)/2 + np.log(std)) * number_of_measurments
 
 def cmp_norm_likelihood_cf_mv(covariance_matrix):
+    """
+    Computes normalizing coefficient for Gaussian likelihood function
+
+    Parameters
+    ----------
+    covariance_matrix : np.array
+        Covariance matrix.
+
+    Returns
+    -------
+    float
+        normalizing coefficient.
+
+    """
     dim = covariance_matrix.shape[0]
     if np.all(covariance_matrix == np.diag(np.diagonal(covariance_matrix))):
         det = np.multiply.reduce(np.diag(covariance_matrix))
@@ -57,6 +71,20 @@ def cmp_norm_likelihood_cf_mv(covariance_matrix):
     return 1/sqrt(pow(2*pi, dim)*det)
 
 def cmp_log_likelihood_cf_mv(covariance_matrix):
+    """
+    computes logarithm normalizing coefficient for Gaussian likelihood function
+
+    Parameters
+    ----------
+    covariance_matrix : np.array
+        Covariance matrix.
+
+    Returns
+    -------
+    float
+        log(normalizing coefficient).
+
+    """
     dim = covariance_matrix.shape[0]
     if np.all(covariance_matrix == np.diag(np.diagonal(covariance_matrix))):
         logdet = np.log(np.diagonal(covariance_matrix)).sum()
@@ -168,6 +196,24 @@ def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
     return ret
 
 def bme_norm_response(observation, response_surfaces, covariance_matrix):
+    """
+    Computes BME (Bayesian Model Evidence)
+
+    Parameters
+    ----------
+    observation : np.array
+        observation trajectory.
+    response_surfaces : np.array
+        surrogate / model response.
+    covariance_matrix : np.array
+        covariance matrix.
+
+    Returns
+    -------
+    float
+        BME.
+
+    """
     n, m = response_surfaces.shape[0:2]
     if m == len(observation):
         sample_cnt = n
@@ -187,8 +233,27 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
 #                                                       covariance_matrix)
 #    return lhs.mean()
 
-def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix, 
+def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
                              **kwargs):
+    """
+    computes Kullback-Leibler divergence
+
+    Parameters
+    ----------
+    observation : np.array
+        observation.
+    response_surfaces : np.array
+        surrogate / model response.
+    covariance_matrix : np.array
+        covariance matrix.
+    **kwargs : dict
+        eps - error bad condition compensation.
+
+    Returns
+    -------
+    float.
+
+    """
     eps = kwargs.get('eps', 0)
     n, m = response_surfaces.shape
     if m == len(observation):
@@ -216,6 +281,26 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
 
 def entropy_norm_response(observation, response_surfaces, covariance_matrix, **kwargs):
+    """
+    Computes entropy
+
+    Parameters
+    ----------
+    observation : np.array
+        observation.
+    response_surfaces : np.array
+        surrogate / model response.
+    covariance_matrix : np.array
+        covariance matrix.
+    **kwargs : dict
+        eps - error bad condition compensation.
+
+    Returns
+    -------
+    float
+        entropy value.
+
+    """
     eps = kwargs.get('eps', 1e-15)
     n, m = response_surfaces.shape
     if m == len(observation):
@@ -247,6 +332,6 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix, **k
                          + rs_cov_cf)
     llhs_gs_it = map(f_gs, np.arange(sample_cnt)[mask])
     #llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
-    return (np.log(bme) - np.mean(llhs[mask]) - np.mean(np.fromiter(llhs_gs_it, dtype=float)) 
+    return (np.log(bme) - np.mean(llhs[mask]) - np.mean(np.fromiter(llhs_gs_it, dtype=float))
             if bme > 0 else np.nan)
     # return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
