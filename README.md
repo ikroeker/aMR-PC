@@ -5,9 +5,11 @@ aMR-PC python code
 Python implementation of arbirtray multi-resolution polynomial chaos and multi-wavelets
 --
 aMRPC: contains python package
+
 tests: contains test input data in tests/data and several .py tests. 
 
-Related Article
+Please cite the article:
+
 Ilja Kröker, Sergey Oladyshkin,
 Arbitrary multi-resolution multi-wavelet-based polynomial chaos expansion for data-driven uncertainty quantification,
 Reliability Engineering & System Safety,
