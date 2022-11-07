@@ -341,14 +341,28 @@ def inner_prod_arr_fct(arr, f_la, roots, weights, srcs):
 
 
 def gen_rw_4mkey(mkey, roots, weights):
-    """ generates roots and weights arrays from dict's Roots and Weights for multikey mkey """
+    """
+    gets roots and weights arrays from dict's Roots and Weights for multikey mkey
+
+
+    Parameters
+    ----------
+    mkey : tuple
+        multi-key.
+    roots : dictionary
+        mkey -> np.array dictionarly.
+    weights : dictionary
+        mkey -> np.array dictionary.
+
+    Returns
+    -------
+    r_roots : np.array
+        Quadrature roots.
+    r_weights : np.array
+        Quadraature weights.
+
+    """
     cols = len(mkey)
-    # ls=[]
-    # for d in range(cols):
-    #     key=mKey[d]
-    #     #print("k->r",key,Roots[key])
-    #     lk=len(Roots[key])
-    #     ls.append(lk)
     ls = [len(roots[key]) for key in mkey]
     lens = np.array(ls)
     lines = lens.prod()
@@ -763,7 +777,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
             n_x = f_n_tuple[1]
             n_so = 0
             f_rec = np.zeros((n_s, n_x))
-        
+
     else:
         mkey_type = False
         f_n_tuple = f_cfs.shape

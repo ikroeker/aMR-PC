@@ -8,7 +8,11 @@ import numpy as np
 #import pandas as pd
 
 class WaveTools:
-    """ generates wavelet functions according to Le Maitre et al """
+    """ generates wavelet functions according to
+        Le Maître OP, Najm HN, Ghanem RG, Knio OM. Multi-resolution analysis
+        of Wiener-type uncertainty propagation schemes. J Comput Phys
+        2004;197(2):502–31.
+    """
     def __init__(self, deg, qdeg=-1, decOn=True, lb=0, rb=1):
         self.P = deg # polynomial degree
         if qdeg > 0:
@@ -258,8 +262,8 @@ if __name__ == "__main__":
     I = 0
     X = .7
     print("i =", I, "  x =", X)
-    print("fr(%d,%f)=%f"%(I, X, WV.fr(I, X)))
-    print("fpsi(%d,%f)=%f"%(I, X, WV.fpsi(I, X)))
-    print("rfpsi(%f,%d,1,1)=%f"%(X, I, WV.rfpsi(X, I, 1, 1)))
+    print(f"fr({I}, {X})={WV.fr(I, X)}")
+    print(f"fpsi({I},{X})={WV.fpsi(I, X)}")
+    print(f"rfpsi({X},{I},1,1)={WV.rfpsi(X, I, 1, 1)}")
 
     print("well done!")

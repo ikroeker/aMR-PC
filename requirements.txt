@@ -1,3 +1,7 @@
+os
+math
+pickle
 numpy
 pandas
 scipy
+itertools
