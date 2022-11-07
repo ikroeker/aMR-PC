@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="aMRPC-pkg",
-    version="0.0.1",
+    version="1.0.1",
     author="Ilja Kröker",
     author_email="ilja.kroeker@iws.uni-stuttgart.de",
     description="aMRPC python implementation",
@@ -21,7 +21,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     requires=[
-        "numpy", "pandas", "scipy", 
+        "numpy", "pandas", "scipy", "math", "pickle", "os", "itertools"
         ],
     project_urls={
         'LS3':'https://www.iws.uni-stuttgart.de/ls3/',
