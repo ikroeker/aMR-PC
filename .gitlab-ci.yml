@@ -1,5 +1,14 @@
 image: "python:latest"
 
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+
 before_script:
   - apt-get update -qy
   - apt-get install -y python-dev python3-pip 

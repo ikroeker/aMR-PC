@@ -82,6 +82,20 @@ def gen_idx_subsets(dim):
     return set(sub_idx)
 
 def gen_sidx_subsets(sidx):
+    """
+    Generates all possible source / index combination of sidx
+
+    Parameters
+    ----------
+    sidx : tuple, set, list
+        index st.
+
+    Returns
+    -------
+    set of frozensets
+        set of index combinations.
+
+    """
     items = list(sidx)
     sub_idx = [frozenset(t) for length in range(1, len(sidx)+1)
                for t in it.combinations(items, length)]
@@ -251,12 +265,60 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
     return ret_val
 
 def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+    """
+    Generates auxiliary values for aux. dict. for computing of Sobol coeficients
+    for sample-based or mkey-based aMR-PC
+
+    Parameters
+    ----------
+    pc_coefs : dict
+        polynomial coefficients.
+    rsc_dict : dict
+        rescalling coeficients.
+    mk2sid : dict
+        mkey -> sample_id.
+    alphas : np.array
+        relatted to polynomial degrees.
+    idx_list : list, touple
+        idx set to generate the Sobol indexes.
+    eps : float, optional
+        num. error compensation. The default is 1e-15.
+
+    Returns
+    -------
+    float
+        aux.-coefficient.
+    """
     if isinstance(pc_coefs, dict):
         return sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps)
     else:
         return sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps)
 
 def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+    """
+    Generates auxiliary values for aux. dict. for computing of Sobol coeficients
+    for sample-based aMR-PC
+
+    Parameters
+    ----------
+    pc_coefs : dict
+        polynomial coefficients.
+    rsc_dict : dict
+        rescalling coeficients.
+    mk2sid : dict
+        mkey -> sample_id.
+    alphas : np.array
+        relatted to polynomial degrees.
+    idx_list : list, touple
+        idx set to generate the Sobol indexes.
+    eps : float, optional
+        num. error compensation. The default is 1e-15.
+
+    Returns
+    -------
+    float
+        aux.-coefficient.
+    """
     mean, var = dt.cf_2_mean_var(pc_coefs, rsc_dict, mk2sid)
     p_max, dim = alphas.shape
     srcs = list(range(dim))
@@ -308,6 +370,31 @@ def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-1
     return sobol_ns / var
 
 def sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15):
+    """
+    Generates auxiliary values for aux. dict. for computing of Sobol coeficients
+    for mkey-based aMR-PC
+
+    Parameters
+    ----------
+    pc_coefs : dict
+        polynomial coefficients.
+    rsc_dict : dict
+        rescalling coeficients.
+    mk2sid : dict
+        mkey -> sample_id.
+    alphas : np.array
+        relatted to polynomial degrees.
+    idx_list : list, touple
+        idx set to generate the Sobol indexes.
+    eps : float, optional
+        num. error compensation. The default is 1e-15.
+
+    Returns
+    -------
+    float
+        aux.-coefficient.
+
+    """
     mean, var = dt.cf_2_mean_var_4mkey(pc_coefs, rsc_dict)
     p_max, dim = alphas.shape
     srcs = list(range(dim))
@@ -357,6 +444,30 @@ def sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15):
 
 
 def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+    """
+    Generates auxiliary dictionary for computing of Sobol coeficients
+
+    Parameters
+    ----------
+    pc_coefs : dict
+        polynomial coefficients.
+    rsc_dict : dict
+        rescalling coeficients.
+    mk2sid : dict
+        mkey -> sample_id.
+    alphas : np.array
+        relatted to polynomial degrees.
+    idx_list : list, touple
+        idx set to generate the Sobol indexes.
+    eps : float, optional
+        num. error compensation. The default is 1e-15.
+
+    Returns
+    -------
+    sobol_dict : TYPE
+        DESCRIPTION.
+
+    """
     # idx_list_len = len(idx_list)
     # sub_idx = [frozenset(t) for length in range(1, idx_list_len+1)
     #            for t in it.combinations(idx_list, length)]
@@ -412,10 +523,42 @@ def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
 
 def sobol_idx_amrpc_dynamic(idx_set, pc_coefs, rsc_dict, mk2sid, alphas,
                             sobol_dict, help_sobol_dict, eps=1e-15):
+    """
+    computes Sobol coeficients, exploiting dynamic programming.
+
+    Parameters
+    ----------
+    idx_set : list, tuple, set
+        source/index set for consideration.
+    pc_coefs : dict
+        aMR-PC polynomial coefficients.
+    rsc_dict : dict
+        rescalling dictionary.
+    mk2sid : dict
+        mkey -> sample.
+    alphas : np.array
+        polynomial degrees.
+    sobol_dict : dict
+        dictionarly with Sobol coefs, can be empty.
+    help_sobol_dict : dict
+        aux. dict. related to sobol_idx_amprpc_jj..., can be empty
+    eps : float, optional
+        compens. numerical error. The default is 1e-15.
+
+    Returns
+    -------
+    float
+        Sobol idx for indexes in the idx_set.
+    sobol_dict : dict
+        updated dictionary.
+    help_sobol_dict : dict
+        updated dictionary.
+
+    """
     idx_set_len = len(idx_set)
     if idx_set in sobol_dict.keys():
         return sobol_dict[idx_set], sobol_dict, help_sobol_dict
-    
+
     if idx_set not in help_sobol_dict.keys():
         help_sobol_dict[idx_set] = sobol_idx_amrpc_jj(pc_coefs, rsc_dict,
                                                       mk2sid, alphas,
