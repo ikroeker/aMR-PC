@@ -33,6 +33,8 @@ def gen_multi_idx(n_o, dim):
         if sum(tmp_arr) <= n_o:
             alphas[l_idx, :] = tmp_arr
             l_idx = l_idx+1
+            if l_idx == p_cnt:
+                break
     return alphas
 
 def gen_midx_mask(alphas, no_max):
