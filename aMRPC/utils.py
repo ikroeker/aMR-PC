@@ -5,9 +5,10 @@ to handle multi-resolution
 @author: kroeker
 """
 
+import itertools as it
 import numpy as np
 from scipy.special import comb
-import itertools as it
+
 #import math
 
 # Data format for roots, weights and details: DictName(Nr,aNr,Nri,src)
