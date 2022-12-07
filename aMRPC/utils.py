@@ -7,16 +7,18 @@ to handle multi-resolution
 
 import numpy as np
 from scipy.special import comb
+import itertools as it
 #import math
 
 # Data format for roots, weights and details: DictName(Nr,aNr,Nri,src)
 #ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
 ParPos = {'Nr':0, 'aNr':0, 'Nri':1, 'src':2}
 
-def gen_multi_idx(n_o, dim):
+def gen_multi_idx_old(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
+    old version
     """
     p_cnt = comb(n_o+dim, dim)
     alphas = np.zeros((int(p_cnt), dim), dtype=int)
@@ -32,6 +34,22 @@ def gen_multi_idx(n_o, dim):
             p_a = p_a-val*m_d
         if sum(tmp_arr) <= n_o:
             alphas[l_idx, :] = tmp_arr
+            l_idx = l_idx+1
+            if l_idx == p_cnt:
+                break
+    return alphas
+def gen_multi_idx(n_o, dim):
+    """
+    generates mulit-indices of multi-variate polynomial base
+    uses graded lexicographic ordering (p. 156, Sullivan)
+    """
+    p_cnt = int(comb(n_o+dim, dim))
+    alphas = np.zeros((p_cnt, dim), dtype=int)
+    l_idx = 0
+    tmp_it = it.product(range(n_o+1), repeat=dim)
+    for p_it in tmp_it:
+        if sum(p_it) <= n_o:
+            alphas[l_idx, :] = np.array(p_it)
             l_idx = l_idx+1
             if l_idx == p_cnt:
                 break
