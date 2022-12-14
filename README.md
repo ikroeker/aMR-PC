@@ -5,7 +5,7 @@
 aMR-PC python code
 [GitLab URL](https://git.iws.uni-stuttgart.de/ikroeker/ik_amr-pc)
 and 
-[URL](https://github.com/ikroeker/aMR-PC) 
+[Github URL](https://github.com/ikroeker/aMR-PC) 
 Python implementation of arbirtrary multi-resolution polynomial chaos and multi-wavelets
 
 ---

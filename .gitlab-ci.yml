@@ -10,6 +10,8 @@ cache:
     - .cache/pip
 
 before_script:
+  - apt-get update -qy
+  - apt-get install -y python-dev python3-pip 
   - python --version
   - pip install pytest
   - pip install -r requirements.txt
