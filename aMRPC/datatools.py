@@ -617,6 +617,26 @@ def gen_rcf_dict(mk_list):
     return rcf_dict
 
 def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
+    """
+    Generates the Information matrix for the PCE regression
+
+    Parameters
+    ----------
+    mkey : tuple
+        multi-key.
+    pol_vals : np.array[pol.deg indexs, sample id's]
+        values of basis polynomials eval. on sample id's.
+    mk2sid : dict
+        multi-key -> sample id dictionalry.
+    alpha_dict : dictionary, optional
+        multi-key-> degree-mask for alpha dictionary. The default is None.
+
+    Returns
+    -------
+    phi : TYPE
+        DESCRIPTION.
+
+    """
     sids = mk2sid[mkey]
     if alpha_dict is None or mkey not in alpha_dict:
         phi = (pol_vals[:, sids][:, :]).T
