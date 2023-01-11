@@ -663,21 +663,24 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
 #        return np.nan, np.nan
     Q = np.eye(phi.shape[0]) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
-    Q_inv = np.eye(phi.shape[0]) / s_sigma_n
-    R_inv = np.eye(phi.shape[1]) / s_sigma_p
-    P = phi.T @ Q_inv @ phi + R_inv
-
+    cov_mx = phi @ R @ phi.T + Q
+    
+    # Q_inv = np.eye(phi.shape[0]) / s_sigma_n
+    # R_inv = np.eye(phi.shape[1]) / s_sigma_p
+    # P = phi.T @ Q_inv @ phi + R_inv
+    
     try:
-        if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
-            P_inv = np.linalg.pinv(P)
-            # inverse according to eq. (A.9) in Rasmussen and Williams
-            cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
-        else:
-            cov_mx_inv = np.nan
+        cov_mx_inv = np.linalg.pinv(cov_mx)
+        # if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
+        #     P_inv = np.linalg.pinv(P)
+        #     # inverse according to eq. (A.9) in Rasmussen and Williams
+        #     cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+        # else:
+        #     cov_mx_inv = np.nan
     except (RuntimeError, ValueError):
         cov_mx_inv = np.nan
 
-    cov_mx = phi @ R @ phi.T + Q
+    
     return cov_mx, cov_mx_inv
 
 def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
