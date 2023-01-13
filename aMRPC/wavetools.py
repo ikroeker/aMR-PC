@@ -1,6 +1,9 @@
 """
 wavetools.py - class WaveTolls provides construction of multi-wavelets on (0,1)
+
 @author: kroeker
+https://orcid.org/0000-0003-0360-5307
+
 """
 import math
 import numpy as np

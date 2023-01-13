@@ -7,19 +7,22 @@ datatools.py - provides data management functions,
 - save generated data
 
 @author: kroeker
+https://orcid.org/0000-0003-0360-5307
+
 """
 import pandas as pd
 import numpy as np
 from scipy.linalg import lstsq
 from . import polytools as pt
 from . import utils as u
-#from . import wavetools as wt
+# from . import wavetools as wt
 
-EPS = 1e-20 # epsilon
+EPS = 1e-20  # epsilon
+
 
 def genHankel(dataframe, srcs, nr_range, n_o):
     """ generates Hankel matrixes for each Nri, writes in h_dict """
-    #Nr=max(NrRange)
+    # Nr=max(NrRange)
     h_dict = {}
 
     for src in srcs:
@@ -32,8 +35,9 @@ def genHankel(dataframe, srcs, nr_range, n_o):
                 mask = cmp_quant_domain(data, qlb, qrb)
                 key = u.gen_dict_key(anr, nri, src)
                 h_dict[key] = pt.Hankel(n_o+1, data[mask])
-                #print(H)
+                # print(H)
     return h_dict
+
 
 def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
     """ generates Hankel matrixes for uniform distribution with
@@ -59,6 +63,7 @@ def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
                 h_dict[key] = pt.uniHank(n_o+1, lb_ir, ub_ir)
     return h_dict
 
+
 def gen_nr_range_bds(dataframe, srcs, nr_range):
     """ generates dictionary with boundaries of MR-elements """
     nrb_dict = {}
@@ -72,6 +77,7 @@ def gen_nr_range_bds(dataframe, srcs, nr_range):
                 key = u.gen_dict_key(anr, nri, src)
                 nrb_dict[key] = (qlb, qrb)
     return nrb_dict
+
 
 def gen_nr_range_bds_4list(bds_list, srcs, nr_range):
     """ generates dictionary with boundaries of MR-elements """
@@ -93,6 +99,7 @@ def gen_nr_range_bds_4list(bds_list, srcs, nr_range):
                 key = u.gen_dict_key(anr, nri, src)
                 nrb_dict[key] = (qlb, qrb)
     return nrb_dict
+
 
 def get_nr_bds(nrb_dict, srcs, n_r):
     """
@@ -120,6 +127,7 @@ def get_nr_bds(nrb_dict, srcs, n_r):
             dict_4_nr[key] = nrb_dict[key]
     return dict_4_nr
 
+
 def gen_roots_weights(h_dict, method, nr_bounds=None):
     """
     generates dictionaries with roots and weights
@@ -130,11 +138,12 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
     for key in h_dict:
         r, w = pt.gen_rw(h_dict[key], method)
         roots[key] = r
-        if not nr_bounds is None:
+        if nr_bounds is not None:
             assert min(r) >= nr_bounds[key][0], "roots violate the lower boundary"
             assert max(r) <= nr_bounds[key][1], "roots violate the upper boudnary"
         weights[key] = w
     return roots, weights
+
 
 def cmp_lrb(n_r, nri):
     """ computes left and right bounds for use in dataframe.quantile() """
@@ -143,10 +152,12 @@ def cmp_lrb(n_r, nri):
     r_b = (nri+1)/rcf
     return l_b, r_b
 
+
 def cmp_quant_domain(data, qlb, qrb):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
     b_mask = (data >= qlb) & (data <= qrb)
     return b_mask
+
 
 def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols):
     """
@@ -163,6 +174,7 @@ def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols):
         b_mask = b_mask & cmp_quant_domain(roots[c], qlb, qrb)
     return b_mask
 
+
 def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey):
     """
     generates bool array with 1 for r inside of
@@ -178,6 +190,7 @@ def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey):
         b_mask = b_mask & cmp_quant_domain(roots[:, d], qlb, qrb)
     return b_mask
 
+
 def gen_pcs(h_dict, method):
     """
     generated dictionaries with matrices of monic orthogonal
@@ -188,12 +201,14 @@ def gen_pcs(h_dict, method):
         cfs[key] = pt.gen_pc_mx(h_dict[key], method)
     return cfs
 
+
 def gen_npcs(pc_dict, roots, weights):
     """ generates dictionary with coeficients of orthonormal polynomials """
     n_cfs = {}
     for key in pc_dict:
         n_cfs[key] = pt.gen_npc_mx(pc_dict[key], roots[key], weights[key])
     return n_cfs
+
 
 def gen_npcs_mm(pc_dict, H_dict):
     """
@@ -217,6 +232,7 @@ def gen_npcs_mm(pc_dict, H_dict):
         n_cfs[key] = pt.gen_npc_mx_mm(pc_dict[key], H_dict[key])
     return n_cfs
 
+
 def pcfs4eval(pc_dict, mkey, alpha):
     """ provides PC-Cfs for multi-polynomial with degrees in alpha """
     mdeg = max(alpha)
@@ -229,14 +245,17 @@ def pcfs4eval(pc_dict, mkey, alpha):
         rcfs[d, :] = cfs[ad, 0:mdeg+1]
     return rcfs
 
+
 def Gauss_quad(func, roots, weights):
     """ Gauss quadrature with roots and weights """
     assert len(roots) == len(weights)
     return np.inner(func(roots), weights)
 
+
 def inner_prod(f_la, g_la, roots, weights):
     """ inner product <f,g,>, computed by Gauss quadrature """
     return Gauss_quad(lambda x: f_la(x)*g_la(x), roots, weights)
+
 
 def Gauss_quad_idx(fct, multi_key, roots, weights):
     """ multi-dimensional Gauss quad on multiKey of
@@ -250,6 +269,7 @@ def Gauss_quad_idx(fct, multi_key, roots, weights):
     else:
         ret = Gauss_quad_fct(fct, r_mk, w_mk)
     return ret
+
 
 def inner_prod_multi_idx(fkt_f, fkt_g, multi_key, roots, weights):
     """ <F,G>, for for multi-index multiKey """
@@ -266,6 +286,7 @@ def inner_prod_multi_idx(fkt_f, fkt_g, multi_key, roots, weights):
     else:
         ret = inner_prod_fct(fkt_f, fkt_g, r_mk, w_mk)
     return ret
+
 
 def Gauss_quad_arr(fct_tup, roots, weights):
     """
@@ -300,6 +321,7 @@ def Gauss_quad_arr(fct_tup, roots, weights):
         S += tmp
     return S
 
+
 def inner_prod_tuples(F, G, roots, weights):
     """ <F,G>, F,G are given by tuples """
     dim = len(F)
@@ -317,6 +339,7 @@ def inner_prod_tuples(F, G, roots, weights):
             tmp = tmp*F[d](x)*G[d](x)*weights[key]
         S += tmp
     return S
+
 
 def Gauss_quad_fct(fct, roots, weights):
     """ computes Gauss quadratur of the function fct on roots-n-weights"""
@@ -342,7 +365,8 @@ def inner_prod_arr_fct(arr, f_la, roots, weights, srcs):
 
 def gen_rw_4mkey(mkey, roots, weights):
     """
-    gets roots and weights arrays from dict's Roots and Weights for multikey mkey
+    gets roots and weights arrays from dict's Roots and Weights for
+    multikey mkey
 
 
     Parameters
@@ -374,19 +398,20 @@ def gen_rw_4mkey(mkey, roots, weights):
         r = roots[key]
         w = weights[key]
         idx = I[:, c]
-        #print(idx,r)
+        # print(idx,r)
 
         r_roots[:, c] = r[idx]
         r_weights[:, c] = w[I[:, c]]
     return r_roots, r_weights
 
+
 def get_rw_4mkey(mkLst, roots, weights):
     """ generates eval. points and weights  np.arrays and
     (point number)->mkey list   for multi-keys in mkArr list """
-    #tcnt=len(mkLst)
+    # tcnt=len(mkLst)
     R = np.array([])
     W = np.array([])
-    mk_lst_long = [] #  multi-key in order of apperance
+    mk_lst_long = []  # multi-key in order of apperance
     points4mk = 0
     for mkey in mkLst:
         r, w = gen_rw_4mkey(mkey, roots, weights)
@@ -400,6 +425,7 @@ def get_rw_4mkey(mkLst, roots, weights):
             W = np.concatenate([W, w], axis=0)
     return R, W, mk_lst_long
 
+
 def get_rw_4nrs(nrs, srcs, roots, weights):
     """ generates eval. points and weights for a Nr level """
     dim = len(nrs)
@@ -408,10 +434,10 @@ def get_rw_4nrs(nrs, srcs, roots, weights):
     divs = np.zeros(dim)
     R = np.array([])
     W = np.array([])
-    mk_lst_long = [] #  multi-key in order of apperance
+    mk_lst_long = []  # multi-key in order of apperance
 
     for d in range(dim):
-        #aNr = Nrs[d]
+        # aNr = Nrs[d]
         nri_cnt[d] = 2**nrs[d]
         divs[d] = np.prod(nri_cnt[0:d])
 
@@ -421,7 +447,7 @@ def get_rw_4nrs(nrs, srcs, roots, weights):
             nris[d] = (l//divs[d] % nri_cnt[d])
         mkey = u.gen_multi_key(nrs, nris, srcs)
         r, w = gen_rw_4mkey(mkey, roots, weights)
-        #r=np.reshape(r,(-1,dim))
+        # r=np.reshape(r,(-1,dim))
         mk_lst_long = mk_lst_long+[mkey for c in range(len(r))]
         if R.size == 0:
             R = r
@@ -430,6 +456,7 @@ def get_rw_4nrs(nrs, srcs, roots, weights):
             R = np.concatenate([R, r], axis=0)
             W = np.concatenate([W, w], axis=0)
     return R, W, mk_lst_long
+
 
 def gen_quant_dict(dataframe, srcs, nr_range, wvt):
     """
@@ -448,6 +475,7 @@ def gen_quant_dict(dataframe, srcs, nr_range, wvt):
                 q_dict[key] = quants
     return q_dict
 
+
 def gen_detail_dict(q_dict, wvt, dicts=0):
     """
     generates dictionary of Details on roots for each set of quantiles
@@ -459,7 +487,7 @@ def gen_detail_dict(q_dict, wvt, dicts=0):
     s = dicts in (0, 2)
     l = dicts >= 1
     for key, data in q_dict.items():
-        #Nr=key[u.ParPos['Nr']]
+        # Nr=key[u.ParPos['Nr']]
         ldetails = wvt.cmp_details(data)
         if l:
             ldet_dict[key] = ldetails
@@ -473,6 +501,7 @@ def gen_detail_dict(q_dict, wvt, dicts=0):
         return  det_dict, ldet_dict
     return ret
 
+
 def mark_dict4keep(d_dict, thres):
     """ marks the details>= threshold for keep """
     k_dict = {}
@@ -480,6 +509,7 @@ def mark_dict4keep(d_dict, thres):
         b = data >= thres
         k_dict[key] = b
     return k_dict
+
 
 def get_true_nodes(k_dict, key):
     """
@@ -492,8 +522,8 @@ def get_true_nodes(k_dict, key):
     nri = key[u.ParPos['Nri']]
     nr = key[u.ParPos['Nr']]
     src = key[u.ParPos['src']]
-    lnri = 2*nri # left kid
-    rnri = lnri+1 # right kid
+    lnri = 2*nri  # left kid
+    rnri = lnri+1  # right kid
     lkey = u.gen_dict_key(nr+1, lnri, src)
     rkey = u.gen_dict_key(nr+1, rnri, src)
     lex = lkey in k_dict.keys()
@@ -507,22 +537,24 @@ def get_true_nodes(k_dict, key):
             if  l == 0:
                 k_dict[lkey] = True
                 ret += 1
-            if  r == 0:
+            if r == 0:
                 k_dict[rkey] = True
                 ret += 1
                 ret += kids
     return ret
 
+
 def get_top_keys(k_dict, srcs):
     """ returns set with top level (True) keys only (bottom up)"""
     t_keys = k_dict.copy()
     for src in srcs:
-        root_key = u.gen_dict_key(0, 0, src) #multi-key on zero-level (root)
+        root_key = u.gen_dict_key(0, 0, src)  # multi-key on zero-level (root)
         if root_key in t_keys.keys():
             cnt = get_true_nodes(t_keys, root_key)
             if cnt == 0:
-                t_keys[root_key] = True # set root node to True if no leafs are selected
+                t_keys[root_key] = True  # set root node to True if no leafs are selected
     return t_keys
+
 
 def gen_mkey_list(k_dict, srcs):
     """ generates array of multi-keys from the dictionary Kdict """
@@ -563,9 +595,10 @@ def gen_mkey_sid_rel(samples, mk_lst, nrb_dict):
                     sid2mk[sid] = [mkey]
     return sid2mk, mk2sids
 
+
 def sample2mkey(sample, mk_lst, nrb_dict, find_all_mkeys=False):
-    """ finds first, all multi-key in NR-Bounds dictrionary corresponding to the
-    multi-element containing the sample
+    """ finds first, all multi-key in NR-Bounds dictrionary corresponding to
+    the multi-element containing the sample
     """
     ndim = len(sample)
     smk_list = []
@@ -581,6 +614,7 @@ def sample2mkey(sample, mk_lst, nrb_dict, find_all_mkeys=False):
                 smk_list = [mkey]
     return smk_list
 
+
 def cmp_resc_cfl(anr_list):
     """
     computes rescaling cfs c=<phi^Nr_l,0,phi^0_0,0>.
@@ -591,6 +625,7 @@ def cmp_resc_cfl(anr_list):
     for anr in anr_list:
         cft /= 2**(anr)
     return cft
+
 
 def cmp_resc_cf(mkey):
     """
@@ -606,6 +641,7 @@ def cmp_resc_cf(mkey):
         cft /= 2**(key[nr_pos])
     return cft
 
+
 def gen_rcf_dict(mk_list):
     """
     Generates dictionary with rescaling coefficients for ech
@@ -615,6 +651,7 @@ def gen_rcf_dict(mk_list):
     for mkey in mk_list:
         rcf_dict[mkey] = cmp_resc_cf(mkey)
     return rcf_dict
+
 
 def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
     """
@@ -644,6 +681,7 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
         phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
     return phi
 
+
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
@@ -663,38 +701,48 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
 #        return np.nan, np.nan
     Q = np.eye(phi.shape[0]) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
-    Q_inv = np.eye(phi.shape[0]) / s_sigma_n
-    R_inv = np.eye(phi.shape[1]) / s_sigma_p
-    P = phi.T @ Q_inv @ phi + R_inv
-
-    try:
-        if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
-            P_inv = np.linalg.pinv(P)
-            # inverse according to eq. (A.9) in Rasmussen and Williams
-            cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
-        else:
-            cov_mx_inv = np.nan
-    except (RuntimeError, ValueError):
-        cov_mx_inv = np.nan
-
     cov_mx = phi @ R @ phi.T + Q
+
+    cov_mx_inv = np.nan
+    try:
+        cov_mx_inv = np.linalg.pinv(cov_mx)
+        # if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
+        #     P_inv = np.linalg.pinv(P)
+        #     # inverse according to eq. (A.9) in Rasmussen and Williams
+        #     cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+        # else:
+        #     cov_mx_inv = np.nan
+    except (RuntimeError, ValueError):
+        Q_inv = np.eye(phi.shape[0]) / s_sigma_n
+        R_inv = np.eye(phi.shape[1]) / s_sigma_p
+        P = phi.T @ Q_inv @ phi + R_inv
+        try:
+            if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
+                P_inv = np.linalg.pinv(P)
+                # inverse according to eq. (A.9) in Rasmussen and Williams
+                cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+        except (RuntimeError, ValueError):
+            cov_mx_inv = np.nan
+
     return cov_mx, cov_mx_inv
+
 
 def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
                      npc_dict, nrb_dict,
                      mk2sid, alpha_masks=None, **kwargs):
     """
     Generates function reconstruction
-    f(sample, x) = sum_(p in alphas) f_cfs(sample_mk, p,  x) * pol(alpha_p, sample)
+    f(sample, x) = sum_(p in alphas) f_cfs(sample_mk, p,x)*pol(alpha_p, sample)
 
     Parameters
     ----------
     samples : np.array
-        samples/input parameters for evaluation, samples[i] = [s_0, s_1, ..., s_n].
+        samples/input parameters for evaluation, samples[i]=[s_0,s_1,...,s_n].
     mk_list : list of tuples
         (unique) list of multi-keys ((key,0),...,(key, n)).
     alphas : np.array
-        matrix of multi-indexes representing pol. degrees of multi-variate polynomials.
+        matrix of multi-indexes representing pol. degrees
+        of multi-variate polynomials.
     f_cfs : np.array
         reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
     f_cov_mx : np.array
@@ -752,6 +800,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
 
     return f_rec
 
+
 def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
                   mk2sid, alpha_masks=None, **kwargs):
     """
@@ -765,7 +814,8 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     mk_list : list of tuples
         (unique) list of multi-keys ((key,0),...,(key, n)).
     alphas : np.array
-        matrix of multi-indexes representing pol. degrees of multi-variate polynomials.
+        matrix of multi-indexes representing pol. degrees of
+        multi-variate polynomials.
     f_cfs : np.array
         reconstr. coefficients f_cfs[sample_mkey,alpha_p,idx_x]
         or f_cfs[sample_cf, sample_mkey, ,alpha_p,idx_x].
@@ -847,6 +897,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     return f_rec
 
+
 def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     """
     generates np.array with pol. vals for each sample and pol. degree
@@ -867,6 +918,7 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
             pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
     return pol_vals
 
+
 def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
                      mk2sid, alpha_masks=None, **kwargs):
     """
@@ -877,7 +929,8 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
     mk_list : list of tuples
         (unique) list of multi-keys ((key,0),...,(key, n)).
     alphas : np.array
-        matrix of multi-indexes representing pol. degrees of multi-variate polynomials.
+        matrix of multi-indexes representing pol. degrees of
+        multi-variate polynomials.
     f_cfs : np.array
         reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
     f_cov_mx : np.array
@@ -918,7 +971,7 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
     else:
         ret_f_cfs = np.zeros((n_so, n_s, n_p, n_x))
     rng = np.random.default_rng()
-    #idxs_p = np.arange(n_p)
+    # idxs_p = np.arange(n_p)
     for mkey in mk_list:
         sids = mk2sid[mkey]
         if mkey_out:
@@ -933,7 +986,7 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
             s_cfs = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
                                             f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
                                             n_so)
-            #print(s_cfs.shape)
+            # print(s_cfs.shape)
 
             if mkey_out:
                 ret_f_cfs[mkey][:, alpha_mask, idx_x] = s_cfs
@@ -942,6 +995,7 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
                     ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
 
     return ret_f_cfs
+
 
 def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
     """
@@ -1037,16 +1091,17 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
                     elif ret_cov:
                         ret_std_cov_4s[sids, :, :, idx_x] = P_inv
                 else:
-                    #v_ls, resid, rank, sigma = np.linalg.lstsq(
+                    # v_ls, resid, rank, sigma = np.linalg.lstsq(
                     #    Phi, data[sids, idx_x], rcond=None) # LS - output
                     v_ls, _, _, _ = lstsq(
-                        phi, data[sids, dt_idx_x]) # LS - output
+                        phi, data[sids, dt_idx_x])  # LS - output
     #                v_ls, _, _, _ = np.linalg.lstsq(
     #                    phi, data[sids, dt_idx_x], rcond=None) # LS - output
             else:
                 v_ls = data[dt_idx_x]/phi
             cf_ls_4s[sids, :, idx_x] = v_ls
     return (cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else cf_ls_4s
+
 
 def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     """
@@ -1095,7 +1150,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     method = kwargs.get("method", 'pinv')
-    #if method in ('reg_n', 'reg_t'):
+    # if method in ('reg_n', 'reg_t'):
     sigma_n = kwargs.get('sigma_n', 1e-10)
     sigma_p = kwargs.get('sigma_p', 1.0)
     assert x_start + x_len <= n_x
@@ -1168,6 +1223,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             tmp[alpha_mask] = v_ls
             ret_cf_ls_4s[sids, :, idx_x] = tmp
     return (ret_cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else ret_cf_ls_4s
+
 
 def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     """
@@ -1242,17 +1298,18 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                 else:
                     if n_s == len(sids):
                         v_ls, _, _, _ = np.linalg.lstsq(
-                            phi, data[:, dt_idx_x], rcond=None) # LS - output
+                            phi, data[:, dt_idx_x], rcond=None)  # LS - output
                     else:
-                        #v_ls, resid, rank, sigma = np.linalg.lstsq(
-                        #    Phi, data[sids, idx_x], rcond=None) # LS - output
+                        # v_ls, resid, rank, sigma = np.linalg.lstsq(
+                        #    Phi, data[sids, idx_x], rcond=None)  # LS - output
                         v_ls, _, _, _ = np.linalg.lstsq(
-                            phi, data[sids, dt_idx_x], rcond=None) # LS - output
+                            phi, data[sids, dt_idx_x], rcond=None)  # LS-output
             else:
                 v_ls = data[dt_idx_x]/phi
             cf_ls_4mk[:, idx_x] = v_ls
         cf_ls_4mkeys[mkey] = cf_ls_4mk
     return cf_ls_4mkeys
+
 
 def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
     """
@@ -1283,8 +1340,8 @@ def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
     p_max = pol_vals.shape[0]
     cf_q_4s = np.zeros((n_s, p_max, n_x))
     weight_prod = np.prod(np.array(weights), axis=1)
-    weighted_data = data.T * weight_prod # weighted samples
-    #Fkt coefs.  on each sample, (sid, p, x) by quad
+    weighted_data = data.T * weight_prod  # weighted samples
+    # Fkt coefs.  on each sample, (sid, p, x) by quad
 
     for p in range(p_max):
         data_pol_4_p = weighted_data * pol_vals[p, :]
@@ -1295,6 +1352,8 @@ def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
                 else:
                     cf_q_4s[sids, p, idx_x] = data_pol_4_p[idx_x]
     return cf_q_4s
+
+
 def cf_2_mean_var(cfs, rc_dict, mk2sid):
     """
     Computes mean and variance from the aMR-PC decompositions coeficients
@@ -1325,6 +1384,7 @@ def cf_2_mean_var(cfs, rc_dict, mk2sid):
     else:
         return cf_2_mean_var_4s(cfs, rc_dict, mk2sid)
 
+
 def cf_2_mean_var_4s(cf_4s, rc_dict, mk2sid):
     """
     Computes mean and variance from the aMR-PC decompositions coeficients
@@ -1346,7 +1406,7 @@ def cf_2_mean_var_4s(cf_4s, rc_dict, mk2sid):
         variance for all x.
 
     """
-    #_, p_max, n_x = cf_4s.shape
+    # _, p_max, n_x = cf_4s.shape
     tup = cf_4s.shape
     if len(tup) <= 2:
         n_x = 1
@@ -1364,10 +1424,11 @@ def cf_2_mean_var_4s(cf_4s, rc_dict, mk2sid):
         else:
             mean += cf_4s[sid, 0] * rc_dict[mkey]
             for p_d in range(p_max):
-                variance += (cf_4s[sid, p_d]**2) *rc_dict[mkey]
+                variance += (cf_4s[sid, p_d]**2) * rc_dict[mkey]
     variance -= mean**2
 
     return mean, variance
+
 
 def cf_2_mean_var_4mkey(cf_4mk, rc_dict):
     """
@@ -1388,7 +1449,7 @@ def cf_2_mean_var_4mkey(cf_4mk, rc_dict):
         variance for all x.
 
     """
-    #_, p_max, n_x = cf_4s.shape
+    # _, p_max, n_x = cf_4s.shape
     n_x = 0
 
     for mkey, cfs in cf_4mk.items():
@@ -1408,7 +1469,7 @@ def cf_2_mean_var_4mkey(cf_4mk, rc_dict):
         else:
             mean += cfs[0] * rc_dict[mkey]
             for p_d in range(p_max):
-                variance += (cfs[p_d]**2) *rc_dict[mkey]
+                variance += (cfs[p_d]**2) * rc_dict[mkey]
     variance -= mean**2
 
     return mean, variance
@@ -1436,7 +1497,9 @@ def add_samples(samples, new_samples):
     assert sdim == n_dim
     return np.concatenate((samples, new_samples), axis=0)
 
-def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid2mk):
+
+def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list,
+                          mk2sid, sid2mk):
     """
     updates multikey->sample id dictionary for new samples
 
@@ -1474,7 +1537,8 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
         b_msk = cmp_mv_quant_domain_mk(new_samples, nrb_dict, mkey)
         new_mk2sid[mkey] = sids[b_msk]
         if mkey in mk2sid_u:
-            mk2sid_u[mkey] = np.concatenate((mk2sid_u[mkey], sids[b_msk]), axis=0)
+            mk2sid_u[mkey] = np.concatenate((mk2sid_u[mkey], sids[b_msk]),
+                                            axis=0)
         else:
             mk2sid_u[mkey] = sids[b_msk]
         for sid in sids[b_msk]:
@@ -1484,7 +1548,9 @@ def update_mk2sid_samples(new_samples, start_sid, nrb_dict, mk_list, mk2sid, sid
                 sid2mk_u[sid] = [mkey]
     return sid2mk_u, mk2sid_u, new_mk2sid
 
-def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_dict,
+
+def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals,
+                               npc_dict,
                                alphas, new_mk2sid):
     """
     Updates polynomial values after update of the samples
@@ -1522,6 +1588,7 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals, npc_d
             pvals = pt.pc_eval(pcfs, samples_updated[sids, :])
             pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
     return pol_vals
+
 
 def main():
     """ some tests """

@@ -3,7 +3,11 @@
 """
 Created on Wed Apr  1 16:15:45 2020
 
+Provides routines for computing of global sensitivity (Sobol) coefficients
+
 @author: kroeker
+https://orcid.org/0000-0003-0360-5307
+
 """
 import math
 import itertools as it

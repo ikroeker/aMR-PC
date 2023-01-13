@@ -3,17 +3,20 @@ utils.py - provides functions and dictionary for index and key management
 to handle multi-resolution
 
 @author: kroeker
+https://orcid.org/0000-0003-0360-5307
+
 """
 
 import itertools as it
 import numpy as np
 from scipy.special import comb
 
-#import math
+# import math
 
 # Data format for roots, weights and details: DictName(Nr,aNr,Nri,src)
-#ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
-ParPos = {'Nr':0, 'aNr':0, 'Nri':1, 'src':2}
+# ParPos={'Nr':0,'aNr':1,'Nri':2,'src':3}
+ParPos = {'Nr': 0, 'aNr': 0, 'Nri': 1, 'src': 2}
+
 
 def gen_multi_idx_old(n_o, dim):
     """
@@ -39,6 +42,8 @@ def gen_multi_idx_old(n_o, dim):
             if l_idx == p_cnt:
                 break
     return alphas
+
+
 def gen_multi_idx(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
@@ -56,6 +61,7 @@ def gen_multi_idx(n_o, dim):
                 break
     return alphas
 
+
 def gen_midx_mask(alphas, no_max):
     """
     generates a mask for alphas, such that all multi-index polynomial degrees
@@ -66,6 +72,7 @@ def gen_midx_mask(alphas, no_max):
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
     return a_mask
+
 
 def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     """
@@ -81,6 +88,7 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
             if _d not in idx_set:
                 a_mask[i] = a_mask[i] and alphas[i, _d] <= no_min
     return a_mask
+
 
 def gen_nri_range(nrs):
     """
@@ -107,6 +115,7 @@ def gen_nri_range(nrs):
             nris[nri, d_idx] = val
     return nris, nri_cnt
 
+
 def gen_nri_range_4mkset(mkey_set, dim):
     """
     generates an np.array with Nri-entries
@@ -117,17 +126,18 @@ def gen_nri_range_4mkset(mkey_set, dim):
     nris -- np.array with Nri-(integer) entries
     nri_cnt -- length of the array
     """
-    nri_cnt = len(mkey_set) # number of multi-keys
+    nri_cnt = len(mkey_set)  # number of multi-keys
     pos = ParPos['Nri']
     assert nri_cnt > 0
     nris = np.zeros((nri_cnt, dim), dtype=int)
-    cnt = 0 # counter
+    cnt = 0  # counter
     for mkey in mkey_set:
         for d_i in range(dim):
             nris[cnt, d_i] = int(mkey[d_i][pos])
         cnt += 1
     assert cnt == nri_cnt
     return nris, nri_cnt
+
 
 def midx4quad(ar_lens):
     """ generates indexes for eval. points etc. """
@@ -138,7 +148,7 @@ def midx4quad(ar_lens):
     divs = np.zeros(cols)
     for col in range(cols):
         divs[col] = n_lens[0:col].prod()
-    #print(divs)
+    # print(divs)
     for l_idx in range(lines):
         for col in range(cols):
             val = (l_idx//divs[col] % n_lens[col])
@@ -152,18 +162,20 @@ def gen_dict_key(anr, nri, src=None):
     aNr - actually Nr, Nri , src
     according to ParPos
     """
-    #chkNri = Nri < 2**aNr
-    #assert(chkNri)
+    # chkNri = Nri < 2**aNr
+    # assert(chkNri)
     if src is None:
         ret = (anr, nri)
     else:
         ret = (anr, nri, src)
     return ret
 
+
 def get_dict_entry(adict, anr, nri, src=-1):
     """ returns dictionary entry """
     key = gen_dict_key(anr, nri, src)
     return adict[key]
+
 
 def gen_multi_key(anrs, nris, srcs):
     """
@@ -175,10 +187,12 @@ def gen_multi_key(anrs, nris, srcs):
     dims = len(srcs)
     return tuple(gen_dict_key(anrs[d], nris[d], srcs[d]) for d in range(dims))
 
+
 def multi_key2srcs(mkey):
     """ generates srcs list from multi-key """
     src_pos = ParPos['src']
     return [c[src_pos] for c in mkey]
+
 
 def multi_key_diff_srcs(mkey_one, mkey_two):
     """
@@ -199,9 +213,10 @@ def multi_key_diff_srcs(mkey_one, mkey_two):
     """
     mk_len = len(mkey_one)
     assert mk_len == len(mkey_two)
-    #spos = ParPos['src']
+    # spos = ParPos['src']
     srcs = multi_key2srcs(mkey_one)
     return [srcs[src] for src in range(mk_len) if mkey_one[src] != mkey_two[src]]
+
 
 def multi_key_intersect_srcs(mkey_one, mkey_two):
     """
@@ -222,9 +237,10 @@ def multi_key_intersect_srcs(mkey_one, mkey_two):
     """
     mk_len = len(mkey_one)
     assert mk_len == len(mkey_two)
-    #spos = ParPos['src']
+    # spos = ParPos['src']
     srcs = multi_key2srcs(mkey_one)
     return [srcs[src] for src in range(mk_len) if mkey_one[src] == mkey_two[src]]
+
 
 def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
     """
@@ -254,6 +270,7 @@ def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
         ret = ret and (mkey_one[src] == mkey_two[src])
     return ret
 
+
 def gen_corr_rcf(mkey, srcs):
     """
     Generates multi-resolution correcting/re-scalling coefficient for a multi-key
@@ -277,10 +294,12 @@ def gen_corr_rcf(mkey, srcs):
         correct_cf *= 2**(-mkey[src][nr_pos])
     return correct_cf
 
+
 def get_multi_entry(adict, anrs, nris, srcs):
     """ returns dictionary entry """
     key = gen_multi_key(anrs, nris, srcs)
     return adict[key]
+
 
 def choose_cols(arr, ccols, zero_cols=-1):
     """ picks the ccols columns from arr """
@@ -288,6 +307,7 @@ def choose_cols(arr, ccols, zero_cols=-1):
     if zero_cols != -1:
         ret[:, zero_cols] = 0
     return ret
+
 
 def inv_src_arr(srcs):
     """ generates dictionary with positions of srcs """
@@ -297,6 +317,7 @@ def inv_src_arr(srcs):
         isrc[src] = i
         i = i+1
     return isrc
+
 
 if __name__ == "__main__":
     print("test utils.py")

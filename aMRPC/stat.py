@@ -4,8 +4,10 @@
 Created on Mon Aug 10 17:21:16 2020
 
 @author: kroeker
+https://orcid.org/0000-0003-0360-5307
 
-Provides statistic tools
+Provides statistic and information theoretic tools.
+
 """
 from math import sqrt, pi
 import numpy as np
