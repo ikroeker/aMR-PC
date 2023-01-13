@@ -1,6 +1,8 @@
 """
 iodata.py - povides io-routines and file-name conventions
 @author: kroeker
+https://orcid.org/0000-0003-0360-5307
+
 """
 
 import os.path as op

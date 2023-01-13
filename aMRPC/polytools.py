@@ -2,11 +2,14 @@
 polytools.py - generates aPC basis and related Gaussian quadrature
 
 @author:: kroeker
+https://orcid.org/0000-0003-0360-5307
+
 """
-#import sys
+# import sys
 import math
 import numpy as np
 from numpy.polynomial import polynomial as P
+
 
 def moment(mm, data):
     """
@@ -25,8 +28,9 @@ def moment(mm, data):
         mm-th raw moment.
 
     """
-    #print(mm)
+    # print(mm)
     return np.mean(data**mm)
+
 
 def Hankel(m_mx, data):
     """
@@ -46,13 +50,13 @@ def Hankel(m_mx, data):
 
     """
 
-
     H = np.zeros([m_mx+1, m_mx+1])
     for i in range(m_mx+1):
         for j in range(i, m_mx+1):
             H[i, j] = moment(i+j, data)
             H[j, i] = H[i, j]
     return H
+
 
 def apc_cfs(H, k=-1, alen=-1):
     """
@@ -61,7 +65,8 @@ def apc_cfs(H, k=-1, alen=-1):
     to obtain aPC orthogonal polynomial basis according to
 
     S. Oladyshkin, W. Nowak,
-    Data-driven uncertainty quantification using the arbitrary polynomial chaos expansion,
+    Data-driven uncertainty quantification using the arbitrary polynomial chaos
+    expansion,
     Reliability Engineering & System Safety,
     Volume 106,  2012, Pages 179-190, ISSN 0951-8320,
     https://doi.org/10.1016/j.ress.2012.05.002.
@@ -100,23 +105,25 @@ def apc_cfs(H, k=-1, alen=-1):
         rH[k, j] = 0
     rH[k, k] = 1
     cfs = np.linalg.solve(rH, rs)
-    #if not np.allclose(np.dot(rH, cfs), rs):
+    # if not np.allclose(np.dot(rH, cfs), rs):
     #    cfs, _, _, _ = np.linalg.lstsq(rH, rs, rcond=-1)
 
-    #assert np.allclose(np.dot(rH, cfs), rs), "problems with aPC coeffs"
+    # assert np.allclose(np.dot(rH, cfs), rs), "problems with aPC coeffs"
 
-    cfs.resize(alen, refcheck=False) # np.ndarray.resize() -> not np.resize(a)
+    cfs.resize(alen, refcheck=False)  # np.ndarray.resize() -> not np.resize(a)
 
     return cfs
 
+
 def pc_cfs(H, k=-1, alen=-1):
     """
-    polynomial coefficientes in increasing order, computed via moment determinants.
+    polynomial coefficientes in increasing order, computed via moment
+    determinants.
     Gautschi, Walter
     Orthogonal polynomials: computation and approximation.
-    Numerical Mathematics and Scientific Computation. Oxford Science Publications.
-    Oxford University Press, New York, 2004. x+301 pp. ISBN: 0-19-850672-4
-    (p. 53)
+    Numerical Mathematics and Scientific Computation. Oxford Science
+    Publications. Oxford University Press, New York, 2004. x+301 pp.
+    ISBN: 0-19-850672-4 (p. 53)
 
     Parameters
     ----------
@@ -156,6 +163,7 @@ def pc_cfs(H, k=-1, alen=-1):
     cfs[k] = 1
     return cfs
 
+
 def cmp_alpha_beta(H, k=-1):
     """
     Generates vectors of recursion coefficientes alpha and beta
@@ -186,7 +194,7 @@ def cmp_alpha_beta(H, k=-1):
     deltak = np.zeros(k+1)
     idx = np.zeros(n, dtype=bool)
     for l in range(1, k+1):
-        #print(l)
+        # print(l)
         delta[l] = np.linalg.det(H[0:l, 0:l])
         if l > 1:
             idx[0:l-1] = True
@@ -204,6 +212,7 @@ def cmp_alpha_beta(H, k=-1):
             alpha[l] = deltak[l+1] / delta[l+1]
             beta[l] = H[0, 0]
     return alpha, beta
+
 
 def Jacobi_mx(alpha, beta):
     """
@@ -232,12 +241,15 @@ def Jacobi_mx(alpha, beta):
         J[l+1, l] = J[l, l+1]
     return J
 
+
 def cmp_Grw(H, k=-1):
     """
-    Computes roots and weigth of the Gauss quadrature using Hankel Matrix, Gautschi p. 153
+    Computes roots and weigth of the Gauss quadrature using Hankel Matrix,
+    Gautschi p. 153
     Gautschi, Walter
     Orthogonal polynomials: computation and approximation.
-    Numerical Mathematics and Scientific Computation. Oxford Science Publications.
+    Numerical Mathematics and Scientific Computation. Oxford Science
+    Publications.
     Oxford University Press, New York, 2004. x+301 pp. ISBN: 0-19-850672-4
 
     Parameters
@@ -259,19 +271,21 @@ def cmp_Grw(H, k=-1):
     assert k < n
     alpha, beta = cmp_alpha_beta(H, k)
     J = Jacobi_mx(alpha, beta)
-    #print(J)
+    # print(J)
     tau, V = np.linalg.eig(J)
     roots = tau
-    weights = beta[0]* (V[0, :]**2)
-    #v=np.zeros(roots.shape[0])
-    #for i in range(roots.shape[0]):
+    weights = beta[0] * (V[0, :]**2)
+    # v=np.zeros(roots.shape[0])
+    # for i in range(roots.shape[0]):
     #    v[i]=V[0,i]**2
-    #weights=beta[0]*v
+    # weights=beta[0]*v
     return roots, weights
+
 
 def gen_Gw(moments, roots):
     """
-    Computes Gaussian weights using moments and roots, compare with Karniadakis & Kirby p.236
+    Computes Gaussian weights using moments and roots, compare with
+    Karniadakis & Kirby p.236
 
     Parameters
     ----------
@@ -296,6 +310,7 @@ def gen_Gw(moments, roots):
         for j in range(r):
             M[i, j] = roots[j]**i
     return np.linalg.solve(M, rs)
+
 
 def cmp_norm_cf(cfs, roots, weights, eps=0):
     """
@@ -327,8 +342,9 @@ def cmp_norm_cf(cfs, roots, weights, eps=0):
     nc = 0
     for i in range(r):
         nc += (p(roots[i])**2)*weights[i]
-    nc = max(nc, eps) # ugly workarround, should be improved
+    nc = max(nc, eps)  # ugly workarround, should be improved
     return math.sqrt(nc)
+
 
 def cmp_norm_cf_moments(cfs, H_mx, eps=0):
     """
@@ -357,12 +373,14 @@ def cmp_norm_cf_moments(cfs, H_mx, eps=0):
         mx_line = cfs * H_mx[i, 0:n]
         ltwo_norm += cfs[i] * np.add.reduce(mx_line)
 
-    ltwo_norm = max(ltwo_norm, eps) # ugly workarround, should be improved
+    ltwo_norm = max(ltwo_norm, eps)  # ugly workarround, should be improved
     return math.sqrt(ltwo_norm)
+
 
 def uniHank(n, a=0, b=1):
     """
-    Generates Hankel Matrix H_n for U(a,b), uses m_n=1/n+1 sum_k=0^n a^k b^(n-k)
+    Generates Hankel Matrix H_n for U(a,b),
+    uses m_n=1/n+1 sum_k=0^n a^k b^(n-k)
 
     Parameters
     ----------
@@ -427,6 +445,7 @@ def gen_pc_mx(H, method=0, No=-1):
             cf[k, :] = apc_cfs(H, k, No)
     return cf
 
+
 def gen_rw(H, method=0, No=-1):
     """
     Generates roots and weights from Hankel matrix
@@ -461,6 +480,7 @@ def gen_rw(H, method=0, No=-1):
         r = p.r
         w = gen_Gw(H[0, :], r)
     return r, w
+
 
 def gen_npc_mx(cf, r, w, No=-1):
     """
@@ -497,6 +517,7 @@ def gen_npc_mx(cf, r, w, No=-1):
             ncf[k, :] = 0
     return ncf
 
+
 def gen_npc_mx_mm(cf, H_mx, No=-1):
     """
     Generates normalized polynomial coefficients from Hankel matrix
@@ -531,6 +552,7 @@ def gen_npc_mx_mm(cf, H_mx, No=-1):
             ncf[k, :] = 0
     return ncf
 
+
 def pc_eval(cfs, X):
     """
     Applies polyval with polyonomial p defined by  Cfs on X [p(X)]
@@ -549,5 +571,5 @@ def pc_eval(cfs, X):
 
     """
     c = cfs.T
-    #print(C)
+    # print(C)
     return P.polyval(X, c, tensor=False)
