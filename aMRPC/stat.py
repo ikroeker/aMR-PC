@@ -380,11 +380,11 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix,
     rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
     f_gs = lambda sid: (cmp_log_likelihood_core(rs_mean,
                                                 response_surfaces[sid, :],
-                                                rs_cov)
-                        + rs_cov_cf)
+                                                rs_cov))
+    #                     + rs_cov_cf)
     llhs_gs_it = map(f_gs, np.arange(sample_cnt)[mask])
     # llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
     return (np.log(bme) - np.mean(llhs[mask]) - np.mean(np.fromiter(llhs_gs_it,
                                                                     dtype=np.float64))
-            if bme > 0 else np.nan)
+            - rs_cov_cf if bme > 0 else np.nan)
     # return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
