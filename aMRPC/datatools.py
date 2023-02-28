@@ -861,12 +861,11 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
             n_so = 0
             f_rec = np.zeros((n_s, n_x))
 
-
-
     key = "mk2sid_samples"
     mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
     key = 'p_vals'
-    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
+    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas,
+                                                    mk2sid_loc))
 
     idxs_p = np.arange(alphas.shape[0])
     for mkey, sids_l in mk2sid_loc.items():
@@ -878,14 +877,14 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
 #        phi_all = p_vals[idxs_pm, :]
 #        f_rec[sids_l, :] = phi_all[:, sids_l].T @ f_cfs[sids[0], idxs_pm, :]
-        #phi = gen_phi(mkey, p_vals, mk2sid_loc, alpha_masks)
+        # phi = gen_phi(mkey, p_vals, mk2sid_loc, alpha_masks)
         phi = (p_vals[:, sids_l][idxs_pm, :]).T
         if mkey_type:
             if n_so > 0:
                 for idx_x in range(n_x):
                     f_rec[:, sids_l, idx_x] = (phi @ f_cfs[mkey][:, idxs_pm, idx_x].T).T
             else:
-                f_rec[sids_l, :] = phi @ f_cfs[mkey][:, idxs_pm]
+                f_rec[sids_l, :] = phi @ f_cfs[mkey][idxs_pm, :]
         else:
             if n_so > 0:
                 for idx_x in range(n_x):
