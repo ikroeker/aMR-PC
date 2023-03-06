@@ -153,17 +153,24 @@ def cmp_lrb(n_r, nri):
     return l_b, r_b
 
 
-def cmp_quant_domain(data, qlb, qrb):
+def cmp_quant_domain(data, qlb, qrb, **kwargs):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
-    b_mask = (data >= qlb) & (data <= qrb)
+    bds = kwargs.get('bds', 'all')
+    if bds == 'all':
+        b_mask = (data >= qlb) & (data <= qrb)
+    elif bds == 'rb':
+        b_mask = (data > qlb) & (data <= qrb)
+    else:
+        b_mask = (data >= qlb) & (data < qrb)
     return b_mask
 
 
-def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols):
+def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols, **kwargs):
     """
     generates bool array with 1 for r inside of
     [a_0,b_0]x..x[a_d,b_d], 0 else
     """
+    bds = kwargs.get('bds', 'all')
     n = roots.shape[0]
     ndim = len(nrs)
     assert ndim == len(nris)
@@ -171,23 +178,24 @@ def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols):
     for d, c in enumerate(cols):
         key = u.gen_dict_key(nrs[d], nris[d], c)
         qlb, qrb = nrb_dict[key]
-        b_mask = b_mask & cmp_quant_domain(roots[c], qlb, qrb)
+        b_mask = b_mask & cmp_quant_domain(roots[c], qlb, qrb, bds=bds)
     return b_mask
 
 
-def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey):
+def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey, **kwargs):
     """
     generates bool array with 1 for r inside of
     [a_0,b_0]x..x[a_d,b_d], 0 else
     for given multikey mkey
     """
+    bds = kwargs.get('bds', 'all')
     n, sdim = roots.shape
     assert sdim == len(mkey)
     b_mask = np.ones(n, dtype=bool)
     for d in range(sdim):
         key = mkey[d]
         qlb, qrb = nrb_dict[key]
-        b_mask = b_mask & cmp_quant_domain(roots[:, d], qlb, qrb)
+        b_mask = b_mask & cmp_quant_domain(roots[:, d], qlb, qrb, bds=bds)
     return b_mask
 
 
@@ -573,19 +581,20 @@ def gen_mkey_list(k_dict, srcs):
     return [tuple([k_lst[c][I[i, c]] for c in range(srclen)]) for i in range(ilen)]
 
 
-def gen_mkey_sid_rel(samples, mk_lst, nrb_dict):
+def gen_mkey_sid_rel(samples, mk_lst, nrb_dict, **kwargs):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
 
     return : sid2mk, mk2sids
     """
+    bds = kwargs.get('bds', 'all')
     sample_cnt, _ = samples.shape
     sids = np.arange(sample_cnt)
     sid2mk = {}
     mk2sids = {}
     for mkey in mk_lst:
-        B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey)
+        B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey, bds=bds)
         if B.sum() > 0:
             mk2sids[mkey] = sids[B]
             for sid in mk2sids[mkey]:
@@ -596,17 +605,18 @@ def gen_mkey_sid_rel(samples, mk_lst, nrb_dict):
     return sid2mk, mk2sids
 
 
-def sample2mkey(sample, mk_lst, nrb_dict, find_all_mkeys=False):
+def sample2mkey(sample, mk_lst, nrb_dict, find_all_mkeys=False, **kwargs):
     """ finds first, all multi-key in NR-Bounds dictrionary corresponding to
     the multi-element containing the sample
     """
+    bds = kwargs.get('bds', 'all')
     ndim = len(sample)
     smk_list = []
     for mkey in mk_lst:
         chk = True
         for d in range(ndim):
             qlb, qrb = nrb_dict[mkey[d]]
-            chk = chk & cmp_quant_domain(sample[d], qlb, qrb)
+            chk = chk & cmp_quant_domain(sample[d], qlb, qrb, bds=bds)
         if chk:
             if find_all_mkeys:
                 smk_list += [mkey]
@@ -675,10 +685,16 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
 
     """
     sids = mk2sid[mkey]
-    if alpha_dict is None or mkey not in alpha_dict:
-        phi = (pol_vals[:, sids][:, :]).T
+    if pol_vals.shape[1] == len(sids):
+        if alpha_dict is None or mkey not in alpha_dict:
+            phi = pol_vals.T
+        else:
+            phi = (pol_vals[alpha_dict[mkey], :]).T
     else:
-        phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
+        if alpha_dict is None or mkey not in alpha_dict:
+            phi = (pol_vals[:, sids][:, :]).T
+        else:
+            phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
     return phi
 
 
