@@ -685,10 +685,16 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
 
     """
     sids = mk2sid[mkey]
-    if alpha_dict is None or mkey not in alpha_dict:
-        phi = (pol_vals[:, sids][:, :]).T
+    if pol_vals.shape[1] == len(sids):
+        if alpha_dict is None or mkey not in alpha_dict:
+            phi = pol_vals.T
+        else:
+            phi = (pol_vals[alpha_dict[mkey], :]).T
     else:
-        phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
+        if alpha_dict is None or mkey not in alpha_dict:
+            phi = (pol_vals[:, sids][:, :]).T
+        else:
+            phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
     return phi
 
 
