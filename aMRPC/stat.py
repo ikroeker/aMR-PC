@@ -12,14 +12,14 @@ Provides statistic and information theoretic tools.
 from math import sqrt, pi
 import numpy as np
 try:
-    from numba import jit, njit  # jit_module
+    from numba import jit_module  # jit, njit  # jit_module
     NJM = True
 except ImportError:
     NJM = False
     pass
 
 
-@njit()
+# @njit()
 def cmp_norm_likelihood_cf(std, number_of_measurments):
     """
     Computes the coefficient of the Gaussian likelihood function
@@ -40,7 +40,7 @@ def cmp_norm_likelihood_cf(std, number_of_measurments):
     return 1/pow(sqrt(2*pi)*std, number_of_measurments)
 
 
-@njit
+# @njit
 def cmp_log_likelihood_cf(std, number_of_measurments):
     """
     Computes the logarithhm of the coefficient of the Gaussian likelihood
@@ -62,7 +62,7 @@ def cmp_log_likelihood_cf(std, number_of_measurments):
     return -(np.log(2*pi)/2 + np.log(std)) * number_of_measurments
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def cmp_norm_likelihood_cf_mv(covariance_matrix):
     """
     Computes normalizing coefficient for Gaussian likelihood function
@@ -86,7 +86,7 @@ def cmp_norm_likelihood_cf_mv(covariance_matrix):
     return 1/sqrt(pow(2*pi, dim)*det)
 
 
-@njit  # (nopython=True)
+# @njit  # (nopython=True)
 def cmp_log_likelihood_cf_mv(covariance_matrix):
     """
     computes logarithm normalizing coefficient for Gaussian likelihood function
@@ -113,7 +113,7 @@ def cmp_log_likelihood_cf_mv(covariance_matrix):
     return -np.log(2*pi)*dim/2 - logdet
 
 
-@njit
+# @njit
 def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     """
     Computes the core part of the Gaussian likelihood function with cov. matrix
@@ -134,10 +134,11 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
 
     """
     cov_inv = np.linalg.pinv(covariance_matrix)
-    deviation = observation - response_surface
     if response_surface.ndim == 1:
+        deviation = observation - response_surface
         return np.exp(-0.5*deviation.T @ cov_inv @ deviation)
     else:
+        deviation = observation.reshape((-1, 1)) - response_surface
         deviation_shape = deviation.shape
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
@@ -146,7 +147,7 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
         return ret_array
 
 
-@njit
+# @njit
 def cmp_norm_likelihood_core_inv(observation, response_surface, cov_inv):
     """
     Computes the core part of the Gaussian likelihood function with cov. matrix
@@ -166,19 +167,21 @@ def cmp_norm_likelihood_core_inv(observation, response_surface, cov_inv):
         Likelihood for each observation / realization.
 
     """
-    deviation = observation - response_surface
     if response_surface.ndim == 1:
+        deviation = observation - response_surface
         return np.exp(-0.5*deviation.T @ cov_inv @ deviation)
     else:
-        deviation_shape = deviation.shape
-        ret_array = np.zeros(deviation_shape[1])
-        for i in range(deviation_shape[1]):
+        n_o, n_s = response_surface.shape
+        deviation = observation - response_surface
+        # deviation_shape = deviation.shape
+        ret_array = np.zeros(n_s)
+        for i in range(n_s):
             devi = np.ascontiguousarray(deviation[:, i])
-            ret_array[i] = np.exp(-0.5*devi.T @
-                                  cov_inv @ devi)
+            ret_array[i] = np.exp(-0.5*devi.T @ cov_inv @ devi)
         return ret_array
 
 
+# @njit
 def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
     """
     Computes the core part of the Gaussian log-likelihood function with
@@ -202,21 +205,23 @@ def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
     # ret = np.inf
     #    cov_inv = np.linalg.inv(covariance_matrix)
     cov_inv = np.linalg.pinv(covariance_matrix)
-    deviation = observation - response_surface
-    deviation_shape = deviation.shape
+
 #    L = np.linalg.cholesky(covariance_matrix)
 #    cov_inv = np.linalg.inv(L.T) @ np.linalg.inv(L)
-    if len(deviation_shape) == 1:
+    if response_surface.ndim == 1:
+        deviation = observation - response_surface
         return np.float64(-0.5*deviation.T @ cov_inv @ deviation)
     else:
+        deviation = observation.reshape((-1, 1)) - response_surface
+        deviation_shape = deviation.shape
         ret_array = np.zeros(deviation_shape[1], dtype=np.float64)
         for i in range(deviation_shape[1]):
-            ret_array[i] = np.float64(-0.5*deviation[:, i].T
-                                      @ cov_inv @ deviation[:, i])
+            devi = np.ascontiguousarray(deviation[:, i])
+            ret_array[i] = np.float64(-0.5*devi.T @ cov_inv @ devi)
         return ret_array
 
 
-# @jit  # (nopython=True)
+# @njit  # (nopython=True)
 def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
     """
     Computes the core part of the Gaussian log-likelihood function with
@@ -238,21 +243,21 @@ def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
 
     """
     # ret = np.inf
-    deviation = observation - response_surface
-
-    if deviation.ndim == 1:
+    if response_surface.ndim == 1:
+        deviation = observation - response_surface
         ret = -0.5*deviation.T @ cov_matrix_inv @ deviation
     else:
+        deviation = observation.reshape((-1, 1)) - response_surface
         deviation_shape = deviation.shape
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
-            ret_array[i] = (-0.5*deviation[:, i].T
-                            @ cov_matrix_inv @ deviation[:, i])
+            devi = np.ascontiguousarray(deviation[:, i])
+            ret_array[i] = (-0.5*devi.T @ cov_matrix_inv @ devi)
         ret = ret_array
     return ret
 
 
-@jit
+# @njit
 def cmp_log_likelihood_core_sinv(observation, response_surface, cov_matrix_inv):
     """
     Computes the core part of the Gaussian log-likelihood function with
@@ -279,7 +284,7 @@ def cmp_log_likelihood_core_sinv(observation, response_surface, cov_matrix_inv):
     return -0.5*deviation.T @ cov_matrix_inv @ deviation
 
 
-@njit
+# @njit
 def bme_norm_response(observation, response_surfaces, covariance_matrix):
     """
     Computes BME (Bayesian Model Evidence)
@@ -320,7 +325,7 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
 #    return lhs.mean()
 
 
-@njit
+# @njit
 def lbme_norm_response(observation, response_surfaces, covariance_matrix):
     """
     Computes log(BME) (Bayesian Model Evidence)
@@ -356,8 +361,8 @@ def lbme_norm_response(observation, response_surfaces, covariance_matrix):
     return llh_cf + np.log(mean_lh) if mean_lh > 0 else -np.inf
 
 
-# if NJM:
-#     jit_module(nopython=True, error_model="numpy")
+if NJM:
+    jit_module(nopython=True, error_model="numpy")
 
 
 def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
