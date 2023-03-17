@@ -16,6 +16,12 @@ from scipy.linalg import lstsq
 from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
+try:
+    from numba import jit, njit  # , jit_module
+    NJM = True
+except ImportError:
+    NJM = False
+    pass
 
 EPS = 1e-20  # epsilon
 
@@ -153,9 +159,9 @@ def cmp_lrb(n_r, nri):
     return l_b, r_b
 
 
-def cmp_quant_domain(data, qlb, qrb, **kwargs):
+def cmp_quant_domain(data, qlb, qrb, bds='all'):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
-    bds = kwargs.get('bds', 'all')
+    # bds = kwargs.get('bds', 'all')
     if bds == 'all':
         b_mask = (data >= qlb) & (data <= qrb)
     elif bds == 'rb':
@@ -165,12 +171,12 @@ def cmp_quant_domain(data, qlb, qrb, **kwargs):
     return b_mask
 
 
-def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols, **kwargs):
+def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols, bds='all'):
     """
     generates bool array with 1 for r inside of
     [a_0,b_0]x..x[a_d,b_d], 0 else
     """
-    bds = kwargs.get('bds', 'all')
+    # bds = kwargs.get('bds', 'all')
     n = roots.shape[0]
     ndim = len(nrs)
     assert ndim == len(nris)
@@ -581,14 +587,14 @@ def gen_mkey_list(k_dict, srcs):
     return [tuple([k_lst[c][I[i, c]] for c in range(srclen)]) for i in range(ilen)]
 
 
-def gen_mkey_sid_rel(samples, mk_lst, nrb_dict, **kwargs):
+def gen_mkey_sid_rel(samples, mk_lst, nrb_dict, bds='all'):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
 
     return : sid2mk, mk2sids
     """
-    bds = kwargs.get('bds', 'all')
+    # bds = kwargs.get('bds', 'all')
     sample_cnt, _ = samples.shape
     sids = np.arange(sample_cnt)
     sid2mk = {}

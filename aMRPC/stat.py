@@ -141,8 +141,8 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
         deviation_shape = deviation.shape
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
-            ret_array[i] = np.exp(-0.5*deviation[:, i].T @
-                                  cov_inv @ deviation[:, i])
+            devi = np.ascontiguousarray(deviation[:, i])
+            ret_array[i] = np.exp(-0.5*devi.T @ cov_inv @ devi)
         return ret_array
 
 
@@ -173,8 +173,9 @@ def cmp_norm_likelihood_core_inv(observation, response_surface, cov_inv):
         deviation_shape = deviation.shape
         ret_array = np.zeros(deviation_shape[1])
         for i in range(deviation_shape[1]):
-            ret_array[i] = np.exp(-0.5*deviation[:, i].T @
-                                  cov_inv @ deviation[:, i])
+            devi = np.ascontiguousarray(deviation[:, i])
+            ret_array[i] = np.exp(-0.5*devi.T @
+                                  cov_inv @ devi)
         return ret_array
 
 

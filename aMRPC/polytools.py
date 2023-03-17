@@ -9,6 +9,12 @@ https://orcid.org/0000-0003-0360-5307
 import math
 import numpy as np
 from numpy.polynomial import polynomial as P
+# try:
+#     from numba import jit, njit, float64  # , jit_module
+#     NJM = True
+# except ImportError:
+#     NJM = False
+#     pass
 
 
 def moment(mm, data):
