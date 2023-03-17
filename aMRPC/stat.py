@@ -11,7 +11,15 @@ Provides statistic and information theoretic tools.
 """
 from math import sqrt, pi
 import numpy as np
+try:
+    from numba import jit, njit  # jit_module
+    NJM = True
+except ImportError:
+    NJM = False
+    pass
 
+
+@njit()
 def cmp_norm_likelihood_cf(std, number_of_measurments):
     """
     Computes the coefficient of the Gaussian likelihood function
@@ -31,9 +39,12 @@ def cmp_norm_likelihood_cf(std, number_of_measurments):
     """
     return 1/pow(sqrt(2*pi)*std, number_of_measurments)
 
+
+@njit
 def cmp_log_likelihood_cf(std, number_of_measurments):
     """
-    Computes the logarithhm of the coefficient of the Gaussian likelihood function
+    Computes the logarithhm of the coefficient of the Gaussian likelihood
+    function
 
     Parameters
     ----------
@@ -50,6 +61,8 @@ def cmp_log_likelihood_cf(std, number_of_measurments):
     """
     return -(np.log(2*pi)/2 + np.log(std)) * number_of_measurments
 
+
+@jit(nopython=True)
 def cmp_norm_likelihood_cf_mv(covariance_matrix):
     """
     Computes normalizing coefficient for Gaussian likelihood function
@@ -66,13 +79,14 @@ def cmp_norm_likelihood_cf_mv(covariance_matrix):
 
     """
     dim = covariance_matrix.shape[0]
-    if np.all(covariance_matrix == np.diag(np.diagonal(covariance_matrix))):
-        det = np.multiply.reduce(np.diag(covariance_matrix))
+    if np.all(covariance_matrix == np.diag(np.diag(covariance_matrix))):
+        det = np.prod(np.diag(covariance_matrix))
     else:
-        det = np.multiply.reduce(np.diag(np.linalg.cholesky(covariance_matrix)))
+        det = np.prod(np.diag(np.linalg.cholesky(covariance_matrix)))
     return 1/sqrt(pow(2*pi, dim)*det)
 
 
+@njit  # (nopython=True)
 def cmp_log_likelihood_cf_mv(covariance_matrix):
     """
     computes logarithm normalizing coefficient for Gaussian likelihood function
@@ -89,8 +103,8 @@ def cmp_log_likelihood_cf_mv(covariance_matrix):
 
     """
     dim = covariance_matrix.shape[0]
-    if np.all(covariance_matrix == np.diag(np.diagonal(covariance_matrix))):
-        logdet = np.log(np.diagonal(covariance_matrix)).sum()/2
+    if np.all(covariance_matrix == np.diag(np.diag(covariance_matrix))):
+        logdet = np.log(np.diag(covariance_matrix)).sum()/2
         # print("cov_mx:", covariance_matrix.diagonal())
     else:
         # logdet = np.linalg.slogdet(covariance_matrix)[1]
@@ -99,6 +113,7 @@ def cmp_log_likelihood_cf_mv(covariance_matrix):
     return -np.log(2*pi)*dim/2 - logdet
 
 
+@njit
 def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     """
     Computes the core part of the Gaussian likelihood function with cov. matrix
@@ -131,9 +146,41 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
         return ret_array
 
 
+@njit
+def cmp_norm_likelihood_core_inv(observation, response_surface, cov_inv):
+    """
+    Computes the core part of the Gaussian likelihood function with cov. matrix
+
+    Parameters
+    ----------
+    observation : numpy array
+        Array of observations.
+    response_surface : numpy array
+        Array of evaluations of response surface.
+    covariance_matrix : numpy array
+        Covariance matrix.
+
+    Returns
+    -------
+    numpy array
+        Likelihood for each observation / realization.
+
+    """
+    deviation = observation - response_surface
+    if response_surface.ndim == 1:
+        return np.exp(-0.5*deviation.T @ cov_inv @ deviation)
+    else:
+        deviation_shape = deviation.shape
+        ret_array = np.zeros(deviation_shape[1])
+        for i in range(deviation_shape[1]):
+            ret_array[i] = np.exp(-0.5*deviation[:, i].T @
+                                  cov_inv @ deviation[:, i])
+        return ret_array
+
+
 def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
     """
-    Computes the core part of the Gaussian log-likelihood function with 
+    Computes the core part of the Gaussian log-likelihood function with
     cov. matrix
 
     Parameters
@@ -151,24 +198,24 @@ def cmp_log_likelihood_core(observation, response_surface, covariance_matrix):
         Log-likelihood for each observation / realization.
 
     """
-    ret = np.inf
+    # ret = np.inf
+    #    cov_inv = np.linalg.inv(covariance_matrix)
+    cov_inv = np.linalg.pinv(covariance_matrix)
     deviation = observation - response_surface
     deviation_shape = deviation.shape
-#    cov_inv = np.linalg.inv(covariance_matrix)
-    cov_inv = np.linalg.pinv(covariance_matrix)
 #    L = np.linalg.cholesky(covariance_matrix)
 #    cov_inv = np.linalg.inv(L.T) @ np.linalg.inv(L)
     if len(deviation_shape) == 1:
-        ret = -0.5*deviation.T @ cov_inv @ deviation
+        return np.float64(-0.5*deviation.T @ cov_inv @ deviation)
     else:
-        ret_array = np.zeros(deviation_shape[1])
+        ret_array = np.zeros(deviation_shape[1], dtype=np.float64)
         for i in range(deviation_shape[1]):
-            ret_array[i] = (-0.5*deviation[:, i].T
-                            @ cov_inv @ deviation[:, i])
-        ret = ret_array
-    return ret
+            ret_array[i] = np.float64(-0.5*deviation[:, i].T
+                                      @ cov_inv @ deviation[:, i])
+        return ret_array
 
 
+# @jit  # (nopython=True)
 def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
     """
     Computes the core part of the Gaussian log-likelihood function with
@@ -189,7 +236,7 @@ def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
         Log-likelihood for each observation / realization.
 
     """
-    ret = np.inf
+    # ret = np.inf
     deviation = observation - response_surface
 
     if deviation.ndim == 1:
@@ -204,6 +251,34 @@ def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
     return ret
 
 
+@jit
+def cmp_log_likelihood_core_sinv(observation, response_surface, cov_matrix_inv):
+    """
+    Computes the core part of the Gaussian log-likelihood function with
+    cov. matrix
+
+    Parameters
+    ----------
+    observation : numpy array
+        Array of observations.
+    response_surface : numpy array
+        Array of evaluations of response surface.
+    cov_matrix_inv : numpy array
+        inverse of the covariance matrix.
+
+    Returns
+    -------
+    numpy array
+        Log-likelihood for each observation / realization.
+
+    """
+    # ret = np.inf
+    deviation = observation - response_surface
+
+    return -0.5*deviation.T @ cov_matrix_inv @ deviation
+
+
+@njit
 def bme_norm_response(observation, response_surfaces, covariance_matrix):
     """
     Computes BME (Bayesian Model Evidence)
@@ -231,10 +306,11 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
         response_surfaces = response_surfaces.T
 
     lh_cf = cmp_norm_likelihood_cf_mv(covariance_matrix)
-    return np.mean([lh_cf * cmp_norm_likelihood_core(observation,
-                                                     response_surfaces[sample, :],
-                                                     covariance_matrix)
-                    for sample in range(sample_cnt)])
+    covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
+    return np.mean(np.array([lh_cf * cmp_norm_likelihood_core_inv(observation,
+                                                                  response_surfaces[sample, :],
+                                                                  covariance_matrix_inv)
+                             for sample in range(sample_cnt)], dtype=np.float64))
     # lhs = np.zeros(sample_cnt)
 #    for sample in range(sample_cnt):
 #        lhs[sample] = lh_cf * cmp_norm_likelihood_core(observation,
@@ -243,6 +319,7 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
 #    return lhs.mean()
 
 
+@njit
 def lbme_norm_response(observation, response_surfaces, covariance_matrix):
     """
     Computes log(BME) (Bayesian Model Evidence)
@@ -270,11 +347,16 @@ def lbme_norm_response(observation, response_surfaces, covariance_matrix):
         response_surfaces = response_surfaces.T
 
     llh_cf = cmp_log_likelihood_cf_mv(covariance_matrix)
-    mean_lh = np.mean([cmp_norm_likelihood_core(observation,
-                                                response_surfaces[sample, :],
-                                                covariance_matrix)
-                       for sample in range(sample_cnt)])
+    covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
+    mean_lh = np.mean(np.array([cmp_norm_likelihood_core_inv(observation,
+                                                             response_surfaces[sample, :],
+                                                             covariance_matrix_inv)
+                                for sample in range(sample_cnt)], dtype=np.float64))
     return llh_cf + np.log(mean_lh) if mean_lh > 0 else -np.inf
+
+
+# if NJM:
+#     jit_module(nopython=True, error_model="numpy")
 
 
 def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
@@ -306,9 +388,10 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
         sample_cnt = m
         response_surfaces = response_surfaces.T
 #    lhs = np.zeros(sample_cnt)
-    llhs = np.array([cmp_log_likelihood_core(observation,
-                                             response_surfaces[sample, :],
-                                             covariance_matrix)
+    covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
+    llhs = np.array([cmp_log_likelihood_core_sinv(observation,
+                                                  response_surfaces[sample, :],
+                                                  covariance_matrix_inv)
                      for sample in range(sample_cnt)])
 #    llhs = np.zeros(sample_cnt)
 #    for sample in range(sample_cnt):
@@ -359,9 +442,10 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix,
         sample_cnt = m
         response_surfaces = response_surfaces.T
 
-    llhs = np.array([cmp_log_likelihood_core(observation,
-                                             response_surfaces[sample, :],
-                                             covariance_matrix)
+    covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
+    llhs = np.array([cmp_log_likelihood_core_sinv(observation,
+                                                  response_surfaces[sample, :],
+                                                  covariance_matrix_inv)
                      for sample in range(sample_cnt)])
 
     mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
@@ -378,9 +462,11 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix,
         # rs_cov[eps_mx] = eps
 
     rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
-    f_gs = lambda sid: (cmp_log_likelihood_core(rs_mean,
-                                                response_surfaces[sid, :],
-                                                rs_cov))
+    rs_cov_inv = np.linalg.pinv(covariance_matrix)
+
+    f_gs = lambda sid: (cmp_log_likelihood_core_sinv(rs_mean,
+                                                     response_surfaces[sid, :],
+                                                     rs_cov_inv))
     #                     + rs_cov_cf)
     llhs_gs_it = map(f_gs, np.arange(sample_cnt)[mask])
     # llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
@@ -388,3 +474,4 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix,
                                                                     dtype=np.float64))
             - rs_cov_cf if bme > 0 else np.nan)
     # return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
+
