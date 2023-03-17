@@ -166,7 +166,6 @@ def midx4quad(ar_lens):
     return idx_mx
 
 
-@jit
 def gen_dict_key(anr, nri, src=None):
     """
     generates dictionary key for
