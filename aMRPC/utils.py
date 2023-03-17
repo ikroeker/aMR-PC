@@ -12,7 +12,7 @@ import itertools as it
 import numpy as np
 from scipy.special import comb
 try:
-    from numba import jit  # , jit_module
+    from numba import jit, njit  # , jit_module
     NJM = True
 except ImportError:
     NJM = False
@@ -51,18 +51,19 @@ def gen_multi_idx_old(n_o, dim):
     return alphas
 
 
+# @jit(debug=True)
 def gen_multi_idx(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
     """
-    p_cnt = comb(n_o+dim, dim, exact=True)
+    p_cnt = np.int64(comb(n_o+dim, dim, exact=True))
     alphas = np.zeros((p_cnt, dim), dtype=np.int32)
     l_idx = 0
     tmp_it = it.product(range(n_o+1), repeat=dim)
     for p_it in tmp_it:
         if sum(p_it) <= n_o:
-            alphas[l_idx, :] = np.array(p_it)
+            alphas[l_idx, :] = np.array(p_it, dtype=np.int32)
             l_idx = l_idx+1
             if l_idx == p_cnt:
                 break
