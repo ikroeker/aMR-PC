@@ -140,7 +140,7 @@ def cmp_norm_likelihood_core(observation, response_surface, covariance_matrix):
     else:
         deviation = observation.reshape((-1, 1)) - response_surface
         deviation_shape = deviation.shape
-        ret_array = np.zeros(deviation_shape[1])
+        ret_array = np.zeros(deviation_shape[1], dtype=np.float64)
         for i in range(deviation_shape[1]):
             devi = np.ascontiguousarray(deviation[:, i])
             ret_array[i] = np.exp(-0.5*devi.T @ cov_inv @ devi)
@@ -174,7 +174,7 @@ def cmp_norm_likelihood_core_inv(observation, response_surface, cov_inv):
         n_o, n_s = response_surface.shape
         deviation = observation - response_surface
         # deviation_shape = deviation.shape
-        ret_array = np.zeros(n_s)
+        ret_array = np.zeros(n_s, dtype=np.float64)
         for i in range(n_s):
             devi = np.ascontiguousarray(deviation[:, i])
             ret_array[i] = np.exp(-0.5*devi.T @ cov_inv @ devi)
@@ -249,7 +249,7 @@ def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
     else:
         deviation = observation.reshape((-1, 1)) - response_surface
         deviation_shape = deviation.shape
-        ret_array = np.zeros(deviation_shape[1])
+        ret_array = np.zeros(deviation_shape[1], dtype=np.float64)
         for i in range(deviation_shape[1]):
             devi = np.ascontiguousarray(deviation[:, i])
             ret_array[i] = (-0.5*devi.T @ cov_matrix_inv @ devi)
@@ -361,12 +361,8 @@ def lbme_norm_response(observation, response_surfaces, covariance_matrix):
     return llh_cf + np.log(mean_lh) if mean_lh > 0 else -np.inf
 
 
-if NJM:
-    jit_module(nopython=True, error_model="numpy")
-
-
 def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
-                             **kwargs):
+                             eps=0):
     """
     computes Kullback-Leibler divergence
 
@@ -386,7 +382,7 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
     float.
 
     """
-    eps = kwargs.get('eps', 0)
+    # eps = kwargs.get('eps', 0)
     n, m = response_surfaces.shape
     if m == len(observation):
         sample_cnt = n
@@ -412,6 +408,10 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
     bme = np.exp(llhs).mean() + eps
 #    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
+
+
+if NJM:
+    jit_module(nopython=True, error_model="numpy")
 
 
 def entropy_norm_response(observation, response_surfaces, covariance_matrix,

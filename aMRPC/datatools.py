@@ -16,12 +16,12 @@ from scipy.linalg import lstsq
 from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
-# try:
-#     from numba import jit, njit  # , jit_module
-#     NJM = True
-# except ImportError:
-#     NJM = False
-#     pass
+try:
+    from numba import jit, njit  # , jit_module
+    NJM = True
+except ImportError:
+    NJM = False
+    pass
 
 EPS = 1e-20  # epsilon
 
@@ -38,7 +38,7 @@ def genHankel(dataframe, srcs, nr_range, n_o):
                 l_b, r_b = cmp_lrb(anr, nri)
                 qlb = data.quantile(l_b)
                 qrb = data.quantile(r_b)
-                mask = cmp_quant_domain(data, qlb, qrb)
+                mask = cmp_quant_domain(np.array(data), qlb, qrb)
                 key = u.gen_dict_key(anr, nri, src)
                 h_dict[key] = pt.Hankel(n_o+1, data[mask])
                 # print(H)
@@ -159,7 +159,7 @@ def cmp_lrb(n_r, nri):
     return l_b, r_b
 
 
-# @njit
+@njit
 def cmp_quant_domain(data, qlb, qrb, bds='all'):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
     # bds = kwargs.get('bds', 'all')
@@ -206,6 +206,27 @@ def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey, bds='all'):
     return b_mask
 
 
+def gen_bds_arr(mkey, nrb_dict):
+    "generates np.array with bds of stoch domain"
+    sdim = len(mkey)
+    bds_arr = np.zeros((sdim, 2), dtype=np.float64)
+    for d in range(sdim):
+        key = mkey[d]
+        bds_arr[d, :] = np.array(nrb_dict[key], dtype=np.float64)
+    return bds_arr
+
+
+@njit
+def cmp_mv_quant_domain_arr(roots, bds_arr, bds='all'):
+    n, sdim = roots.shape
+    assert sdim == bds_arr.shape[0]
+    b_mask = np.ones(n, dtype=np.bool8)
+    for d in range(sdim):
+        b_mask = b_mask & cmp_quant_domain(roots[:, d], bds_arr[d, 0],
+                                           bds_arr[d, 1], bds=bds)
+    return b_mask
+
+
 def gen_pcs(h_dict, method):
     """
     generated dictionaries with matrices of monic orthogonal
@@ -248,12 +269,13 @@ def gen_npcs_mm(pc_dict, H_dict):
     return n_cfs
 
 
+# @njit
 def pcfs4eval(pc_dict, mkey, alpha):
     """ provides PC-Cfs for multi-polynomial with degrees in alpha """
-    mdeg = max(alpha)
+    mdeg = np.max(alpha)
     alen = len(alpha)
     assert alen == len(mkey)
-    rcfs = np.zeros((alen, mdeg+1))
+    rcfs = np.zeros((alen, mdeg+1), dtype=np.float64)
     for d in range(alen):
         ad = alpha[d]
         cfs = pc_dict[mkey[d]]
@@ -601,7 +623,9 @@ def gen_mkey_sid_rel(samples, mk_lst, nrb_dict, bds='all'):
     sid2mk = {}
     mk2sids = {}
     for mkey in mk_lst:
-        B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey, bds=bds)
+        # B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey, bds=bds)
+        b_arr = gen_bds_arr(mkey, nrb_dict)
+        B = cmp_mv_quant_domain_arr(samples, b_arr, bds=bds)
         if B.sum() > 0:
             mk2sids[mkey] = sids[B]
             for sid in mk2sids[mkey]:
