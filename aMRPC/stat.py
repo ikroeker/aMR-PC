@@ -12,7 +12,7 @@ Provides statistic and information theoretic tools.
 from math import sqrt, pi
 import numpy as np
 try:
-    from numba import jit_module  # jit, njit  # jit_module
+    from numba import jit_module, jit  # jit, njit  # jit_module
     NJM = True
 except ImportError:
     NJM = False
@@ -279,7 +279,7 @@ def cmp_log_likelihood_core_sinv(observation, response_surface, cov_matrix_inv):
 
     """
     # ret = np.inf
-    deviation = observation - response_surface
+    deviation = np.ascontiguousarray(observation - response_surface)
 
     return -0.5*deviation.T @ cov_matrix_inv @ deviation
 
@@ -410,6 +410,81 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
 
 
+# if NJM:
+#     jit_module(nopython=True, error_model="numpy")
+
+
+# @jit
+def entropy_norm_response_j(observation, response_surfaces, covariance_matrix,
+                            eps, eps_bme, cov_diag):
+    """
+    Computes entropy
+
+    Parameters
+    ----------
+    observation : np.array
+        observation.
+    response_surfaces : np.array
+        surrogate / model response.
+    covariance_matrix : np.array
+        covariance matrix.
+    **kwargs : dict
+        eps : error bad condition of cov-mx compensation, def: eps=1e-15.
+        eps_bme : lowest bound for bme. default: eps_bme=1.0e-300:
+        cov_diag: bool, uses only diag of the est. cov-mx. default: False.
+
+    Returns
+    -------
+    float
+        entropy value.
+
+    """
+    # eps = kwargs.get('eps', 1e-15)
+    # eps_bme = kwargs.get('eps_bme', 1.0e-300)
+    # cov_diag = kwargs.get('cov_diag', False)
+    n, m = response_surfaces.shape
+    if m == len(observation):
+        sample_cnt = n
+        measurs = m
+    else:
+        measurs = n
+        sample_cnt = m
+        response_surfaces = np.ascontiguousarray(response_surfaces.T)
+
+    covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
+    llhs = np.array([cmp_log_likelihood_core_sinv(observation,
+                                                  response_surfaces[sample, :],
+                                                  covariance_matrix_inv)
+                     for sample in range(sample_cnt)])
+
+    mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
+    bme = np.exp(llhs).mean() + eps_bme
+    rs_mean = np.zeros(measurs, dtype=np.float64)
+    for i in range(measurs):
+        rs_mean[i] = response_surfaces[:, i].mean()
+
+    rs_cov = np.cov(response_surfaces, rowvar=False)
+    if cov_diag:
+        rs_cov = np.diag(np.diag(rs_cov))
+    # eps_v = rs_cov.diagonal() < eps
+    if eps > 0.0:
+        rs_cov += eps * np.eye(measurs)
+        # print("stat.entr: reg. cov_diag", rs_cov.diagonal())
+        # eps_mx = np.diag(eps_v)
+        # rs_cov[eps_mx] = eps
+
+    rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
+    rs_cov_inv = np.linalg.pinv(covariance_matrix)
+
+    llhs_gs = cmp_log_likelihood_core_inv(rs_mean,
+                                          response_surfaces[mask, :].T,
+                                          rs_cov_inv)
+
+    return (np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs)
+            - rs_cov_cf if bme > 0 else np.nan)
+    # return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
+
+
 if NJM:
     jit_module(nopython=True, error_model="numpy")
 
@@ -438,46 +513,48 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix,
         entropy value.
 
     """
-    eps = kwargs.get('eps', 1e-15)
-    eps_bme = kwargs.get('eps_bme', 1.0e-300)
-    cov_diag = kwargs.get('cov_diag', False)
-    n, m = response_surfaces.shape
-    if m == len(observation):
-        sample_cnt = n
-    else:
-        sample_cnt = m
-        response_surfaces = response_surfaces.T
+    eps = np.float64(kwargs.get('eps', 1e-15))
+    eps_bme = np.float64(kwargs.get('eps_bme', 1.0e-300))
+    cov_diag = np.bool8(kwargs.get('cov_diag', False))
 
-    covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
-    llhs = np.array([cmp_log_likelihood_core_sinv(observation,
-                                                  response_surfaces[sample, :],
-                                                  covariance_matrix_inv)
-                     for sample in range(sample_cnt)])
+    ret = entropy_norm_response_j(observation,
+                                  np.ascontiguousarray(response_surfaces.squeeze(),
+                                                        dtype=np.float64),
+                                  covariance_matrix, eps, eps_bme,
+                                  cov_diag)
+    return ret
 
-    mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
-    bme = np.exp(llhs).mean() + eps_bme
-    rs_mean = response_surfaces.mean(axis=0)
-    rs_cov = np.cov(response_surfaces, rowvar=False)
-    if cov_diag:
-        rs_cov = np.diag(rs_cov.diagonal())
-    # eps_v = rs_cov.diagonal() < eps
-    if eps > 0:
-        rs_cov += eps * np.eye(len(observation))
-        # print("stat.entr: reg. cov_diag", rs_cov.diagonal())
-        # eps_mx = np.diag(eps_v)
-        # rs_cov[eps_mx] = eps
+    # n, m = response_surfaces.shape
+    # if m == len(observation):
+    #     sample_cnt = n
+    # else:
+    #     sample_cnt = m
+    #     response_surfaces = response_surfaces.T
 
-    rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
-    rs_cov_inv = np.linalg.pinv(covariance_matrix)
+    # covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
+    # llhs = np.array([cmp_log_likelihood_core_sinv(observation,
+    #                                               response_surfaces[sample, :],
+    #                                               covariance_matrix_inv)
+    #                   for sample in range(sample_cnt)])
 
-    f_gs = lambda sid: (cmp_log_likelihood_core_sinv(rs_mean,
-                                                     response_surfaces[sid, :],
-                                                     rs_cov_inv))
-    #                     + rs_cov_cf)
-    llhs_gs_it = map(f_gs, np.arange(sample_cnt)[mask])
-    # llhs_gs = np.fromiter(llhs_gs_it, dtype=float)
-    return (np.log(bme) - np.mean(llhs[mask]) - np.mean(np.fromiter(llhs_gs_it,
-                                                                    dtype=np.float64))
-            - rs_cov_cf if bme > 0 else np.nan)
-    # return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
+    # mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
+    # bme = np.exp(llhs).mean() + eps_bme
+    # rs_mean = response_surfaces.mean(axis=0)
+    # rs_cov = np.cov(response_surfaces, rowvar=False)
+    # if cov_diag:
+    #     rs_cov = np.diag(rs_cov.diagonal())
 
+    # if eps > 0:
+    #     rs_cov += eps * np.eye(len(observation))
+
+    # rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
+    # rs_cov_inv = np.linalg.pinv(covariance_matrix)
+
+    # f_gs = lambda sid: (cmp_log_likelihood_core_sinv(rs_mean,
+    #                                                   response_surfaces[sid, :],
+    #                                                   rs_cov_inv))
+
+    # llhs_gs_it = map(f_gs, np.arange(sample_cnt)[mask])
+    # return (np.log(bme) - np.mean(llhs[mask]) - np.mean(np.fromiter(llhs_gs_it,
+    #                                                                 dtype=np.float64))
+    #         - rs_cov_cf if bme > 0 else np.nan)
