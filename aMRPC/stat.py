@@ -446,6 +446,7 @@ def entropy_norm_response_j(observation, response_surfaces, covariance_matrix,
     if m == len(observation):
         sample_cnt = n
         measurs = m
+        response_surfaces = np.ascontiguousarray(response_surfaces)
     else:
         measurs = n
         sample_cnt = m
@@ -459,9 +460,8 @@ def entropy_norm_response_j(observation, response_surfaces, covariance_matrix,
 
     mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
     bme = np.exp(llhs).mean() + eps_bme
-    rs_mean = np.zeros(measurs, dtype=np.float64)
-    for i in range(measurs):
-        rs_mean[i] = response_surfaces[:, i].mean()
+    rs_mean = np.array([response_surfaces[:, i].mean()
+                        for i in range(measurs)])
 
     rs_cov = np.cov(response_surfaces, rowvar=False)
     if cov_diag:
@@ -517,12 +517,10 @@ def entropy_norm_response(observation, response_surfaces, covariance_matrix,
     eps_bme = np.float64(kwargs.get('eps_bme', 1.0e-300))
     cov_diag = np.bool8(kwargs.get('cov_diag', False))
 
-    ret = entropy_norm_response_j(observation,
-                                  np.ascontiguousarray(response_surfaces.squeeze(),
-                                                        dtype=np.float64),
-                                  covariance_matrix, eps, eps_bme,
-                                  cov_diag)
-    return ret
+    return entropy_norm_response_j(observation,
+                                   response_surfaces,
+                                   covariance_matrix, eps, eps_bme,
+                                   cov_diag)
 
     # n, m = response_surfaces.shape
     # if m == len(observation):
