@@ -960,8 +960,10 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     for mkey, sids in mk2sid.items():
         for idx_p in range(p_max):
             pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
-            pvals = pt.pc_eval(pcfs, samples[sids, :])
-            pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
+            # pvals = pt.pc_eval(pcfs, samples[sids, :])
+            # pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
+            pol_vals[idx_p, sids] = np.prod(pt.pc_eval(pcfs, samples[sids, :]),
+                                            axis=1)
     return pol_vals
 
 
