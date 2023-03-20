@@ -139,7 +139,7 @@ def gen_nri_range_4mkset(mkey_set, dim):
     nri_cnt = len(mkey_set)  # number of multi-keys
     pos = ParPos['Nri']
     assert nri_cnt > 0
-    nris = np.zeros((nri_cnt, dim), dtype=np.uint32)
+    nris = np.zeros((nri_cnt, dim), dtype=np.uint64)
     cnt = 0  # counter
     for mkey in mkey_set:
         for d_i in range(dim):
@@ -149,19 +149,20 @@ def gen_nri_range_4mkset(mkey_set, dim):
     return nris, nri_cnt
 
 
+@njit
 def midx4quad(ar_lens):
     """ generates indexes for eval. points etc. """
-    n_lens = np.array(ar_lens, dtype=np.uint32)
+    # n_lens = np.array(ar_lens, dtype=np.int32)
     cols = len(ar_lens)
-    lines = n_lens.prod()
+    lines = ar_lens.prod()
     idx_mx = np.zeros((lines, cols), dtype=np.uint32)
     divs = np.zeros(cols)
     for col in range(cols):
-        divs[col] = n_lens[0:col].prod()
+        divs[col] = ar_lens[0:col].prod()
     # print(divs)
     for l_idx in range(lines):
         for col in range(cols):
-            val = (l_idx//divs[col] % n_lens[col])
+            val = (l_idx//divs[col] % ar_lens[col])
             idx_mx[l_idx, col] = val
     return idx_mx
 

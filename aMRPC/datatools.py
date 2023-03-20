@@ -17,7 +17,7 @@ from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
 try:
-    from numba import jit, njit  # , jit_module
+    from numba import jit, njit, int64, float64  # , jit_module
     NJM = True
 except ImportError:
     NJM = False
@@ -424,8 +424,8 @@ def gen_rw_4mkey(mkey, roots, weights):
 
     """
     cols = len(mkey)
-    ls = [len(roots[key]) for key in mkey]
-    lens = np.array(ls)
+    # ls = [len(roots[key]) for key in mkey]
+    lens = np.array([len(roots[key]) for key in mkey])
     lines = lens.prod()
     I = u.midx4quad(lens)
     r_roots = np.zeros((lines, cols))
@@ -467,7 +467,7 @@ def get_rw_4nrs(nrs, srcs, roots, weights):
     """ generates eval. points and weights for a Nr level """
     dim = len(nrs)
     nris = np.zeros(dim)
-    nri_cnt = np.zeros(dim, dtype=int)
+    nri_cnt = np.zeros(dim, dtype=np.int64)
     divs = np.zeros(dim)
     R = np.array([])
     W = np.array([])
@@ -603,7 +603,7 @@ def gen_mkey_list(k_dict, srcs):
         if chk:
             idx = key[sidx]
             k_lst[isrcs[idx]].append(key)
-    alen = [len(c) for c in k_lst]
+    alen = np.array([len(c) for c in k_lst])
     I = u.midx4quad(alen)
     ilen, _ = np.shape(I)
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
@@ -729,6 +729,7 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
     return phi
 
 
+# @njit
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
@@ -750,7 +751,7 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = np.ascontiguousarray(phi @ R @ phi.T + Q)
 
-    cov_mx_inv = np.nan
+    # cov_mx_inv = np.empty(cov_mx.shape, dtype=np.float64) * np.nan
     try:
         cov_mx_inv = np.linalg.pinv(cov_mx)
         # if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
@@ -763,6 +764,7 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
         Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
         R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
         P = phi.T @ Q_inv @ phi + R_inv
+
         try:
             if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
                 P_inv = np.ascontiguousarray(np.linalg.pinv(P))
@@ -922,24 +924,55 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         else:
             idxs_pm = idxs_p
 
-#        phi_all = p_vals[idxs_pm, :]
-#        f_rec[sids_l, :] = phi_all[:, sids_l].T @ f_cfs[sids[0], idxs_pm, :]
-        # phi = gen_phi(mkey, p_vals, mk2sid_loc, alpha_masks)
-        phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
-        if mkey_type:
-            if n_so > 0:
-                for idx_x in range(n_x):
-                    f_rec[:, sids_l, idx_x] = (phi @ np.ascontiguousarray(f_cfs[mkey][:, idxs_pm, idx_x].T)).T
+        if n_so > 0:
+            if mkey_type:
+                f_rec[:, sids_l, :] = gen_loc_amrpc_rec_so(n_so, n_x, p_vals,
+                                                           idxs_pm,
+                                                           sids_l, f_cfs[mkey])
             else:
-                f_rec[sids_l, :] = phi @ np.ascontiguousarray(f_cfs[mkey][idxs_pm, :])
+                f_rec[:, sids_l, :] = gen_loc_amrpc_rec_so(n_so, n_x, p_vals,
+                                                           idxs_pm,
+                                                           sids_l,
+                                                           f_cfs[:, sids[0], :, :])
         else:
-            if n_so > 0:
-                for idx_x in range(n_x):
-                    f_rec[:, sids_l, idx_x] = (phi @ np.ascontiguousarray(f_cfs[:, sids[0], idxs_pm, idx_x].T)).T
+            if mkey_type:
+                f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
+                                                         sids_l, f_cfs[mkey])
             else:
-                f_rec[sids_l, :] = phi @ np.ascontiguousarray(f_cfs[sids[0], idxs_pm, :])
-#        for sid_l in sids_l:
-#            f_rec[sid_l, :] = f_cfs[sids[0], idxs_pm, :].T @ p_vals[idxs_pm, sid_l]
+                f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
+                                                         sids_l, f_cfs[sids[0], :, :])
+        # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
+        # if mkey_type:
+        #     if n_so > 0:
+        #         for idx_x in range(n_x):
+        #             f_rec[:, sids_l, idx_x] = (phi @ np.ascontiguousarray(f_cfs[mkey][:, idxs_pm, idx_x].T)).T
+        #     else:
+        #         f_rec[sids_l, :] = phi @ np.ascontiguousarray(f_cfs[mkey][idxs_pm, :])
+        # else:
+        #     if n_so > 0:
+        #         for idx_x in range(n_x):
+        #             f_rec[:, sids_l, idx_x] = (phi @ np.ascontiguousarray(f_cfs[:, sids[0], idxs_pm, idx_x].T)).T
+        #     else:
+        #         f_rec[sids_l, :] = phi @ np.ascontiguousarray(f_cfs[sids[0], idxs_pm, :])
+
+    return f_rec
+
+
+@njit
+def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
+    n_s_l = len(sids_l)
+    phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
+    f_rec = np.zeros((n_so, n_s_l, n_x), dtype=np.float64)
+    for idx_x in range(n_x):
+        f_rec[:, :, idx_x] = (phi @ np.ascontiguousarray(f_cfs[:,  idxs_pm, idx_x].T)).T
+
+    return f_rec
+
+
+@njit(float64[:, :](float64[:, :], int64[:], int64[:], float64[:, :]))
+def gen_loc_amrpc_rec_nso(p_vals, idxs_pm, sids_l, f_cfs):
+    phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
+    f_rec = phi @ f_cfs[idxs_pm, :]
 
     return f_rec
 
@@ -1039,8 +1072,9 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
             if mkey_out:
                 ret_f_cfs[mkey][:, alpha_mask, idx_x] = s_cfs
             else:
-                for sid in sids:
-                    ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
+                ret_f_cfs[:, sids, alpha_mask, idx_x] = s_cfs.reshape((-1, 1))
+                # for sid in sids:
+                #     ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
 
     return ret_f_cfs
 
