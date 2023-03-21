@@ -8,13 +8,13 @@ https://orcid.org/0000-0003-0360-5307
 # import sys
 import math
 import numpy as np
-from numpy.polynomial import polynomial as P
-# try:
-#     from numba import jit, njit, float64, int32 # , jit_module
-#     NJM = True
-# except ImportError:
-#     NJM = False
-#     pass
+# from numpy.polynomial import polynomial as P
+try:
+    from numba import njit  # , jit, float64, int32 # , jit_module
+    NJM = True
+except ImportError:
+    NJM = False
+    pass
 
 
 def moment(mm, data):
@@ -559,7 +559,7 @@ def gen_npc_mx_mm(cf, H_mx, No=-1):
     return ncf
 
 
-# @jit
+@njit
 def pc_eval(cfs, X):
     """
     Applies polyval with polyonomial p defined by  Cfs on X [p(X)]
@@ -578,4 +578,11 @@ def pc_eval(cfs, X):
 
     """
     c = cfs.T
-    return P.polyval(X, c, tensor=False)
+    # return P.polyval(X, c, tensor=False)
+    # copied from the numpy code to make for numba available
+    # if isinstance(X, (tuple, list)):
+    #     X = np.asarray(X)
+    c0 = c[-1] + X*0
+    for i in range(2, len(c) + 1):
+        c0 = c[-i] + c0*X
+    return c0

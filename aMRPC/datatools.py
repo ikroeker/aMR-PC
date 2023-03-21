@@ -751,7 +751,6 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = np.ascontiguousarray(phi @ R @ phi.T + Q)
 
-    # cov_mx_inv = np.empty(cov_mx.shape, dtype=np.float64) * np.nan
     try:
         cov_mx_inv = np.linalg.pinv(cov_mx)
         # if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
@@ -761,12 +760,14 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
         # else:
         #     cov_mx_inv = np.nan
     except (RuntimeError, ValueError):
+        cov_mx_inv = np.nan  # * np.empty(cov_mx.shape, dtype=np.float64)
         Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
         R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
         P = phi.T @ Q_inv @ phi + R_inv
 
         try:
-            if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
+            # if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
+            if np.prod(np.diag(np.linalg.cholesky(P))) > 0:
                 P_inv = np.ascontiguousarray(np.linalg.pinv(P))
                 # inverse according to eq. (A.9) in Rasmussen and Williams
                 cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
@@ -830,7 +831,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
             alpha_mask = alpha_masks[mkey]
         else:
             idxs_pm = idxs_p
-            alpha_mask = np.ones(alphas.shape[0], dtype=bool)
+            alpha_mask = np.ones(alphas.shape[0], dtype=np.bool8)
 #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
         if len(f_cov_mx.shape) < 4:
             f_cov_mx = np.expand_dims(f_cov_mx, 0)
@@ -993,11 +994,20 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     for mkey, sids in mk2sid.items():
         for idx_p in range(p_max):
             pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
-            # pvals = pt.pc_eval(pcfs, samples[sids, :])
-            # pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
-            pol_vals[idx_p, sids] = np.prod(pt.pc_eval(pcfs, samples[sids, :]),
-                                            axis=1)
+            # pol_vals[idx_p, sids] = np.prod(pt.pc_eval(pcfs, samples[sids, :]),
+            #                                 axis=1)
+            pol_vals[idx_p, sids] = pc_eval_mv(pcfs, samples[sids, :])
     return pol_vals
+
+
+@njit
+def pc_eval_mv(pcfs, X):
+    c = pcfs.T
+    c0 = c[-1] + X*0
+    for i in range(2, len(c) + 1):
+        c0 = c[-i] + c0*X
+    ret = np.array([np.prod(c0[i, :]) for i in range(X.shape[0])])
+    return ret
 
 
 def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
