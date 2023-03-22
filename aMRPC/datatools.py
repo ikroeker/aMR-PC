@@ -726,6 +726,19 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
             phi = (pol_vals[:, sids][:, :]).T
         else:
             phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
+            # phi = gen_phi_fast(pol_vals,  alpha_dict[mkey], sids)
+    return phi
+
+
+@njit
+def gen_phi_fast(pol_vals, sids, alpha_mask):
+    phi = np.ascontiguousarray((pol_vals[:, sids][alpha_mask, :]).T)
+    return phi
+
+
+@njit
+def gen_phi_as(pol_vals, alpha_mask):
+    phi = np.ascontiguousarray((pol_vals[alpha_mask, :]).T)
     return phi
 
 
@@ -749,7 +762,7 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
 #        return np.nan, np.nan
     Q = np.eye(phi.shape[0]) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
-    cov_mx = np.ascontiguousarray(phi @ R @ phi.T + Q)
+    cov_mx = phi @ R @ phi.T + Q
 
     try:
         cov_mx_inv = np.linalg.pinv(cov_mx)
@@ -820,7 +833,8 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
     key = "mk2sid_samples"
     mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
     key = 'p_vals'
-    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
+    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas,
+                                                    mk2sid_loc))
     rng = np.random.default_rng()
     idxs_p = np.arange(alphas.shape[0])
 
@@ -835,17 +849,14 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
 #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
         if len(f_cov_mx.shape) < 4:
             f_cov_mx = np.expand_dims(f_cov_mx, 0)
-#        phi_all = p_vals[idxs_pm, :]
-#        phi = phi_all[:, sids_l].T
+
         phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
         for idx_x in range(n_x):
-#            for sid_l in sids_l:
-#                f_rec[:, sid_l, idx_x] = f_cfs_s @ p_vals[idxs_pm, sid_l]
 
             f_cfs_s = rng.multivariate_normal(phi @ f_cfs[sids[0], alpha_mask, idx_x],
                                               phi @ f_cov_mx[sids[0], alpha_mask, :, idx_x][:, alpha_mask] @ phi.T,
                                               n_so)
-            #for sid_l in sids_l:
+
             f_rec[:, sids_l, idx_x] = f_cfs_s
 
     return f_rec
@@ -1259,7 +1270,8 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     for mkey, sids in mk2sid.items():
         alpha_mask = mask_dict[mkey]
 #        phi = (pol_vals[:, sids][alpha_mask, :]).T
-        phi = np.ascontiguousarray(gen_phi(mkey, pol_vals, mk2sid, mask_dict))
+        # phi = np.ascontiguousarray(gen_phi(mkey, pol_vals, mk2sid, mask_dict))
+        phi = gen_phi_fast(pol_vals, sids, alpha_mask)
         if isinstance(sigma_n, dict):
             sigma_n_mk = sigma_n[mkey]**2
         elif isinstance(sigma_n, float):
