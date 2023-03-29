@@ -326,7 +326,8 @@ def bme_norm_response(observation, response_surfaces, covariance_matrix):
 
 
 # @njit
-def lbme_norm_response(observation, response_surfaces, covariance_matrix):
+def lbme_norm_response(observation, response_surfaces, covariance_matrix,
+                       eps=0):
     """
     Computes log(BME) (Bayesian Model Evidence)
 
@@ -356,7 +357,7 @@ def lbme_norm_response(observation, response_surfaces, covariance_matrix):
     covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
     mean_lh = np.mean(np.array([cmp_norm_likelihood_core_inv(observation,
                                                              response_surfaces[sample, :],
-                                                             covariance_matrix_inv)
+                                                             covariance_matrix_inv) + eps
                                 for sample in range(sample_cnt)], dtype=np.float64))
     return llh_cf + np.log(mean_lh) if mean_lh > 0 else -np.inf
 

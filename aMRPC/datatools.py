@@ -1266,6 +1266,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     numba_aux = kwargs.get('num_aux', False)
 
     cov_mode = 0
+    cov_mask = np.empty((1, 1), dtype=np.bool8)
     if ret_std:
         ret_std_cov_4s = np.zeros((n_s, p_max, x_len))
         cov_mode = 1
@@ -1297,8 +1298,10 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         elif isinstance(sigma_p, float):
             sigma_p_mk = sigma_p**2
 
-        if numba_aux:
+        if cov_mode == 2:
             cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
+            
+        if numba_aux:
             cf_ls, cov_mx = gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals,
                                                       alpha_mask, cov_mask,
                                                       sigma_n_mk, sigma_p_mk,
@@ -1321,6 +1324,17 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                     rs_data = np.ascontiguousarray(data[sids, dt_idx_x])
                     if method == 'pinv':
                         v_ls = np.linalg.pinv(phi) @ rs_data
+                    elif method == 'reg_t':
+                        P_inv = (np.linalg.pinv((phi.T / sigma_n_mk) @ phi
+                                                + np.eye(phi.shape[1]) / sigma_p_mk))
+                        v_ls = (P_inv @ phi.T / sigma_n_mk
+                                @ rs_data)
+                        if ret_std:
+                            ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
+                        elif ret_cov:
+                            # cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
+                            # for sid in sids:
+                            ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()    
                     elif method == 'unbias':
                         v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
                     elif method == 'unbias_herm':
@@ -1334,18 +1348,6 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                             ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(cov_op))
                         elif ret_cov:
                             ret_std_cov_4s[sids, :, :, idx_x] = cov_op
-
-                    elif method == 'reg_t':
-                        P_inv = (np.linalg.pinv((phi.T / sigma_n_mk) @ phi
-                                                + np.eye(phi.shape[1]) / sigma_p_mk))
-                        v_ls = (P_inv @ phi.T / sigma_n_mk
-                                @ rs_data)
-                        if ret_std:
-                            ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
-                        elif ret_cov:
-                            cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
-                            # for sid in sids:
-                            ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()
                     else:
                         v_ls, _, _, _ = np.linalg.lstsq(phi, rs_data,
                                                         rcond=None)  # LS - output
