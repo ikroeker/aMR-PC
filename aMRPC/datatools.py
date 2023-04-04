@@ -17,8 +17,8 @@ from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
 try:
-    from numba import jit, njit   # , jit_module
-    from numba.types import int64, float64
+    from numba import jit, njit  # , jit_module
+    from numba.types import int64, float64, b1
     NJM = True
 except ImportError:
     NJM = False
@@ -731,13 +731,13 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
     return phi
 
 
-@njit
+@njit(float64[:, :](float64[:, :], int64[:], b1[:]))
 def gen_phi_fast(pol_vals, sids, alpha_mask):
     phi = np.ascontiguousarray((pol_vals[:, sids][alpha_mask, :]).T)
     return phi
 
 
-@njit
+@njit(float64[:, :](float64[:, :], b1[:]))
 def gen_phi_as(pol_vals, alpha_mask):
     phi = np.ascontiguousarray((pol_vals[alpha_mask, :]).T)
     return phi
@@ -971,7 +971,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     return f_rec
 
 
-@njit
+@njit(float64[:, :, :](int64, int64, float64[:, :], int64[:], int64[:], float64[:, :, :]))
 def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
     n_s_l = len(sids_l)
     phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
@@ -1012,14 +1012,14 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     return pol_vals
 
 
-@njit
+@njit(float64[:](float64[:, :], float64[:, :]))
 def pc_eval_mv(pcfs, X):
     c = pcfs.T
     c0 = c[-1] + X*0
     for i in range(2, len(c) + 1):
         c0 = c[-i] + c0*X
-    ret = np.array([np.prod(c0[i, :]) for i in range(X.shape[0])])
-    return ret
+    return np.array([np.prod(c0[i, :]) for i in range(X.shape[0])],
+                    dtype=np.float64)
 
 
 def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
@@ -1300,7 +1300,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
 
         if cov_mode == 2:
             cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
-            
+
         if numba_aux:
             cf_ls, cov_mx = gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals,
                                                       alpha_mask, cov_mask,

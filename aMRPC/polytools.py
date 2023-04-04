@@ -10,7 +10,7 @@ import math
 import numpy as np
 # from numpy.polynomial import polynomial as P
 try:
-    from numba import njit  # , jit, float64, int32 # , jit_module
+    from numba import njit, float64  # , jit, float64, int32 # , jit_module
     NJM = True
 except ImportError:
     NJM = False
@@ -559,7 +559,7 @@ def gen_npc_mx_mm(cf, H_mx, No=-1):
     return ncf
 
 
-@njit
+@njit(float64[:](float64[:], float64[:]))
 def pc_eval(cfs, X):
     """
     Applies polyval with polyonomial p defined by  Cfs on X [p(X)]
