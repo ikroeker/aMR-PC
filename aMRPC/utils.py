@@ -70,7 +70,7 @@ def gen_multi_idx(n_o, dim):
     return alphas
 
 
-@jit(nopython=True)
+@jit(nopython=True, nogil=True)
 def gen_midx_mask(alphas, no_max):
     """
     generates a mask for alphas, such that all multi-index polynomial degrees
@@ -83,7 +83,7 @@ def gen_midx_mask(alphas, no_max):
     return a_mask
 
 
-@jit(nopython=True)
+@jit(nopython=True, nogil=True)
 def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     """
     generates a mask for alphas, such that all multi-index polynomial degrees
@@ -149,7 +149,7 @@ def gen_nri_range_4mkset(mkey_set, dim):
     return nris, nri_cnt
 
 
-@njit
+@njit(nogil=True)
 def midx4quad(ar_lens):
     """ generates indexes for eval. points etc. """
     # n_lens = np.array(ar_lens, dtype=np.int32)

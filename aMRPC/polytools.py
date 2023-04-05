@@ -559,7 +559,7 @@ def gen_npc_mx_mm(cf, H_mx, No=-1):
     return ncf
 
 
-@njit(float64[:](float64[:], float64[:]))
+@njit(float64[:](float64[:], float64[:]), nogil=True)
 def pc_eval(cfs, X):
     """
     Applies polyval with polyonomial p defined by  Cfs on X [p(X)]

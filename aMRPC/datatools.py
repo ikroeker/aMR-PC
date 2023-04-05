@@ -17,8 +17,10 @@ from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
 try:
-    from numba import jit, njit  # , jit_module
+    from numba import jit, njit, prange  # , jit_module
     from numba.types import int64, float64, b1
+    # from numba.core import types
+    # from numba.typed import Dict, List
     NJM = True
 except ImportError:
     NJM = False
@@ -160,7 +162,7 @@ def cmp_lrb(n_r, nri):
     return l_b, r_b
 
 
-@njit
+@njit(nogil=True)
 def cmp_quant_domain(data, qlb, qrb, bds='all'):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
     # bds = kwargs.get('bds', 'all')
@@ -207,6 +209,7 @@ def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey, bds='all'):
     return b_mask
 
 
+# @njit
 def gen_bds_arr(mkey, nrb_dict):
     "generates np.array with bds of stoch domain"
     sdim = len(mkey)
@@ -731,13 +734,13 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
     return phi
 
 
-@njit(float64[:, :](float64[:, :], int64[:], b1[:]))
+@njit(float64[:, :](float64[:, :], int64[:], b1[:]), nogil=True)
 def gen_phi_fast(pol_vals, sids, alpha_mask):
     phi = np.ascontiguousarray((pol_vals[:, sids][alpha_mask, :]).T)
     return phi
 
 
-@njit(float64[:, :](float64[:, :], b1[:]))
+@njit(float64[:, :](float64[:, :], b1[:]), nogil=True)
 def gen_phi_as(pol_vals, alpha_mask):
     phi = np.ascontiguousarray((pol_vals[alpha_mask, :]).T)
     return phi
@@ -971,18 +974,20 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     return f_rec
 
 
-@njit(float64[:, :, :](int64, int64, float64[:, :], int64[:], int64[:], float64[:, :, :]))
+@njit(float64[:, :, :](int64, int64, float64[:, :], int64[:], int64[:], float64[:, :, :]),
+      nogil=True, parallel=False)
 def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
     n_s_l = len(sids_l)
     phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
     f_rec = np.zeros((n_so, n_s_l, n_x), dtype=np.float64)
-    for idx_x in range(n_x):
+    for idx_x in prange(n_x):
         f_rec[:, :, idx_x] = (phi @ np.ascontiguousarray(f_cfs[:,  idxs_pm, idx_x].T)).T
 
     return f_rec
 
 
-@njit(float64[:, :](float64[:, :], int64[:], int64[:], float64[:, :]))
+@njit(float64[:, :](float64[:, :], int64[:], int64[:], float64[:, :]),
+      nogil=True)
 def gen_loc_amrpc_rec_nso(p_vals, idxs_pm, sids_l, f_cfs):
     phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
     f_rec = phi @ f_cfs[idxs_pm, :]
@@ -1012,13 +1017,13 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     return pol_vals
 
 
-@njit(float64[:](float64[:, :], float64[:, :]))
+@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=False)
 def pc_eval_mv(pcfs, X):
     c = pcfs.T
     c0 = c[-1] + X*0
     for i in range(2, len(c) + 1):
         c0 = c[-i] + c0*X
-    return np.array([np.prod(c0[i, :]) for i in range(X.shape[0])],
+    return np.array([np.prod(c0[i, :]) for i in prange(X.shape[0])],
                     dtype=np.float64)
 
 
@@ -1362,7 +1367,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     return (ret_cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else ret_cf_ls_4s
 
 
-@njit
+@njit(nogil=True)
 def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                               sigma_n_mk, sigma_p_mk,
                               meth_mode, cov_mode, p_max, x_start, x_len):
