@@ -928,9 +928,10 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     key = "mk2sid_samples"
     mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
+    para = kwargs.get('para', False)
     key = 'p_vals'
     p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas,
-                                                    mk2sid_loc))
+                                                    mk2sid_loc, para=para))
 
     idxs_p = np.arange(alphas.shape[0])
     for mkey, sids_l in mk2sid_loc.items():
@@ -975,7 +976,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
 
 @njit(float64[:, :, :](int64, int64, float64[:, :], int64[:], int64[:], float64[:, :, :]),
-      nogil=True, parallel=False)
+      nogil=True, parallel=True)
 def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
     n_s_l = len(sids_l)
     phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
@@ -995,7 +996,7 @@ def gen_loc_amrpc_rec_nso(p_vals, idxs_pm, sids_l, f_cfs):
     return f_rec
 
 
-def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
+def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid, para=False):
     """
     generates np.array with pol. vals for each sample and pol. degree
     samples : samples for evaluation (evtl. samples[srcs] )
@@ -1013,12 +1014,25 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
             pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
             # pol_vals[idx_p, sids] = np.prod(pt.pc_eval(pcfs, samples[sids, :]),
             #                                 axis=1)
-            pol_vals[idx_p, sids] = pc_eval_mv(pcfs, samples[sids, :])
+            if para:
+                pol_vals[idx_p, sids] = pc_eval_mv_par(pcfs, samples[sids, :])
+            else:
+                pol_vals[idx_p, sids] = pc_eval_mv(pcfs, samples[sids, :])
     return pol_vals
 
 
 @njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=False)
 def pc_eval_mv(pcfs, X):
+    c = pcfs.T
+    c0 = c[-1] + X*0
+    for i in range(2, len(c) + 1):
+        c0 = c[-i] + c0*X
+    return np.array([np.prod(c0[i, :]) for i in prange(X.shape[0])],
+                    dtype=np.float64)
+
+
+@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=True)
+def pc_eval_mv_par(pcfs, X):
     c = pcfs.T
     c0 = c[-1] + X*0
     for i in range(2, len(c) + 1):
