@@ -776,7 +776,7 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
         #     cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
         # else:
         #     cov_mx_inv = np.nan
-    except (RuntimeError, ValueError):
+    except (RuntimeError, ValueError, np.linalg.LinAlgError):
         cov_mx_inv = np.nan  # * np.empty(cov_mx.shape, dtype=np.float64)
         Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
         R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
@@ -788,7 +788,7 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
                 P_inv = np.ascontiguousarray(np.linalg.pinv(P))
                 # inverse according to eq. (A.9) in Rasmussen and Williams
                 cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
-        except (RuntimeError, ValueError):
+        except (RuntimeError, ValueError, np.linalg.LinAlgError):
             cov_mx_inv = np.nan
 
     return cov_mx, cov_mx_inv
@@ -834,11 +834,16 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
     n_x = f_cfs.shape[2]
     n_so = kwargs.get('n_samples_out', 1)
     f_rec = np.zeros((n_so, n_s, n_x))
+    para = kwargs.get('para', False)
     key = "mk2sid_samples"
-    mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
+    mk2sid_loc = kwargs.get(key, None)
+    if mk2sid_loc is None:
+        mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1]
     key = 'p_vals'
-    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas,
-                                                    mk2sid_loc))
+    p_vals = kwargs.get(key, None)
+    if p_vals is None:
+        p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas,
+                                        mk2sid_loc, para=para)
     rng = np.random.default_rng()
     idxs_p = np.arange(alphas.shape[0])
 
@@ -927,11 +932,15 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
             f_rec = np.zeros((n_s, n_x))
 
     key = "mk2sid_samples"
-    mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
+    mk2sid_loc = kwargs.get(key, None)
+    if mk2sid_loc is None:
+        mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1]
     para = kwargs.get('para', False)
     key = 'p_vals'
-    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas,
-                                                    mk2sid_loc, para=para))
+    p_vals = kwargs.get(key, None)
+    if p_vals is None:
+        p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas,
+                                        mk2sid_loc, para=para)
 
     idxs_p = np.arange(alphas.shape[0])
     for mkey, sids_l in mk2sid_loc.items():
