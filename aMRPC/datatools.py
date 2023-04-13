@@ -61,13 +61,17 @@ def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
         h_dict: dictionaly of Hankel matrices (np.array)
         """
     h_dict = {}
+
+    def trans(x, src):
+        return x*(ub_v[src] - lb_v[src]) + lb_v[src]
+
     for src in srcs:
-        trans = lambda x: x*(ub_v[src] - lb_v[src]) + lb_v[src]
+
         for nr_a in nr_range:
             for nr_i in range(2**nr_a):
                 lb_i, ub_i = cmp_lrb(nr_a, nr_i)
-                lb_ir = trans(lb_i)
-                ub_ir = trans(ub_i)
+                lb_ir = trans(lb_i, src)
+                ub_ir = trans(ub_i, src)
                 key = u.gen_dict_key(nr_a, nr_i, src)
                 h_dict[key] = pt.uniHank(n_o+1, lb_ir, ub_ir)
     return h_dict
@@ -154,6 +158,7 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
     return roots, weights
 
 
+@njit(nogil=True)
 def cmp_lrb(n_r, nri):
     """ computes left and right bounds for use in dataframe.quantile() """
     rcf = 2**(n_r)
@@ -746,7 +751,7 @@ def gen_phi_as(pol_vals, alpha_mask):
     return phi
 
 
-# @njit
+#@njit
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
@@ -791,6 +796,31 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
         except (RuntimeError, ValueError, np.linalg.LinAlgError):
             cov_mx_inv = np.nan
 
+    return cov_mx, cov_mx_inv
+
+
+@njit(nogil=True)
+def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
+    """
+    generates covariance etc. matrixes for likelihood
+
+    Parameters
+    ----------
+    phi: np.array, [sid, p] pol vals
+    s_sigma_n : float,  var noise ~ Q
+    s_sigma_p : float, var prioir ~ R
+
+    Returns
+    --------
+    cov_mx_inv inverse cov. matrix
+    """
+#    if s_sigma_n < 1e-42 or s_sigma_p < 1e-42:
+#        print("sigma n/p", s_sigma_n, s_sigma_p)
+#        return np.nan, np.nan
+    Q = np.eye(phi.shape[0]) * s_sigma_n
+    R = np.eye(phi.shape[1]) * s_sigma_p
+    cov_mx = phi @ R @ phi.T + Q
+    cov_mx_inv = np.linalg.pinv(cov_mx)
     return cov_mx, cov_mx_inv
 
 
@@ -1296,10 +1326,10 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     cov_mode = 0
     cov_mask = np.empty((1, 1), dtype=np.bool8)
     if ret_std:
-        ret_std_cov_4s = np.zeros((n_s, p_max, x_len))
+        ret_std_cov_4s = np.zeros((n_s, p_max, x_len), dtype=np.float64)
         cov_mode = 1
     elif ret_cov:
-        ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len))
+        ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len), dtype=np.float64)
         cov_mode = 2
 
     if numba_aux:
