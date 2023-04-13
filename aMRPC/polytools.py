@@ -10,13 +10,14 @@ import math
 import numpy as np
 # from numpy.polynomial import polynomial as P
 try:
-    from numba import njit, float64  # , jit, float64, int32 # , jit_module
+    from numba import njit, prange, float64  # int64, jit, float64, int32 # , jit_module
     NJM = True
 except ImportError:
     NJM = False
     pass
 
 
+@njit(nogil=True)
 def moment(mm, data):
     """
     computes mm-th raw moment
@@ -35,10 +36,16 @@ def moment(mm, data):
 
     """
     # print(mm)
-    return np.power(data, mm, dtype=np.float64).mean()
+    # return np.power(data, mm, dtype=np.float64).mean()
+    return np.mean(data ** mm)
 
 
 def Hankel(m_mx, data):
+    return Hankel_np(m_mx, np.array(data, dtype=np.float64))
+
+
+@njit(nogil=True, parallel=True)
+def Hankel_np(m_mx, data):
     """
       Generates Hankel matrix for max. order m_mx for dateset given in data
 
@@ -56,8 +63,8 @@ def Hankel(m_mx, data):
 
     """
 
-    H = np.zeros([m_mx+1, m_mx+1])
-    for i in range(m_mx+1):
+    H = np.empty((m_mx+1, m_mx+1), dtype=np.float64)
+    for i in prange(m_mx+1):
         for j in range(i, m_mx+1):
             H[i, j] = moment(i+j, data)
             H[j, i] = H[i, j]
@@ -97,7 +104,7 @@ def apc_cfs(H, k=-1, alen=-1):
     assert l >= alen
     if alen == -1:
         alen = l
-    cfs = np.zeros(alen)
+    cfs = np.zeros(alen, dtype=np.float64)
     if k < 0:
         k = l-1
     elif k == 0:
@@ -105,7 +112,7 @@ def apc_cfs(H, k=-1, alen=-1):
         return cfs
     assert k < l
     rH = np.copy(H[0:k+1, 0:k+1])
-    rs = np.zeros(k+1)
+    rs = np.zeros(k+1, dtype=np.float64)
     rs[-1] = 1
     for j in range(k+1):
         rH[k, j] = 0
@@ -383,7 +390,8 @@ def cmp_norm_cf_moments(cfs, H_mx, eps=0):
     return math.sqrt(ltwo_norm)
 
 
-def uniHank(n, a=0, b=1):
+@njit(nogil=True, parallel=True)
+def uniHank(n, a=0.0, b=1.0):
     """
     Generates Hankel Matrix H_n for U(a,b),
     uses m_n=1/n+1 sum_k=0^n a^k b^(n-k)
@@ -404,13 +412,13 @@ def uniHank(n, a=0, b=1):
 
     """
 
-    H = np.zeros([n+1, n+1])
-    lva = a*np.ones(2*n+1)
-    lvb = b*np.ones(2*n+1)
+    H = np.zeros((n+1, n+1), dtype=np.float64)
+    lva = a*np.ones(2*n+1, dtype=np.float64)
+    lvb = b*np.ones(2*n+1, dtype=np.float64)
     for i in range(2*n+1):
         lva[i] = lva[i]**i
         lvb[i] = lvb[i]**(2*n-i)
-    for k in range(n+1):
+    for k in prange(n+1):
         for l in range(n+1):
             m = k+l
             va = lva[0:m+1]
@@ -443,7 +451,7 @@ def gen_pc_mx(H, method=0, No=-1):
     assert No <= n
     if No < 0:
         No = n-1
-    cf = np.zeros([No, No])
+    cf = np.zeros((No, No), dtype=np.float64)
     for k in range(No):
         if method == 0:
             cf[k, :] = pc_cfs(H, k, No)
@@ -559,7 +567,8 @@ def gen_npc_mx_mm(cf, H_mx, No=-1):
     return ncf
 
 
-@njit(float64[:](float64[:], float64[:]), nogil=True)
+#@njit(float64[:](float64[:], float64[:]), nogil=True)
+@njit(nogil=True)
 def pc_eval(cfs, X):
     """
     Applies polyval with polyonomial p defined by  Cfs on X [p(X)]
