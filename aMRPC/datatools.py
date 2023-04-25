@@ -1383,8 +1383,14 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                     if method == 'pinv':
                         v_ls = np.linalg.pinv(phi) @ rs_data
                     elif method == 'reg_t':
-                        P_inv = (np.linalg.pinv((phi.T / sigma_n_mk) @ phi
-                                                + np.eye(phi.shape[1]) / sigma_p_mk))
+                        P = ((phi.T / sigma_n_mk) @ phi
+                             + np.eye(phi.shape[1]) / sigma_p_mk)
+                        try:
+                            P_inv = np.linalg.pinv(P)
+                        except:
+                            L = np.linalg.cholesky(P)
+                            L_inv = np.linalg.pinv(L)
+                            P_inv = L_inv.T @ L_inv
                         v_ls = (P_inv @ phi.T / sigma_n_mk
                                 @ rs_data)
                         if ret_std:

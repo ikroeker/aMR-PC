@@ -475,7 +475,12 @@ def entropy_norm_response_j(observation, response_surfaces, covariance_matrix,
         # rs_cov[eps_mx] = eps
 
     rs_cov_cf = cmp_log_likelihood_cf_mv(rs_cov)
+    # try:
     rs_cov_inv = np.linalg.pinv(covariance_matrix)
+    # except:
+    #     L = np.linalg.cholesky(covariance_matrix)
+    #     L_inv = np.ascontiguousarray(np.linalg.pinv(L))
+    #     rs_cov_inv = np.ascontiguousarray(L_inv.T @ L_inv)
 
     llhs_gs = cmp_log_likelihood_core_inv(rs_mean,
                                           response_surfaces[mask, :].T,
@@ -484,6 +489,53 @@ def entropy_norm_response_j(observation, response_surfaces, covariance_matrix,
     return (np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs)
             - rs_cov_cf if bme > 0 else np.nan)
     # return np.log(bme) - np.mean(llhs[mask]) - np.mean(llhs_gs[mask]) if bme > 0 else np.nan
+
+
+def entropy_prior_response(observation, response_surfaces, covariance_matrix,
+                            pr_dens, eps):
+    """
+    Computes entropy
+
+    Parameters
+    ----------
+    observation : np.array
+        observation.
+    response_surfaces : np.array
+        surrogate / model response.
+    covariance_matrix : np.array
+        covariance matrix.
+    pr_dens: np.array
+        prior probability density values of the samples
+   eps : lowest bound for bme. default: eps_bme=1.0e-300:
+ 
+
+    Returns
+    -------
+    float
+        entropy value.
+
+    """
+    n, m = response_surfaces.shape
+    if m == len(observation):
+        sample_cnt = n
+        measurs = m
+        response_surfaces = np.ascontiguousarray(response_surfaces)
+    else:
+        measurs = n
+        sample_cnt = m
+        response_surfaces = np.ascontiguousarray(response_surfaces.T)
+
+    covariance_matrix_inv = np.linalg.pinv(covariance_matrix)
+    llhs = np.array([cmp_log_likelihood_core_sinv(observation,
+                                                  response_surfaces[sample, :],
+                                                  covariance_matrix_inv)
+                     for sample in range(sample_cnt)])
+
+    mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
+    bme = np.exp(llhs).mean() + eps
+
+    return (np.log(bme) - np.mean(llhs[mask]) - np.mean(np.log(pr_dens[mask]))
+            if bme > 0 else np.nan)
 
 
 if NJM:
