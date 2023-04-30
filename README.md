@@ -24,7 +24,13 @@ Reliability Engineering & System Safety,
 Volume 222, 2022, 108376, ISSN 0951-8320,
 https://doi.org/10.1016/j.ress.2022.108376.
 
-Also used in preprint:
+Also used in following publications:
+
+Rebecca Kohlhaas; Ilja Kröker; Sergey Oladyshkin; Wolfgang Nowak
+*Gaussian active learning on multi-resolution arbitrary polynomial chaos emulator: concept for bias correction, assessment of surrogate reliability and its application to the carbon dioxide benchmark*
+Comput Geosci (2023).
+https://doi.org/10.1007/s10596-023-10199-1
+
 
 Ilja Kroeker, Sergey Oladyshkin, Iryna Rybak
 *Global sensitivity analysis using multi-resolution polynomial chaos expansion for coupled Stokes-Darcy flow problems.*

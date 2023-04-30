@@ -8,8 +8,15 @@ https://orcid.org/0000-0003-0360-5307
 """
 
 import itertools as it
+# from math import comb
 import numpy as np
 from scipy.special import comb
+try:
+    from numba import jit, njit  # , jit_module
+    NJM = True
+except ImportError:
+    NJM = False
+    pass
 
 # import math
 
@@ -25,7 +32,7 @@ def gen_multi_idx_old(n_o, dim):
     old version
     """
     p_cnt = comb(n_o+dim, dim)
-    alphas = np.zeros((int(p_cnt), dim), dtype=int)
+    alphas = np.zeros((np.uint32(p_cnt), dim), dtype=np.int32)
     tmp_arr = np.zeros(dim)
     l_idx = 1
     pmax = (n_o+1)**dim
@@ -44,36 +51,39 @@ def gen_multi_idx_old(n_o, dim):
     return alphas
 
 
+# @jit(debug=True)
 def gen_multi_idx(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
     """
-    p_cnt = int(comb(n_o+dim, dim))
-    alphas = np.zeros((p_cnt, dim), dtype=int)
+    p_cnt = np.int64(comb(n_o+dim, dim, exact=True))
+    alphas = np.zeros((p_cnt, dim), dtype=np.uint32)
     l_idx = 0
     tmp_it = it.product(range(n_o+1), repeat=dim)
     for p_it in tmp_it:
         if sum(p_it) <= n_o:
-            alphas[l_idx, :] = np.array(p_it)
+            alphas[l_idx, :] = np.array(p_it, dtype=np.uint32)
             l_idx = l_idx+1
             if l_idx == p_cnt:
                 break
     return alphas
 
 
+@jit(nopython=True, nogil=True)
 def gen_midx_mask(alphas, no_max):
     """
     generates a mask for alphas, such that all multi-index polynomial degrees
     are below ( <=)no_max
     """
     p_cnt = alphas.shape[0]
-    a_mask = np.zeros(p_cnt, dtype=bool)
+    a_mask = np.zeros(p_cnt, dtype=np.bool8)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
     return a_mask
 
 
+@jit(nopython=True, nogil=True)
 def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     """
     generates a mask for alphas, such that all multi-index polynomial degrees
@@ -81,7 +91,7 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     for idx not in idx_st pol degree <=no_min
     """
     p_cnt, dim = alphas.shape
-    a_mask = np.zeros(p_cnt, dtype=bool)
+    a_mask = np.zeros(p_cnt, dtype=np.bool8)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
         for _d in range(dim):
@@ -108,7 +118,7 @@ def gen_nri_range(nrs):
         nri_cnts[d_idx] = 2**(nrs[d_idx])
         divs[d_idx] = nri_cnts[0:d_idx].prod()
     nri_cnt = int(nri_cnts.prod())
-    nris = np.zeros((nri_cnt, dim), dtype=int)
+    nris = np.zeros((nri_cnt, dim), dtype=np.uint32)
     for nri in range(nri_cnt):
         for d_idx in range(dim):
             val = (nri//divs[d_idx] % nri_cnts[d_idx])
@@ -129,7 +139,7 @@ def gen_nri_range_4mkset(mkey_set, dim):
     nri_cnt = len(mkey_set)  # number of multi-keys
     pos = ParPos['Nri']
     assert nri_cnt > 0
-    nris = np.zeros((nri_cnt, dim), dtype=int)
+    nris = np.zeros((nri_cnt, dim), dtype=np.uint64)
     cnt = 0  # counter
     for mkey in mkey_set:
         for d_i in range(dim):
@@ -139,19 +149,20 @@ def gen_nri_range_4mkset(mkey_set, dim):
     return nris, nri_cnt
 
 
+@njit(nogil=True)
 def midx4quad(ar_lens):
     """ generates indexes for eval. points etc. """
-    n_lens = np.array(ar_lens)
+    # n_lens = np.array(ar_lens, dtype=np.int32)
     cols = len(ar_lens)
-    lines = n_lens.prod()
-    idx_mx = np.zeros((lines, cols), dtype=int)
+    lines = ar_lens.prod()
+    idx_mx = np.zeros((lines, cols), dtype=np.uint32)
     divs = np.zeros(cols)
     for col in range(cols):
-        divs[col] = n_lens[0:col].prod()
+        divs[col] = ar_lens[0:col].prod()
     # print(divs)
     for l_idx in range(lines):
         for col in range(cols):
-            val = (l_idx//divs[col] % n_lens[col])
+            val = (l_idx//divs[col] % ar_lens[col])
             idx_mx[l_idx, col] = val
     return idx_mx
 
@@ -318,6 +329,10 @@ def inv_src_arr(srcs):
         i = i+1
     return isrc
 
+
+# if NJM:
+#     # jit_module(nopython=True, error_model="numpy")
+#     jit_module(error_model="numpy")
 
 if __name__ == "__main__":
     print("test utils.py")

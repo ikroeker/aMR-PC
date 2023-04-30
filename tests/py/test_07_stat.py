@@ -68,11 +68,11 @@ def test_vector_norm_likelihood():
     ref_likelihood = np.zeros(NUMBER_OF_REALIZATIONS)
 
     for i in range(NUMBER_OF_REALIZATIONS):
-        vec_observations[:, i] = observations
+        # vec_observations[:, i] = observations
         vec_response_surface[:, i] = observations + np.sin(points*30)/(10+i)
         ref_likelihood[i] = norm.pdf(observations, vec_response_surface[:, i], STD).prod()
     lh_cf = st.cmp_norm_likelihood_cf(STD, NUMBER_OF_MEASUREMENTS)
-    vec_lh = st.cmp_norm_likelihood_core(vec_observations, vec_response_surface, cov_mx)
+    vec_lh = st.cmp_norm_likelihood_core(observations, vec_response_surface, cov_mx)
     #print(vec_lh*lh_cf)
     #print(ref_likelihood)
     for i in range(NUMBER_OF_REALIZATIONS):

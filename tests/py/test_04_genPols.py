@@ -1,4 +1,4 @@
-#import numpy as np
+import numpy as np
 #import pandas as pd
 import context
 import aMRPC.iodata as iod
@@ -70,7 +70,8 @@ def test_aMRPC4m0():
             l_b, r_b = dt.cmp_lrb(aNr, Nri)
             qlb = dataframe.quantile(l_b)
             qrb = dataframe.quantile(r_b)
-            bd = dt.cmp_quant_domain(dataframe, qlb, qrb)
+            bd = dt.cmp_quant_domain(np.array(dataframe), np.array(qlb),
+                                     np.array(qrb))
             qdata = dataframe[bd]
             gen_aPC4method(qdata, method, tol)
 
@@ -84,7 +85,8 @@ def test_aMRPC4m1():
             l_b, r_b = dt.cmp_lrb(aNr, Nri)
             qlb = dataframe.quantile(l_b)
             qrb = dataframe.quantile(r_b)
-            bd = dt.cmp_quant_domain(dataframe, qlb, qrb)
+            bd = dt.cmp_quant_domain(np.array(dataframe), np.array(qlb),
+                                     np.array(qrb))
             qdata = dataframe[bd]
             gen_aPC4method(qdata, method, tol, 1)
 
@@ -97,6 +99,7 @@ def test_aMRPC4m1q():
             l_b, r_b = dt.cmp_lrb(aNr, Nri)
             qlb = dataframe.quantile(l_b)
             qrb = dataframe.quantile(r_b)
-            bd = dt.cmp_quant_domain(dataframe, qlb, qrb)
+            bd = dt.cmp_quant_domain(np.array(dataframe), np.array(qlb),
+                                     np.array(qrb))
             qdata = dataframe[bd]
             gen_aPC4method(qdata, method, tol)

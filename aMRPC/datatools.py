@@ -16,6 +16,15 @@ from scipy.linalg import lstsq
 from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
+try:
+    from numba import jit, njit, prange  # , jit_module
+    from numba.types import int64, float64, b1
+    # from numba.core import types
+    # from numba.typed import Dict, List
+    NJM = True
+except ImportError:
+    NJM = False
+    pass
 
 EPS = 1e-20  # epsilon
 
@@ -32,7 +41,7 @@ def genHankel(dataframe, srcs, nr_range, n_o):
                 l_b, r_b = cmp_lrb(anr, nri)
                 qlb = data.quantile(l_b)
                 qrb = data.quantile(r_b)
-                mask = cmp_quant_domain(data, qlb, qrb)
+                mask = cmp_quant_domain(np.array(data), qlb, qrb)
                 key = u.gen_dict_key(anr, nri, src)
                 h_dict[key] = pt.Hankel(n_o+1, data[mask])
                 # print(H)
@@ -52,13 +61,17 @@ def genHankel_uniform(lb_v, ub_v, srcs, nr_range, n_o):
         h_dict: dictionaly of Hankel matrices (np.array)
         """
     h_dict = {}
+
+    def trans(x, src):
+        return x*(ub_v[src] - lb_v[src]) + lb_v[src]
+
     for src in srcs:
-        trans = lambda x: x*(ub_v[src] - lb_v[src]) + lb_v[src]
+
         for nr_a in nr_range:
             for nr_i in range(2**nr_a):
                 lb_i, ub_i = cmp_lrb(nr_a, nr_i)
-                lb_ir = trans(lb_i)
-                ub_ir = trans(ub_i)
+                lb_ir = trans(lb_i, src)
+                ub_ir = trans(ub_i, src)
                 key = u.gen_dict_key(nr_a, nr_i, src)
                 h_dict[key] = pt.uniHank(n_o+1, lb_ir, ub_ir)
     return h_dict
@@ -145,6 +158,7 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
     return roots, weights
 
 
+@njit(nogil=True)
 def cmp_lrb(n_r, nri):
     """ computes left and right bounds for use in dataframe.quantile() """
     rcf = 2**(n_r)
@@ -153,9 +167,10 @@ def cmp_lrb(n_r, nri):
     return l_b, r_b
 
 
-def cmp_quant_domain(data, qlb, qrb, **kwargs):
+@njit(nogil=True)
+def cmp_quant_domain(data, qlb, qrb, bds='all'):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
-    bds = kwargs.get('bds', 'all')
+    # bds = kwargs.get('bds', 'all')
     if bds == 'all':
         b_mask = (data >= qlb) & (data <= qrb)
     elif bds == 'rb':
@@ -165,12 +180,12 @@ def cmp_quant_domain(data, qlb, qrb, **kwargs):
     return b_mask
 
 
-def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols, **kwargs):
+def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols, bds='all'):
     """
     generates bool array with 1 for r inside of
     [a_0,b_0]x..x[a_d,b_d], 0 else
     """
-    bds = kwargs.get('bds', 'all')
+    # bds = kwargs.get('bds', 'all')
     n = roots.shape[0]
     ndim = len(nrs)
     assert ndim == len(nris)
@@ -182,20 +197,42 @@ def cmp_mw_quant_domain(roots, nrb_dict, nrs, nris, cols, **kwargs):
     return b_mask
 
 
-def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey, **kwargs):
+def cmp_mv_quant_domain_mk(roots, nrb_dict, mkey, bds='all'):
     """
     generates bool array with 1 for r inside of
     [a_0,b_0]x..x[a_d,b_d], 0 else
     for given multikey mkey
     """
-    bds = kwargs.get('bds', 'all')
+    # bds = kwargs.get('bds', 'all')
     n, sdim = roots.shape
     assert sdim == len(mkey)
-    b_mask = np.ones(n, dtype=bool)
+    b_mask = np.ones(n, dtype=np.bool8)
     for d in range(sdim):
         key = mkey[d]
         qlb, qrb = nrb_dict[key]
         b_mask = b_mask & cmp_quant_domain(roots[:, d], qlb, qrb, bds=bds)
+    return b_mask
+
+
+# @njit
+def gen_bds_arr(mkey, nrb_dict):
+    "generates np.array with bds of stoch domain"
+    sdim = len(mkey)
+    bds_arr = np.zeros((sdim, 2), dtype=np.float64)
+    for d in range(sdim):
+        key = mkey[d]
+        bds_arr[d, :] = np.array(nrb_dict[key], dtype=np.float64)
+    return bds_arr
+
+
+@njit
+def cmp_mv_quant_domain_arr(roots, bds_arr, bds='all'):
+    n, sdim = roots.shape
+    assert sdim == bds_arr.shape[0]
+    b_mask = np.ones(n, dtype=np.bool8)
+    for d in range(sdim):
+        b_mask = b_mask & cmp_quant_domain(roots[:, d], bds_arr[d, 0],
+                                           bds_arr[d, 1], bds=bds)
     return b_mask
 
 
@@ -241,12 +278,13 @@ def gen_npcs_mm(pc_dict, H_dict):
     return n_cfs
 
 
+# @njit
 def pcfs4eval(pc_dict, mkey, alpha):
     """ provides PC-Cfs for multi-polynomial with degrees in alpha """
-    mdeg = max(alpha)
+    mdeg = np.max(alpha)
     alen = len(alpha)
     assert alen == len(mkey)
-    rcfs = np.zeros((alen, mdeg+1))
+    rcfs = np.zeros((alen, mdeg+1), dtype=np.float64)
     for d in range(alen):
         ad = alpha[d]
         cfs = pc_dict[mkey[d]]
@@ -395,8 +433,8 @@ def gen_rw_4mkey(mkey, roots, weights):
 
     """
     cols = len(mkey)
-    ls = [len(roots[key]) for key in mkey]
-    lens = np.array(ls)
+    # ls = [len(roots[key]) for key in mkey]
+    lens = np.array([len(roots[key]) for key in mkey])
     lines = lens.prod()
     I = u.midx4quad(lens)
     r_roots = np.zeros((lines, cols))
@@ -438,7 +476,7 @@ def get_rw_4nrs(nrs, srcs, roots, weights):
     """ generates eval. points and weights for a Nr level """
     dim = len(nrs)
     nris = np.zeros(dim)
-    nri_cnt = np.zeros(dim, dtype=int)
+    nri_cnt = np.zeros(dim, dtype=np.int64)
     divs = np.zeros(dim)
     R = np.array([])
     W = np.array([])
@@ -574,27 +612,29 @@ def gen_mkey_list(k_dict, srcs):
         if chk:
             idx = key[sidx]
             k_lst[isrcs[idx]].append(key)
-    alen = [len(c) for c in k_lst]
+    alen = np.array([len(c) for c in k_lst])
     I = u.midx4quad(alen)
     ilen, _ = np.shape(I)
     # required also for 1-dim case, to generate multikey -> tuple(tuple)
     return [tuple([k_lst[c][I[i, c]] for c in range(srclen)]) for i in range(ilen)]
 
 
-def gen_mkey_sid_rel(samples, mk_lst, nrb_dict, **kwargs):
+def gen_mkey_sid_rel(samples, mk_lst, nrb_dict, bds='all'):
     """
     generates long sample->[multi-key ]
     multi-key -> np.array([sample id]) dictionaries
 
     return : sid2mk, mk2sids
     """
-    bds = kwargs.get('bds', 'all')
+    # bds = kwargs.get('bds', 'all')
     sample_cnt, _ = samples.shape
     sids = np.arange(sample_cnt)
     sid2mk = {}
     mk2sids = {}
     for mkey in mk_lst:
-        B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey, bds=bds)
+        # B = cmp_mv_quant_domain_mk(samples, nrb_dict, mkey, bds=bds)
+        b_arr = gen_bds_arr(mkey, nrb_dict)
+        B = cmp_mv_quant_domain_arr(samples, b_arr, bds=bds)
         if B.sum() > 0:
             mk2sids[mkey] = sids[B]
             for sid in mk2sids[mkey]:
@@ -695,9 +735,23 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
             phi = (pol_vals[:, sids][:, :]).T
         else:
             phi = (pol_vals[:, sids][alpha_dict[mkey], :]).T
+            # phi = gen_phi_fast(pol_vals,  alpha_dict[mkey], sids)
     return phi
 
 
+@njit(float64[:, :](float64[:, :], int64[:], b1[:]), nogil=True)
+def gen_phi_fast(pol_vals, sids, alpha_mask):
+    phi = np.ascontiguousarray((pol_vals[:, sids][alpha_mask, :]).T)
+    return phi
+
+
+@njit(float64[:, :](float64[:, :], b1[:]), nogil=True)
+def gen_phi_as(pol_vals, alpha_mask):
+    phi = np.ascontiguousarray((pol_vals[alpha_mask, :]).T)
+    return phi
+
+
+#@njit
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
@@ -719,7 +773,6 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
 
-    cov_mx_inv = np.nan
     try:
         cov_mx_inv = np.linalg.pinv(cov_mx)
         # if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
@@ -728,18 +781,46 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
         #     cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
         # else:
         #     cov_mx_inv = np.nan
-    except (RuntimeError, ValueError):
-        Q_inv = np.eye(phi.shape[0]) / s_sigma_n
-        R_inv = np.eye(phi.shape[1]) / s_sigma_p
+    except (RuntimeError, ValueError, np.linalg.LinAlgError):
+        cov_mx_inv = np.nan  # * np.empty(cov_mx.shape, dtype=np.float64)
+        Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
+        R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
         P = phi.T @ Q_inv @ phi + R_inv
+
         try:
-            if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
-                P_inv = np.linalg.pinv(P)
+            # if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
+            if np.prod(np.diag(np.linalg.cholesky(P))) > 0:
+                P_inv = np.ascontiguousarray(np.linalg.pinv(P))
                 # inverse according to eq. (A.9) in Rasmussen and Williams
                 cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
-        except (RuntimeError, ValueError):
+        except (RuntimeError, ValueError, np.linalg.LinAlgError):
             cov_mx_inv = np.nan
 
+    return cov_mx, cov_mx_inv
+
+
+@njit(nogil=True)
+def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
+    """
+    generates covariance etc. matrixes for likelihood
+
+    Parameters
+    ----------
+    phi: np.array, [sid, p] pol vals
+    s_sigma_n : float,  var noise ~ Q
+    s_sigma_p : float, var prioir ~ R
+
+    Returns
+    --------
+    cov_mx_inv inverse cov. matrix
+    """
+#    if s_sigma_n < 1e-42 or s_sigma_p < 1e-42:
+#        print("sigma n/p", s_sigma_n, s_sigma_p)
+#        return np.nan, np.nan
+    Q = np.eye(phi.shape[0]) * s_sigma_n
+    R = np.eye(phi.shape[1]) * s_sigma_p
+    cov_mx = phi @ R @ phi.T + Q
+    cov_mx_inv = np.linalg.pinv(cov_mx)
     return cov_mx, cov_mx_inv
 
 
@@ -783,10 +864,16 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
     n_x = f_cfs.shape[2]
     n_so = kwargs.get('n_samples_out', 1)
     f_rec = np.zeros((n_so, n_s, n_x))
+    para = kwargs.get('para', False)
     key = "mk2sid_samples"
-    mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
+    mk2sid_loc = kwargs.get(key, None)
+    if mk2sid_loc is None:
+        mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1]
     key = 'p_vals'
-    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid_loc))
+    p_vals = kwargs.get(key, None)
+    if p_vals is None:
+        p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas,
+                                        mk2sid_loc, para=para)
     rng = np.random.default_rng()
     idxs_p = np.arange(alphas.shape[0])
 
@@ -797,21 +884,18 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
             alpha_mask = alpha_masks[mkey]
         else:
             idxs_pm = idxs_p
-            alpha_mask = np.ones(alphas.shape[0], dtype=bool)
+            alpha_mask = np.ones(alphas.shape[0], dtype=np.bool8)
 #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
         if len(f_cov_mx.shape) < 4:
             f_cov_mx = np.expand_dims(f_cov_mx, 0)
-#        phi_all = p_vals[idxs_pm, :]
-#        phi = phi_all[:, sids_l].T
-        phi = (p_vals[:, sids_l][idxs_pm, :]).T
+
+        phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
         for idx_x in range(n_x):
-#            for sid_l in sids_l:
-#                f_rec[:, sid_l, idx_x] = f_cfs_s @ p_vals[idxs_pm, sid_l]
 
             f_cfs_s = rng.multivariate_normal(phi @ f_cfs[sids[0], alpha_mask, idx_x],
                                               phi @ f_cov_mx[sids[0], alpha_mask, :, idx_x][:, alpha_mask] @ phi.T,
                                               n_so)
-            #for sid_l in sids_l:
+
             f_rec[:, sids_l, idx_x] = f_cfs_s
 
     return f_rec
@@ -878,10 +962,15 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
             f_rec = np.zeros((n_s, n_x))
 
     key = "mk2sid_samples"
-    mk2sid_loc = kwargs.get(key, gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1])
+    mk2sid_loc = kwargs.get(key, None)
+    if mk2sid_loc is None:
+        mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1]
+    para = kwargs.get('para', False)
     key = 'p_vals'
-    p_vals = kwargs.get(key, gen_pol_on_samples_arr(samples, npc_dict, alphas,
-                                                    mk2sid_loc))
+    p_vals = kwargs.get(key, None)
+    if p_vals is None:
+        p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas,
+                                        mk2sid_loc, para=para)
 
     idxs_p = np.arange(alphas.shape[0])
     for mkey, sids_l in mk2sid_loc.items():
@@ -891,29 +980,62 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         else:
             idxs_pm = idxs_p
 
-#        phi_all = p_vals[idxs_pm, :]
-#        f_rec[sids_l, :] = phi_all[:, sids_l].T @ f_cfs[sids[0], idxs_pm, :]
-        # phi = gen_phi(mkey, p_vals, mk2sid_loc, alpha_masks)
-        phi = (p_vals[:, sids_l][idxs_pm, :]).T
-        if mkey_type:
-            if n_so > 0:
-                for idx_x in range(n_x):
-                    f_rec[:, sids_l, idx_x] = (phi @ f_cfs[mkey][:, idxs_pm, idx_x].T).T
+        if n_so > 0:
+            if mkey_type:
+                f_rec[:, sids_l, :] = gen_loc_amrpc_rec_so(n_so, n_x, p_vals,
+                                                           idxs_pm,
+                                                           sids_l, f_cfs[mkey])
             else:
-                f_rec[sids_l, :] = phi @ f_cfs[mkey][idxs_pm, :]
+                f_rec[:, sids_l, :] = gen_loc_amrpc_rec_so(n_so, n_x, p_vals,
+                                                           idxs_pm,
+                                                           sids_l,
+                                                           f_cfs[:, sids[0], :, :])
         else:
-            if n_so > 0:
-                for idx_x in range(n_x):
-                    f_rec[:, sids_l, idx_x] = (phi @ f_cfs[:, sids[0], idxs_pm, idx_x].T).T
+            if mkey_type:
+                f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
+                                                         sids_l, f_cfs[mkey])
             else:
-                f_rec[sids_l, :] = phi @ f_cfs[sids[0], idxs_pm, :]
-#        for sid_l in sids_l:
-#            f_rec[sid_l, :] = f_cfs[sids[0], idxs_pm, :].T @ p_vals[idxs_pm, sid_l]
+                f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
+                                                         sids_l, f_cfs[sids[0], :, :])
+        # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
+        # if mkey_type:
+        #     if n_so > 0:
+        #         for idx_x in range(n_x):
+        #             f_rec[:, sids_l, idx_x] = (phi @ np.ascontiguousarray(f_cfs[mkey][:, idxs_pm, idx_x].T)).T
+        #     else:
+        #         f_rec[sids_l, :] = phi @ np.ascontiguousarray(f_cfs[mkey][idxs_pm, :])
+        # else:
+        #     if n_so > 0:
+        #         for idx_x in range(n_x):
+        #             f_rec[:, sids_l, idx_x] = (phi @ np.ascontiguousarray(f_cfs[:, sids[0], idxs_pm, idx_x].T)).T
+        #     else:
+        #         f_rec[sids_l, :] = phi @ np.ascontiguousarray(f_cfs[sids[0], idxs_pm, :])
 
     return f_rec
 
 
-def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
+@njit(float64[:, :, :](int64, int64, float64[:, :], int64[:], int64[:], float64[:, :, :]),
+      nogil=True, parallel=True)
+def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
+    n_s_l = len(sids_l)
+    phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
+    f_rec = np.zeros((n_so, n_s_l, n_x), dtype=np.float64)
+    for idx_x in prange(n_x):
+        f_rec[:, :, idx_x] = (phi @ np.ascontiguousarray(f_cfs[:,  idxs_pm, idx_x].T)).T
+
+    return f_rec
+
+
+@njit(float64[:, :](float64[:, :], int64[:], int64[:], float64[:, :]),
+      nogil=True)
+def gen_loc_amrpc_rec_nso(p_vals, idxs_pm, sids_l, f_cfs):
+    phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
+    f_rec = phi @ f_cfs[idxs_pm, :]
+
+    return f_rec
+
+
+def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid, para=False):
     """
     generates np.array with pol. vals for each sample and pol. degree
     samples : samples for evaluation (evtl. samples[srcs] )
@@ -929,9 +1051,33 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid):
     for mkey, sids in mk2sid.items():
         for idx_p in range(p_max):
             pcfs = pcfs4eval(npc_dict, mkey, alphas[idx_p])
-            pvals = pt.pc_eval(pcfs, samples[sids, :])
-            pol_vals[idx_p, sids] = np.prod(pvals, axis=1)
+            # pol_vals[idx_p, sids] = np.prod(pt.pc_eval(pcfs, samples[sids, :]),
+            #                                 axis=1)
+            if para:
+                pol_vals[idx_p, sids] = pc_eval_mv_par(pcfs, samples[sids, :])
+            else:
+                pol_vals[idx_p, sids] = pc_eval_mv(pcfs, samples[sids, :])
     return pol_vals
+
+
+@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=False)
+def pc_eval_mv(pcfs, X):
+    c = pcfs.T
+    c0 = c[-1] + X*0
+    for i in range(2, len(c) + 1):
+        c0 = c[-i] + c0*X
+    return np.array([np.prod(c0[i, :]) for i in prange(X.shape[0])],
+                    dtype=np.float64)
+
+
+@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=True)
+def pc_eval_mv_par(pcfs, X):
+    c = pcfs.T
+    c0 = c[-1] + X*0
+    for i in range(2, len(c) + 1):
+        c0 = c[-i] + c0*X
+    return np.array([np.prod(c0[i, :]) for i in prange(X.shape[0])],
+                    dtype=np.float64)
 
 
 def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
@@ -1006,8 +1152,9 @@ def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
             if mkey_out:
                 ret_f_cfs[mkey][:, alpha_mask, idx_x] = s_cfs
             else:
-                for sid in sids:
-                    ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
+                ret_f_cfs[:, sids, alpha_mask, idx_x] = s_cfs.reshape((-1, 1))
+                # for sid in sids:
+                #     ret_f_cfs[:, sid, alpha_mask, idx_x] = s_cfs
 
     return ret_f_cfs
 
@@ -1174,15 +1321,32 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     ret_cf_ls_4s = np.zeros((n_s, p_max, x_len))
     ret_std = kwargs.get('return_std', False)
     ret_cov = kwargs.get('return_cov', False)
+    numba_aux = kwargs.get('num_aux', False)
+
+    cov_mode = 0
+    cov_mask = np.empty((1, 1), dtype=np.bool8)
     if ret_std:
-        ret_std_cov_4s = np.zeros((n_s, p_max, x_len))
+        ret_std_cov_4s = np.zeros((n_s, p_max, x_len), dtype=np.float64)
+        cov_mode = 1
     elif ret_cov:
-        ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len))
+        ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len), dtype=np.float64)
+        cov_mode = 2
+
+    if numba_aux:
+        if method == 'pinv':
+            meth_mode = 1
+        elif method == 'reg_t':
+            meth_mode = 2
+        elif method == 'reg_n':
+            meth_mode = 3
+        elif method == 'unbias':
+            meth_mode = 4
+        else:
+            meth_mode = 0  # lsq
 
     for mkey, sids in mk2sid.items():
         alpha_mask = mask_dict[mkey]
-#        phi = (pol_vals[:, sids][alpha_mask, :]).T
-        phi = gen_phi(mkey, pol_vals, mk2sid, mask_dict)
+
         if isinstance(sigma_n, dict):
             sigma_n_mk = sigma_n[mkey]**2
         elif isinstance(sigma_n, float):
@@ -1191,53 +1355,143 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
             sigma_p_mk = sigma_p[mkey]**2
         elif isinstance(sigma_p, float):
             sigma_p_mk = sigma_p**2
-        for idx_x in range(x_len):
-            # v, resid, rank, sigma = linalg.lstsq(A,y)
-            # solves Av = y using least squares
-            # sigma - singular values of A
-            dt_idx_x = x_start + idx_x
-            if n_s > 1:
-                if method == 'pinv':
-                    v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
-                elif method == 'unbias':
-                    v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
-                elif method == 'unbias_herm':
-                    v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
-                            @ phi.T @ data[sids, dt_idx_x])
-                elif method == 'reg_n':
-                    cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
-                    v_ls = (cov_op @ phi.T / sigma_n_mk
-                            @ data[sids, dt_idx_x])
-                    if ret_std:
-                        ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(cov_op))
-                    elif ret_cov:
-                        ret_std_cov_4s[sids, :, :, idx_x] = cov_op
 
-                elif method == 'reg_t':
-                    P_inv = (np.linalg.pinv((phi.T / sigma_n_mk) @ phi
-                                            + np.eye(phi.shape[1]) / sigma_p_mk))
-                    v_ls = (P_inv @ phi.T / sigma_n_mk
-                            @ data[sids, dt_idx_x])
-                    if ret_std:
-                        ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
-                    elif ret_cov:
-#                        b_cov = np.broadcast_to(P_inv, (len(sids), *P_inv.shape))
-                        cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
-                        for sid in sids:
-                            ret_std_cov_4s[sid, cov_mask, idx_x] = P_inv.flatten()
+        if cov_mode == 2:
+            cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
+
+        if numba_aux:
+            cf_ls, cov_mx = gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals,
+                                                      alpha_mask, cov_mask,
+                                                      sigma_n_mk, sigma_p_mk,
+                                                      meth_mode, cov_mode,
+                                                      p_max, x_start, x_len)
+
+            ret_cf_ls_4s[sids] = cf_ls
+            if cov_mode == 1:  # std
+                ret_std_cov_4s[sids] = cov_mx[:, :, 0, :]
+            elif cov_mode == 2:  # cov
+                ret_std_cov_4s[sids] = cov_mx
+        else:
+            phi = gen_phi_fast(pol_vals, sids, alpha_mask)
+            for idx_x in range(x_len):
+                # v, resid, rank, sigma = linalg.lstsq(A,y)
+                # solves Av = y using least squares
+                # sigma - singular values of A
+                dt_idx_x = x_start + idx_x
+                if n_s > 1:
+                    rs_data = np.ascontiguousarray(data[sids, dt_idx_x])
+                    if method == 'pinv':
+                        v_ls = np.linalg.pinv(phi) @ rs_data
+                    elif method == 'reg_t':
+                        P = ((phi.T / sigma_n_mk) @ phi
+                             + np.eye(phi.shape[1]) / sigma_p_mk)
+                        try:
+                            P_inv = np.linalg.pinv(P)
+                        except:
+                            L = np.linalg.cholesky(P)
+                            L_inv = np.linalg.pinv(L)
+                            P_inv = L_inv.T @ L_inv
+                        v_ls = (P_inv @ phi.T / sigma_n_mk
+                                @ rs_data)
+                        if ret_std:
+                            ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
+                        elif ret_cov:
+                            # cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
+                            # for sid in sids:
+                            ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()    
+                    elif method == 'unbias':
+                        v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
+                    elif method == 'unbias_herm':
+                        v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
+                                @ phi.T @ rs_data)
+                    elif method == 'reg_n':
+                        cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
+                        v_ls = (cov_op @ phi.T / sigma_n_mk
+                                @ rs_data)
+                        if ret_std:
+                            ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(cov_op))
+                        elif ret_cov:
+                            ret_std_cov_4s[sids, :, :, idx_x] = cov_op
+                    else:
+                        v_ls, _, _, _ = np.linalg.lstsq(phi, rs_data,
+                                                        rcond=None)  # LS - output
+                elif len(n_tup) > 1:
+                    v_ls = np.ravel(data[0, dt_idx_x]/phi)
                 else:
-                    #v_ls, resid, rank, sigma = np.linalg.lstsq(
-                    #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                    v_ls, _, _, _ = np.linalg.lstsq(phi, data[sids, dt_idx_x],
-                                                    rcond=None) # LS - output
-            elif len(n_tup) > 1:
-                v_ls = np.ravel(data[0, dt_idx_x]/phi)
-            else:
-                v_ls = data[dt_idx_x]/phi
-            tmp = np.zeros(p_max)
-            tmp[alpha_mask] = v_ls
-            ret_cf_ls_4s[sids, :, idx_x] = tmp
+                    v_ls = data[dt_idx_x]/phi
+                tmp = np.zeros(p_max)
+                tmp[alpha_mask] = v_ls
+                ret_cf_ls_4s[sids, :, idx_x] = tmp
+
     return (ret_cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else ret_cf_ls_4s
+
+
+@njit(nogil=True)
+def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
+                              sigma_n_mk, sigma_p_mk,
+                              meth_mode, cov_mode, p_max, x_start, x_len):
+
+    n_s = sids.shape[0]
+
+    ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len), dtype=np.float64)
+    ret_cf_ls_4s = np.empty((n_s, p_max, x_len), dtype=np.float64)
+    # alpha_mask = np.ones(p_max, dtype=np.bool8)
+    phi = gen_phi_fast(pol_vals, sids, alpha_mask)
+
+    for idx_x in range(x_len):
+        # v, resid, rank, sigma = linalg.lstsq(A,y)
+        # solves Av = y using least squares
+        # sigma - singular values of A
+        dt_idx_x = x_start + idx_x
+        if n_s > 1:
+            rs_data = np.ascontiguousarray(data[sids, dt_idx_x])
+            if meth_mode == 1:  # pinv
+                v_ls = np.linalg.pinv(phi) @ rs_data
+            elif meth_mode == 2:  # reg_t
+                P = ((phi.T / sigma_n_mk) @ phi
+                     + np.eye(phi.shape[1]) / sigma_p_mk)
+                try:
+                    P_inv = np.linalg.pinv(P)
+                except:
+                    L = np.linalg.cholesky(P)
+                    L_inv = np.linalg.pinv(L)
+                    P_inv = L_inv.T @ L_inv
+                v_ls = (P_inv @ phi.T / sigma_n_mk
+                        @ rs_data)
+                if cov_mode == 1:  # std
+                    ret_std_cov_4s[:, :, 0, idx_x] = np.sqrt(np.diag(P_inv))
+                elif cov_mode == 2:  # cov
+                    # for sid in sids:
+                    # for s_idx in range(n_s):
+                    # ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()
+                    p_mx = np.zeros((p_max*p_max), dtype=np.float64)
+                    p_mx[cov_mask.flatten()] = P_inv.flatten()
+                    p_mx = p_mx.reshape((p_max, -1))
+                    for s_idx in range(n_s):
+                        ret_std_cov_4s[s_idx, :, :, idx_x] = p_mx
+            elif meth_mode == 3:  # unbias
+                v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
+
+            elif meth_mode == 4:  # reg_n
+                cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
+                v_ls = (cov_op @ phi.T / sigma_n_mk
+                        @ rs_data)
+                if cov_mode == 1:  # std
+                    ret_std_cov_4s[:, :, 0, idx_x] = np.sqrt(np.diag(cov_op))
+                elif cov_mode == 2:  # cov
+                    ret_std_cov_4s[:, :, :, idx_x] = cov_op
+            else:
+                #v_ls, resid, rank, sigma = np.linalg.lstsq(
+                #    Phi, data[sids, idx_x], rcond=None) # LS - output
+                v_ls, _, _, _ = np.linalg.lstsq(phi, rs_data,
+                                                rcond=-1) # LS - output
+        else:
+            v_ls = np.ravel(data[0, dt_idx_x]/phi)
+
+        tmp = np.zeros(p_max, dtype=np.float64)
+        tmp[alpha_mask] = v_ls
+        ret_cf_ls_4s[:, :, idx_x] = tmp
+    return ret_cf_ls_4s, ret_std_cov_4s
 
 
 def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):

@@ -21,7 +21,8 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     requires=[
-        "numpy", "pandas", "scipy", "math", "pickle", "os", "itertools"
+        "numpy", "pandas", "scipy", "math", "pickle", "os", "itertools",
+        "numba"
         ],
     project_urls={
         'LS3':'https://www.iws.uni-stuttgart.de/ls3/',
