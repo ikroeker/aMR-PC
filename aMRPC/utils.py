@@ -77,7 +77,7 @@ def gen_midx_mask(alphas, no_max):
     are below ( <=)no_max
     """
     p_cnt = alphas.shape[0]
-    a_mask = np.zeros(p_cnt, dtype=np.bool8)
+    a_mask = np.empty(p_cnt, dtype=np.bool8)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
     return a_mask
@@ -97,6 +97,23 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
         for _d in range(dim):
             if _d not in idx_set:
                 a_mask[i] = a_mask[i] and alphas[i, _d] <= no_min
+    return a_mask
+
+
+@jit(nopython=True, nogil=True)
+def gen_midx_mask_hyp(alphas, no_max, p_norm):
+    """
+    generates a mask for alphas, such that all P-Norms of
+    multi-index polynomial degrees
+    are below ( <=) no_max
+    see Hyperbolic trunction in
+    Sparse Polynomial Chaos Expansions: Literature Survey and Benchmark
+    Nora Lüthen, Stefano Marelli, and Bruno Sudret
+    """
+    p_cnt = alphas.shape[0]
+    a_mask = np.empty(p_cnt, dtype=np.bool8)
+    for i in range(p_cnt):
+        a_mask[i] = np.linalg.norm(alphas[i, :], p_norm) <= no_max
     return a_mask
 
 
