@@ -13,6 +13,7 @@ https://orcid.org/0000-0003-0360-5307
 import pandas as pd
 import numpy as np
 from scipy.linalg import lstsq
+# from multiprocessing import freeze_support
 from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
@@ -1484,7 +1485,7 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                 #v_ls, resid, rank, sigma = np.linalg.lstsq(
                 #    Phi, data[sids, idx_x], rcond=None) # LS - output
                 v_ls, _, _, _ = np.linalg.lstsq(phi, rs_data,
-                                                rcond=-1) # LS - output
+                                                rcond=-1)  # LS - output
         else:
             v_ls = np.ravel(data[0, dt_idx_x]/phi)
 
@@ -1860,6 +1861,7 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals,
 
 
 def main():
+    # freeze_support()
     """ some tests """
     # data location
 #    url = '../data/InputParameters.txt'
