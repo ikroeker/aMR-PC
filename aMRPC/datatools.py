@@ -829,7 +829,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
                      npc_dict, nrb_dict,
                      mk2sid, alpha_masks=None, **kwargs):
     """
-    Generates function reconstruction
+    Samples function reconstruction (slow version)
     f(sample, x) = sum_(p in alphas) f_cfs(sample_mk, p,x)*pol(alpha_p, sample)
 
     Parameters
@@ -1081,7 +1081,7 @@ def pc_eval_mv_par(pcfs, X):
                     dtype=np.float64)
 
 
-def sample_amprc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
+def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
                      mk2sid, alpha_masks=None, **kwargs):
     """
     samples the polynomial-coeficients f_cfs(sample_mk, p, x) for
