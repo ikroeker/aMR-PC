@@ -362,6 +362,41 @@ def lbme_norm_response(observation, response_surfaces, covariance_matrix,
     return llh_cf + np.log(mean_lh) if mean_lh > 0 else -np.inf
 
 
+def lbme_norm_response_inv(observation, response_surfaces,
+                           covariance_matrix_inv,  llh_cf, eps=0.0):
+    """
+    Computes log(BME) (Bayesian Model Evidence)
+
+    Parameters
+    ----------
+    observation : np.array
+        observation trajectory.
+    response_surfaces : np.array
+        surrogate / model response.
+    covariance_matrix_inv : np.array
+        inverse covariance matrix.
+    llh_cf : np.array
+        log-likelihood coefficient
+    Returns
+    -------
+    float
+        BME.
+
+    """
+    n, m = response_surfaces.shape[0:2]
+    if m == len(observation):
+        sample_cnt = n
+    else:
+        sample_cnt = m
+        response_surfaces = response_surfaces.T
+
+    mean_lh = np.mean(np.array([cmp_norm_likelihood_core_inv(observation,
+                                                             response_surfaces[sample, :],
+                                                             covariance_matrix_inv) + eps
+                                for sample in range(sample_cnt)], dtype=np.float64))
+    return llh_cf + np.log(mean_lh) if mean_lh > 0 else -np.inf
+
+
 def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
                              eps=0):
     """
@@ -410,6 +445,46 @@ def d_kl_norm_prior_response(observation, response_surfaces, covariance_matrix,
 #    return lh_cf*np.mean(llhs[mask]*lhs[mask])/bme - np.log(bme)
     return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
 
+
+def d_kl_norm_prior_response_inv(observation, response_surfaces,
+                                 covariance_matrix_inv,
+                                 eps=0):
+    """
+    computes Kullback-Leibler divergence
+
+    Parameters
+    ----------
+    observation : np.array
+        observation.
+    response_surfaces : np.array
+        surrogate / model response.
+    covariance_matrix_inv : np.array
+        invserse covariance matrix.
+    **kwargs : dict
+        eps - error bad condition compensation.
+
+    Returns
+    -------
+    float.
+
+    """
+    # eps = kwargs.get('eps', 0)
+    n, m = response_surfaces.shape
+    if m == len(observation):
+        sample_cnt = n
+    else:
+        sample_cnt = m
+        response_surfaces = response_surfaces.T
+
+    llhs = np.array([cmp_log_likelihood_core_sinv(observation,
+                                                  response_surfaces[sample, :],
+                                                  covariance_matrix_inv)
+                     for sample in range(sample_cnt)])
+
+    mask = llhs - llhs.max() >= np.log(np.random.uniform(0, 1, llhs.shape))
+    bme = np.exp(llhs).mean() + eps
+
+    return np.mean(llhs[mask]) - np.log(bme) if bme > 0 else np.nan
 
 # if NJM:
 #     jit_module(nopython=True, error_model="numpy")
