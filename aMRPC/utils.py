@@ -113,7 +113,8 @@ def gen_midx_mask_hyp(alphas, no_max, p_norm):
     p_cnt = alphas.shape[0]
     a_mask = np.empty(p_cnt, dtype=np.bool8)
     for i in range(p_cnt):
-        a_mask[i] = np.linalg.norm(alphas[i, :], p_norm) <= no_max
+        i_arr = alphas[i, :].astype(np.float32)
+        a_mask[i] = np.linalg.norm(i_arr, p_norm) <= no_max
     return a_mask
 
 
