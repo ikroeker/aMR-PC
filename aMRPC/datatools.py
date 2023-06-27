@@ -752,7 +752,7 @@ def gen_phi_as(pol_vals, alpha_mask):
     return phi
 
 
-#@njit
+# @njit
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
@@ -815,13 +815,17 @@ def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
     --------
     cov_mx_inv inverse cov. matrix
     """
-#    if s_sigma_n < 1e-42 or s_sigma_p < 1e-42:
-#        print("sigma n/p", s_sigma_n, s_sigma_p)
-#        return np.nan, np.nan
     Q = np.eye(phi.shape[0]) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
-    cov_mx_inv = np.linalg.pinv(cov_mx)
+    # cov_mx_inv = np.linalg.pinv(cov_mx)
+    # inverse according to eq. (A.9) in Rasmussen and Williams
+    Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
+    R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
+    P = phi.T @ Q_inv @ phi + R_inv
+    P_inv = np.ascontiguousarray(np.linalg.pinv(P))
+    # inverse according to eq. (A.9) in Rasmussen and Williams
+    cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
     return cov_mx, cov_mx_inv
 
 
