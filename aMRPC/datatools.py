@@ -818,7 +818,9 @@ def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
     Q = np.eye(phi.shape[0]) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
-    # cov_mx_inv = np.linalg.pinv(cov_mx)
+    # try:
+    #     cov_mx_inv = np.linalg.pinv(cov_mx)
+    # except:
     # inverse according to eq. (A.9) in Rasmussen and Williams
     Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
     R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
