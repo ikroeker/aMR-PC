@@ -202,7 +202,7 @@ def gen_dict_key(anr, nri, src=None):
 
 def get_dict_entry(adict, anr, nri, src=-1):
     """ returns dictionary entry """
-    key = gen_dict_key(anr, nri, src)
+    key = gen_dict_key(int(anr), int(nri), int(src))
     return adict[key]
 
 
@@ -214,7 +214,8 @@ def gen_multi_key(anrs, nris, srcs):
     Nris - Nr indices for each entree in src
     """
     dims = len(srcs)
-    return tuple(gen_dict_key(anrs[d], nris[d], srcs[d]) for d in range(dims))
+    return tuple(gen_dict_key(int(anrs[d]), int(nris[d]), int(srcs[d]))
+                 for d in range(dims))
 
 
 def multi_key2srcs(mkey):
