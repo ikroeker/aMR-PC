@@ -244,7 +244,7 @@ def cmp_log_likelihood_core_inv(observation, response_surface, cov_matrix_inv):
     """
     # ret = np.inf
     if response_surface.ndim == 1:
-        deviation = observation - response_surface
+        deviation = (observation - response_surface)
         ret = -0.5*deviation.T @ cov_matrix_inv @ deviation
     else:
         deviation = observation.reshape((-1, 1)) - response_surface

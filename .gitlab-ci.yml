@@ -8,19 +8,27 @@ variables:
 cache:
   paths:
     - .cache/pip
+    - venv/
 
 before_script:
-  - apt-get update -qy
-  - apt-get install -y python-dev python3-pip 
-  - python --version
-
-  - pip install pytest
+  - python --version ; pip --version
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
   - pip install -r requirements.txt
 
-stages:
-  - test
 
 test:
-  stage: test
   script:
-  - pytest3
+    - pip install pytest
+    - pytest3
+
+
+run:
+  script:
+    - pip install .
+  artifacts:
+    paths:
+      - build/*
+    when: on_success
+    expire_in: 3 days
