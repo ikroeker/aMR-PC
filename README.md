@@ -34,4 +34,4 @@ https://doi.org/10.1007/s10596-023-10199-1
 
 Ilja Kroeker, Sergey Oladyshkin, Iryna Rybak
 *Global sensitivity analysis using multi-resolution polynomial chaos expansion for coupled Stokes-Darcy flow problems.*
-https://doi.org/10.21203/rs.3.rs-1742793/v1
+https://doi.org/10.1007/s10596-023-10236-z
