@@ -9,7 +9,7 @@ pip install -e .
 The `-e` switch means that pip will only link the source files to the directory
 where all your python packages are installed, so that any changes in the source
 code are taking place directly, and you don't have to reinstall after changes.
-The dot is just shorthand for the current directory.
+The dot command (.) is a  synonym for the current directory.
 
 ---
 
