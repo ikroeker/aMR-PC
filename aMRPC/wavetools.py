@@ -208,7 +208,8 @@ class WaveTools:
 
     def resc_cf(self, Nr):
         """ resc. coefficients for multi-wavelets """
-        return  2**(Nr/2)/self.sqlen
+        return 2**(Nr/2)/self.sqlen
+
     def rq_cf(self, Nr):
         """ resc. coefficients for quadrature """
         return self.len/(2**Nr)
@@ -227,7 +228,6 @@ class WaveTools:
             vy = np.zeros(len(x))
             vy[in_elem] = self.resc_cf(Nr) * self.fpsi(i, vx[in_elem])
         return vy
-
 
     def cmp_details(self, data_on_roots, No=-1):
         """ computes MW coefficients for data on roots """
@@ -256,6 +256,7 @@ class WaveTools:
             tmp_roots = np.copy(self.roots)
         quantile_on_roots = data.quantile(tmp_roots)
         return quantile_on_roots
+
 
 if __name__ == "__main__":
     P = 1
