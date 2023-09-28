@@ -2,6 +2,19 @@
 **Arbitrary Multi-Resolution Polynomial Chaos python toolbox**
 
 
+This module can be installed by using `pip` inside this directory
+```
+pip install -e .
+```
+The `-e` switch means that pip will only link the source files to the directory
+where all your python packages are installed, so that any changes in the source
+code are taking place directly, and you don't have to reinstall after changes.
+The dot command (.) is a  synonym for the current directory.
+
+---
+
+## Code sources
+
 aMR-PC python code
 [GitLab URL](https://git.iws.uni-stuttgart.de/ikroeker/ik_amr-pc)
 and 
@@ -9,12 +22,14 @@ and
 Python implementation of arbirtrary multi-resolution polynomial chaos and multi-wavelets
 
 ---
+## Package content
 
 aMRPC: contains python package
 
 tests: contains test input data in tests/data and several .py tests. 
 
 ---
+## Related publications
 
  **Please cite the article:**
 

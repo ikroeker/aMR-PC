@@ -1866,7 +1866,7 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals,
     return pol_vals
 
 
-def main():
+if __name__ == "__main__":    
     # freeze_support()
     """ some tests """
     # data location
