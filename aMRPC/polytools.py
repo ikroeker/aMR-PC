@@ -17,7 +17,7 @@ except ImportError:
     pass
 
 
-@njit(nogil=True)
+@njit(nogil=True, cache=True)
 def moment(mm, data):
     """
     computes mm-th raw moment
@@ -44,7 +44,7 @@ def Hankel(m_mx, data):
     return Hankel_np(m_mx, np.array(data, dtype=np.float64))
 
 
-@njit(nogil=True, parallel=True)
+@njit(nogil=True, parallel=True, cache=True)
 def Hankel_np(m_mx, data):
     """
       Generates Hankel matrix for max. order m_mx for dateset given in data
@@ -390,7 +390,7 @@ def cmp_norm_cf_moments(cfs, H_mx, eps=0):
     return math.sqrt(ltwo_norm)
 
 
-@njit(nogil=True, parallel=True)
+@njit(nogil=True, parallel=True, cache=True)
 def uniHank(n, a=0.0, b=1.0):
     """
     Generates Hankel Matrix H_n for U(a,b),
@@ -567,8 +567,8 @@ def gen_npc_mx_mm(cf, H_mx, No=-1):
     return ncf
 
 
-#@njit(float64[:](float64[:], float64[:]), nogil=True)
-@njit(nogil=True)
+# @njit(float64[:](float64[:], float64[:]), nogil=True)
+@njit(nogil=True, cache=True)
 def pc_eval(cfs, X):
     """
     Applies polyval with polyonomial p defined by  Cfs on X [p(X)]

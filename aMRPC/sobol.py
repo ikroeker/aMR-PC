@@ -166,7 +166,8 @@ def sobol_tot_sens(sob_dict, src_idxs, idx_list):
     return tot
 
 
-def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
+                           eps=1e-15):
     """
     Helper function for computation of Sobol indexes for aMR-PC expansion
     results are required by sobol_idx_amrpc(...)
@@ -277,7 +278,8 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
     return ret_val
 
 
-def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
+                       eps=1e-15):
     """
     Generates auxiliary values for aux. dict. for computing of Sobol coeficients
     for sample-based or mkey-based aMR-PC
@@ -303,12 +305,15 @@ def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
         aux.-coefficient.
     """
     if isinstance(pc_coefs, dict):
-        return sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps)
-    else:
-        return sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps)
+        return sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list,
+                                        eps)
+
+    return sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas,
+                                 idx_list, eps)
 
 
-def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
+                          eps=1e-15):
     """
     Generates auxiliary values for aux. dict. for computing of Sobol coeficients
     for sample-based aMR-PC
@@ -458,7 +463,8 @@ def sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15):
     return sobol_ns / var
 
 
-def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list, eps=1e-15):
+def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
+                         eps=1e-15):
     """
     Generates auxiliary dictionary for computing of Sobol coeficients
 

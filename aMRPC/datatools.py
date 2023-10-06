@@ -159,7 +159,7 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
     return roots, weights
 
 
-@njit(nogil=True)
+@njit(nogil=True, cache=True)
 def cmp_lrb(n_r, nri):
     """ computes left and right bounds for use in dataframe.quantile() """
     rcf = 2**(n_r)
@@ -168,7 +168,7 @@ def cmp_lrb(n_r, nri):
     return l_b, r_b
 
 
-@njit(nogil=True)
+@njit(nogil=True, cache=True)
 def cmp_quant_domain(data, qlb, qrb, bds='all'):
     """ generates bool array with 1 for x in [qlb,qrb], 0 else """
     # bds = kwargs.get('bds', 'all')
@@ -226,7 +226,7 @@ def gen_bds_arr(mkey, nrb_dict):
     return bds_arr
 
 
-@njit
+@njit(cache=True)
 def cmp_mv_quant_domain_arr(roots, bds_arr, bds='all'):
     n, sdim = roots.shape
     assert sdim == bds_arr.shape[0]
@@ -545,7 +545,7 @@ def gen_detail_dict(q_dict, wvt, dicts=0):
     elif dicts == 1:
         ret = ldet_dict
     else:
-        return  det_dict, ldet_dict
+        return det_dict, ldet_dict
     return ret
 
 
@@ -740,13 +740,13 @@ def gen_phi(mkey, pol_vals, mk2sid, alpha_dict=None):
     return phi
 
 
-@njit(float64[:, :](float64[:, :], int64[:], b1[:]), nogil=True)
+@njit(float64[:, :](float64[:, :], int64[:], b1[:]), nogil=True, cache=True)
 def gen_phi_fast(pol_vals, sids, alpha_mask):
     phi = np.ascontiguousarray((pol_vals[:, sids][alpha_mask, :]).T)
     return phi
 
 
-@njit(float64[:, :](float64[:, :], b1[:]), nogil=True)
+@njit(float64[:, :](float64[:, :], b1[:]), nogil=True, cache=True)
 def gen_phi_as(pol_vals, alpha_mask):
     phi = np.ascontiguousarray((pol_vals[alpha_mask, :]).T)
     return phi
@@ -800,7 +800,7 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     return cov_mx, cov_mx_inv
 
 
-@njit(nogil=True)
+@njit(nogil=True, cache=True)
 def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
     """
     generates covariance etc. matrixes for likelihood
@@ -1022,7 +1022,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
 
 @njit(float64[:, :, :](int64, int64, float64[:, :], int64[:], int64[:], float64[:, :, :]),
-      nogil=True, parallel=True)
+      nogil=True, parallel=True, cache=True)
 def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
     n_s_l = len(sids_l)
     phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
@@ -1034,7 +1034,7 @@ def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
 
 
 @njit(float64[:, :](float64[:, :], int64[:], int64[:], float64[:, :]),
-      nogil=True)
+      nogil=True, cache=True)
 def gen_loc_amrpc_rec_nso(p_vals, idxs_pm, sids_l, f_cfs):
     phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
     f_rec = phi @ f_cfs[idxs_pm, :]
@@ -1067,7 +1067,8 @@ def gen_pol_on_samples_arr(samples, npc_dict, alphas, mk2sid, para=False):
     return pol_vals
 
 
-@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=False)
+@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=False,
+      cache=True)
 def pc_eval_mv(pcfs, X):
     c = pcfs.T
     c0 = c[-1] + X*0
@@ -1077,7 +1078,8 @@ def pc_eval_mv(pcfs, X):
                     dtype=np.float64)
 
 
-@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=True)
+@njit(float64[:](float64[:, :], float64[:, :]), nogil=True, parallel=True,
+      cache=True)
 def pc_eval_mv_par(pcfs, X):
     c = pcfs.T
     c0 = c[-1] + X*0
@@ -1433,7 +1435,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
     return (ret_cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else ret_cf_ls_4s
 
 
-@njit(nogil=True)
+@njit(nogil=True, cache=True)
 def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                               sigma_n_mk, sigma_p_mk,
                               meth_mode, cov_mode, p_max, x_start, x_len):
@@ -1866,7 +1868,7 @@ def update_pol_vals_on_samples(samples_updated, new_samples_cnt, pol_vals,
     return pol_vals
 
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     # freeze_support()
     """ some tests """
     # data location

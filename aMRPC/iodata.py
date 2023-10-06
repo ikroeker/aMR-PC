@@ -11,9 +11,11 @@ import numpy as np
 import pandas as pd
 
 
-dataDir = "../data" # data directory
-inDir = dataDir # directory for input data
-outDir = dataDir # directory for output data
+dataDir = "../data"  # data directory
+inDir = dataDir  # directory for input data
+outDir = dataDir  # directory for output data
+
+
 def write_eval_points(points, fname, **kwargs):
     """
     writes evals points in asci file
@@ -35,10 +37,11 @@ def write_eval_points(points, fname, **kwargs):
                 data_line = points[l_idx]
             else:
                 data_line = points.iloc[l_idx]
-            #print(dataLine)
+            # print(dataLine)
             str_line = template.format(*data_line)
             f_h.write(str_line)
     # f_h.close()
+
 
 def gen_file_url(fname, mydir=None):
     """
@@ -61,6 +64,7 @@ def gen_file_url(fname, mydir=None):
         mydir = inDir
     return mydir + "/" + fname
 
+
 def chk_file_url(fname, mydir=None):
     """
     checks if file fname exists
@@ -81,6 +85,7 @@ def chk_file_url(fname, mydir=None):
     url = gen_file_url(fname, mydir)
     return op.exists(url)
 
+
 def load_eval_points(fname, mydir=None):
     """
     loads eval points from an ascii file
@@ -89,14 +94,15 @@ def load_eval_points(fname, mydir=None):
     if op.exists(url):
         try:
             dataframe = pd.read_csv(url, header=None, delim_whitespace=True, engine='python')
-            #dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
-        except(IOError, ValueError):
+            # dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
+        except (IOError, ValueError):
             print("An I/O error or a ValueError occurred")
             raise
     else:
         print(url, " does not exist!")
-        dataframe = pd.DataFrame([]) # returns empty dataframe
+        dataframe = pd.DataFrame([])  # returns empty dataframe
     return dataframe
+
 
 def store_data_dict(out_dict, fname, mydir=None):
     """ stores dictionary in {dir}/{fname}.p using pickle """
@@ -113,6 +119,7 @@ def store_data_dict(out_dict, fname, mydir=None):
         print("An unexpected error occurred")
         raise
 
+
 def load_data_dict(fname, mydir=None):
     """ load picle stored data from {dir}/{fname}.p """
     if mydir is None:
@@ -128,6 +135,7 @@ def load_data_dict(fname, mydir=None):
             raise
     return in_dict
 
+
 def store_np_arr(np_array, fname, mydir=None):
     """ stores numpy.array npArray in {dir}/{fname} """
     if mydir is None:
@@ -140,6 +148,7 @@ def store_np_arr(np_array, fname, mydir=None):
     except:
         print("An unexpected error occurred")
         raise
+
 
 def load_np_arr(fname, mydir=None):
     """ loads numpy.array from {mydir}/{fname} """
@@ -154,20 +163,22 @@ def load_np_arr(fname, mydir=None):
         print("An unexpected error occurred")
         raise
     return np_array
+
+
 FilePfx = {
     1: "roots",
     2: "weights",
-    3: "Hdict", # Hankel Matrices dictionary
+    3: "Hdict",  # Hankel Matrices dictionary
     4: "rootDict",
     5: "weightsDict",
-    6: "PCdict", # (monic) orthogonal polyonimial coeff. dict.
-    7: "nPCdict",# orthonormal pc. dict
-    8: "NRBdict", # dictionary of MR-elements bounds
-    9: "mKeys", # multi-keys in order of evaluation points
-    10: "sid2mk", # sample id / eval point nr -> multi-key
-    11: "mk2sid", # multi-key -> sample id
-    12: "rCfs", # rescalling coefs multi-key->cf
-    13: "polOnSid" # polyonimals evaluated on roots / samples (p,sid)
+    6: "PCdict",  # (monic) orthogonal polyonimial coeff. dict.
+    7: "nPCdict",  # orthonormal pc. dict
+    8: "NRBdict",  # dictionary of MR-elements bounds
+    9: "mKeys",  # multi-keys in order of evaluation points
+    10: "sid2mk",  # sample id / eval point nr -> multi-key
+    11: "mk2sid",  # multi-key -> sample id
+    12: "rCfs",  # rescalling coefs multi-key->cf
+    13: "polOnSid"  # polyonimals evaluated on roots / samples (p,sid)
 }
 FileSfx = {
     1: ".txt",
@@ -184,6 +195,8 @@ FileSfx = {
     12: ".p",
     13: ".npy"
 }
+
+
 def gen_fname(fkt, **kwargs):
     """ generates filename"""
     pfx_chk = fkt in FilePfx
@@ -196,12 +209,13 @@ def gen_fname(fkt, **kwargs):
     if 'Nr' in kwargs:
         fname += '_Nr'+kwargs['Nr']
     if 'No' in kwargs:
-        fname += '_No' +kwargs['No']
+        fname += '_No' + kwargs['No']
     if 'ths' in kwargs:
         fname += '_ths'+kwargs['ths']
 
-    fname += FileSfx.get(fkt) # add sfx to the filename
+    fname += FileSfx.get(fkt)  # add sfx to the filename
     return fname
+
 
 def main():
     """ main function for testing """
@@ -211,5 +225,6 @@ def main():
     data = load_eval_points('pts.txt')
     print(data.describe())
 
-if  __name__ == "__main__":
+
+if __name__ == "__main__":
     main()

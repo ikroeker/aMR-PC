@@ -614,7 +614,7 @@ def entropy_prior_response(observation, response_surfaces, covariance_matrix,
 
 
 if NJM:
-    jit_module(nopython=True, error_model="numpy", nogil=True)
+    jit_module(nopython=True, error_model="numpy", nogil=True, cache=True)
 
 
 def entropy_norm_response(observation, response_surfaces, covariance_matrix,
