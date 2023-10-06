@@ -117,7 +117,8 @@ def apc_cfs(H, k=-1, alen=-1):
     for j in range(k+1):
         rH[k, j] = 0
     rH[k, k] = 1
-    cfs = np.linalg.solve(rH, rs)
+    # cfs = np.linalg.solve(rH, rs)
+    cfs = np.linalg.lstsq(rH, rs, rcond=None)[0]
     # if not np.allclose(np.dot(rH, cfs), rs):
     #    cfs, _, _, _ = np.linalg.lstsq(rH, rs, rcond=-1)
 
