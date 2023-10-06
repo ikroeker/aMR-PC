@@ -10,7 +10,7 @@ datatools.py - provides data management functions,
 https://orcid.org/0000-0003-0360-5307
 
 """
-import pandas as pd
+# import pandas as pd
 import numpy as np
 from scipy.linalg import lstsq
 # from multiprocessing import freeze_support

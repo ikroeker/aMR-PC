@@ -7,6 +7,7 @@ https://orcid.org/0000-0003-0360-5307
 
 """
 
+# from functools import lru_cache
 import itertools as it
 # from math import comb
 import numpy as np
@@ -16,7 +17,7 @@ try:
     NJM = True
 except ImportError:
     NJM = False
-    pass
+    # pass
 
 # import math
 
@@ -139,7 +140,7 @@ def gen_nri_range(nrs):
     nris = np.zeros((nri_cnt, dim), dtype=np.uint32)
     for nri in range(nri_cnt):
         for d_idx in range(dim):
-            val = (nri//divs[d_idx] % nri_cnts[d_idx])
+            val = nri//divs[d_idx] % nri_cnts[d_idx]
             nris[nri, d_idx] = val
     return nris, nri_cnt
 
@@ -180,7 +181,7 @@ def midx4quad(ar_lens):
     # print(divs)
     for l_idx in range(lines):
         for col in range(cols):
-            val = (l_idx//divs[col] % ar_lens[col])
+            val = l_idx//divs[col] % ar_lens[col]
             idx_mx[l_idx, col] = val
     return idx_mx
 
