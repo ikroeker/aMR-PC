@@ -893,7 +893,7 @@ def sample_amrpc_rec(samples, mk_list, alphas, f_cfs, f_cov_mx,
             idxs_pm = idxs_p
             alpha_mask = np.ones(alphas.shape[0], dtype=np.bool8)
 #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
-        if len(f_cov_mx.shape) < 4:
+        if f_cov_mx.ndim < 4:
             f_cov_mx = np.expand_dims(f_cov_mx, 0)
 
         phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
@@ -1087,6 +1087,95 @@ def pc_eval_mv_par(pcfs, X):
         c0 = c[-i] + c0*X
     return np.array([np.prod(c0[i, :]) for i in prange(X.shape[0])],
                     dtype=np.float64)
+
+
+def cmp_bamrpc_std(samples, mk_list, alphas, f_cov_mx,
+                   npc_dict, nrb_dict,
+                   mk2sid, alpha_masks=None, **kwargs):
+    """
+    computes standard deviation (std) of the surrogate f
+    f(sample, x) = sum_(p in alphas) f_cfs(sample_mk, p,  x) * pol(alpha_p, sample)
+        Parameters
+    ----------
+    samples : np.array
+        samples/input parameters for evaluation, samples[i]=[s_0,s_1,...,s_n].
+    mk_list : list of tuples
+        (unique) list of multi-keys ((key,0),...,(key, n)).
+    alphas : np.array
+        matrix of multi-indexes representing pol. degrees of
+        multi-variate polynomials.
+    f_cov_mx : np.array
+        reconstr. cov_matrices of coefs. f_cov_mx[sample,alpha_p, alpha_p,idx_x].
+    npc_dict : dict
+        dictionary of normed piecewise polynomials.
+    nrb_dict : dict
+        dictionary of stochastic-element boundaries.
+    mk2sid : dict
+        (multi key) -> sample id dictionary.
+    alpha_masks: dict
+        (multi key) -> mask for alphas, such that only true degrees were used
+    kwargs:
+        n_samples_out: int default 1
+            number of samples for each input parameter combination in samples
+        x_start: integer
+            first space_point_nr to eval.
+        x_len: integer
+            length of the x-vector to eval, default x_len=-1 -> all.
+
+    Returns
+    -------
+    std_ret : np.array
+        std of the surrogate f on sample and x, std[sample_out, idx_x].
+    """
+
+    # n_tup = f_cfs.shape
+    # if len(n_tup) > 2:
+    #     n_x = n_tup[2]
+    # else:
+    #     n_x = 1
+    n_x = f_cov_mx.shape[3]
+    # n_so = kwargs.get('n_samples_out', 1)
+    # n_p = n_tup[1]
+    n_s = samples.shape[0]
+    x_start = kwargs.get('x_start', 0)
+    x_len = kwargs.get("x_len", n_x)
+
+    std_ret = np.zeros((n_s, n_x))  # return array
+
+    para = kwargs.get('para', False)
+    key = "mk2sid_samples"
+    mk2sid_loc = kwargs.get(key, None)
+    if mk2sid_loc is None:
+        mk2sid_loc = gen_mkey_sid_rel(samples, mk_list, nrb_dict)[1]
+    key = 'p_vals'
+    p_vals = kwargs.get(key, None)
+    if p_vals is None:
+        p_vals = gen_pol_on_samples_arr(samples, npc_dict, alphas,
+                                        mk2sid_loc, para=para)
+
+    idxs_p = np.arange(alphas.shape[0])
+    for mkey, sids_l in mk2sid_loc.items():
+        sids = mk2sid[mkey]
+        if alpha_masks is not None and len(alpha_masks) != 0:
+            idxs_pm = idxs_p[alpha_masks[mkey]]
+            alpha_mask = alpha_masks[mkey]
+        else:
+            idxs_pm = idxs_p
+            alpha_mask = np.ones(alphas.shape[0], dtype=np.bool8)
+#        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
+        if f_cov_mx.ndim < 4:
+            f_cov_mx = np.expand_dims(f_cov_mx, 0)
+
+        phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
+        for idx_x in range(x_len):
+            dt_idx_x = x_start + idx_x
+            std_l = (phi @
+                     f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask]
+                     @ phi.T).diaonal()
+
+            std_ret[sids, dt_idx_x] = std_l
+
+    return std_ret
 
 
 def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
