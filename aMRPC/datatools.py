@@ -1166,15 +1166,40 @@ def cmp_bamrpc_std(samples, mk_list, alphas, f_cov_mx,
         if f_cov_mx.ndim < 4:
             f_cov_mx = np.expand_dims(f_cov_mx, 0)
 
-        phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
-        for idx_x in range(x_len):
-            dt_idx_x = x_start + idx_x
-            std_l = (phi @
-                     f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask]
-                     @ phi.T).diagonal()
+        # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
+        # for idx_x in range(x_len):
+        #     dt_idx_x = x_start + idx_x
+        #     std_l = (phi @
+        #               f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask]
+        #               @ phi.T).diagonal()
 
-            std_ret[sids_l, dt_idx_x] = np.sqrt(std_l)
+        #     std_ret[sids_l, idx_x] = np.sqrt(std_l)
+        vec_x = np.arange(x_start, x_start + x_len)
+        std_ret[sids_l, :] = cmp_std_4_mk(vec_x, p_vals, idxs_pm, sids_l,
+                                          f_cov_mx[sids[0], alpha_mask, :, :][:, alpha_mask, :])
 
+    return std_ret
+
+
+@njit(float64[:, :](int64[:], float64[:, :], int64[:], int64[:],
+                    float64[:, :, :]),
+      nogil=True, parallel=True, cache=True)
+def cmp_std_4_mk(vec_x, p_vals, idxs_pm, sids_l, f_cov):
+    phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
+    n_s = len(sids_l)
+    n_k = f_cov.shape[0]
+    n_r = f_cov.shape[1]
+    std_ret = np.zeros((n_s, len(vec_x)))
+    for idx_x in vec_x:
+        for s_i in range(n_s):
+            s_var = 0
+            for k in range(n_k):
+                for r in range(n_r):
+                    s_var += phi[s_i, k] * phi[s_i, r] * f_cov[k, r, idx_x]
+            # s_var = np.array([phi[s_i, k] * phi[s_i, r] * f_cov[k, r, idx_x]
+            #                   for k in range(n_k)
+            #                   for r in range(n_r)], dtype=np.float64).sum()
+            std_ret[s_i, idx_x] = np.sqrt(s_var)
     return std_ret
 
 
