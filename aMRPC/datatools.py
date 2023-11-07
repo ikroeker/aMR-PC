@@ -1171,9 +1171,9 @@ def cmp_bamrpc_std(samples, mk_list, alphas, f_cov_mx,
             dt_idx_x = x_start + idx_x
             std_l = (phi @
                      f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask]
-                     @ phi.T).diaonal()
+                     @ phi.T).diagonal()
 
-            std_ret[sids, dt_idx_x] = std_l
+            std_ret[sids_l, dt_idx_x] = np.sqrt(std_l)
 
     return std_ret
 
