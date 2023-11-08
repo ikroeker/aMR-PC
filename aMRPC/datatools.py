@@ -1089,7 +1089,7 @@ def pc_eval_mv_par(pcfs, X):
                     dtype=np.float64)
 
 
-def cmp_bamrpc_std(samples, mk_list, alphas, f_cov_mx,
+def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
                    npc_dict, nrb_dict,
                    mk2sid, alpha_masks=None, **kwargs):
     """
@@ -1124,7 +1124,7 @@ def cmp_bamrpc_std(samples, mk_list, alphas, f_cov_mx,
 
     Returns
     -------
-    std_ret : np.array
+    var_ret : np.array
         std of the surrogate f on sample and x, std[sample_out, idx_x].
     """
 
@@ -1140,7 +1140,7 @@ def cmp_bamrpc_std(samples, mk_list, alphas, f_cov_mx,
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
 
-    std_ret = np.zeros((n_s, n_x))  # return array
+    var_ret = np.zeros((n_s, n_x))  # return array
 
     para = kwargs.get('para', False)
     key = "mk2sid_samples"
@@ -1175,32 +1175,31 @@ def cmp_bamrpc_std(samples, mk_list, alphas, f_cov_mx,
 
         #     std_ret[sids_l, idx_x] = np.sqrt(std_l)
         vec_x = np.arange(x_start, x_start + x_len)
-        std_ret[sids_l, :] = cmp_std_4_mk(vec_x, p_vals, idxs_pm, sids_l,
-                                          f_cov_mx[sids[0], alpha_mask, :, :][:, alpha_mask, :])
+        var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
+                                          f_cov_mx[sids[0], :, :, :])
 
-    return std_ret
+    return var_ret
 
 
 @njit(float64[:, :](int64[:], float64[:, :], int64[:], int64[:],
                     float64[:, :, :]),
       nogil=True, parallel=True, cache=True)
-def cmp_std_4_mk(vec_x, p_vals, idxs_pm, sids_l, f_cov):
-    phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
+def cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l, f_cov):
+    # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
     n_s = len(sids_l)
-    n_k = f_cov.shape[0]
-    n_r = f_cov.shape[1]
-    std_ret = np.zeros((n_s, len(vec_x)))
+    var_ret = np.zeros((n_s, len(vec_x)))
     for idx_x in vec_x:
         for s_i in range(n_s):
             s_var = 0
-            for k in range(n_k):
-                for r in range(n_r):
-                    s_var += phi[s_i, k] * phi[s_i, r] * f_cov[k, r, idx_x]
+            for k in idxs_pm:
+                for r in idxs_pm:
+                    s_var += p_vals[k, s_i] * p_vals[r, s_i] * f_cov[k, r, idx_x]
+                    # s_var += phi[s_i, p_k] * phi[s_i, p_r] * f_cov[k, r, idx_x]
             # s_var = np.array([phi[s_i, k] * phi[s_i, r] * f_cov[k, r, idx_x]
             #                   for k in range(n_k)
             #                   for r in range(n_r)], dtype=np.float64).sum()
-            std_ret[s_i, idx_x] = np.sqrt(s_var)
-    return std_ret
+            var_ret[s_i, idx_x] = s_var
+    return var_ret
 
 
 def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
