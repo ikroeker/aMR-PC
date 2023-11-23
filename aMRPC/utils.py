@@ -8,12 +8,12 @@ https://orcid.org/0000-0003-0360-5307
 """
 
 # from functools import lru_cache
-import itertools as it
+from itertools import product
 # from math import comb
 import numpy as np
 from scipy.special import comb
 try:
-    from numba import jit, njit  # , jit_module
+    from numba import jit, njit, int64  # , jit_module
     NJM = True
 except ImportError:
     NJM = False
@@ -26,14 +26,15 @@ except ImportError:
 ParPos = {'Nr': 0, 'aNr': 0, 'Nri': 1, 'src': 2}
 
 
+# @njit(int64[:, :](int64, int64), nogil=True)
 def gen_multi_idx_old(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
     old version
     """
-    p_cnt = comb(n_o+dim, dim)
-    alphas = np.zeros((np.uint32(p_cnt), dim), dtype=np.int32)
+    p_cnt = np.int64(comb(n_o+dim, dim, exact=True))
+    alphas = np.zeros((np.int64(p_cnt), dim), dtype=np.int64)
     tmp_arr = np.zeros(dim)
     l_idx = 1
     pmax = (n_o+1)**dim
@@ -61,7 +62,7 @@ def gen_multi_idx(n_o, dim):
     p_cnt = np.int64(comb(n_o+dim, dim, exact=True))
     alphas = np.zeros((p_cnt, dim), dtype=np.uint32)
     l_idx = 0
-    tmp_it = it.product(range(n_o+1), repeat=dim)
+    tmp_it = product(range(n_o+1), repeat=dim)
     for p_it in tmp_it:
         if sum(p_it) <= n_o:
             alphas[l_idx, :] = np.array(p_it, dtype=np.uint32)
