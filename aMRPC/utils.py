@@ -54,7 +54,7 @@ def gen_multi_idx_old(n_o, dim):
 
 
 # @jit(debug=True)
-def gen_multi_idx(n_o, dim):
+def gen_multi_idx_old1(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
@@ -71,6 +71,17 @@ def gen_multi_idx(n_o, dim):
                 break
     return alphas
 
+def gen_multi_idx(n_o, dim):
+    """
+    generates mulit-indices of multi-variate polynomial base
+    uses graded lexicographic ordering (p. 156, Sullivan)
+    """
+    a = np.arange(n_o+1, dtype=np.int32)
+    alphas = a
+    for d in range(1, dim):
+        a_tmp = np.vstack((np.repeat(alphas, n_o +1, axis=0).T, np.tile(a, alphas.shape[0]))).T
+        alphas = a_tmp[a_tmp.sum(axis=1) < n_o+1]
+    return alphas.reshape((-1, dim))
 
 @jit(nopython=True, nogil=True, cache=True)
 def gen_midx_mask(alphas, no_max):
