@@ -7,10 +7,11 @@ https://orcid.org/0000-0003-0360-5307
 """
 # import sys
 import math
+from scipy.stats import norm
 import numpy as np
 # from numpy.polynomial import polynomial as P
 try:
-    from numba import njit, prange, float64  # int64, jit, float64, int32 # , jit_module
+    from numba import njit, prange # int64, jit, float64, int32 # , jit_module
     NJM = True
 except ImportError:
     NJM = False
@@ -18,7 +19,7 @@ except ImportError:
 
 
 @njit(nogil=True, cache=True)
-def moment(mm, data):
+def moment(mm_, data):
     """
     computes mm-th raw moment
 
@@ -37,7 +38,7 @@ def moment(mm, data):
     """
     # print(mm)
     # return np.power(data, mm, dtype=np.float64).mean()
-    return np.mean(data ** mm)
+    return np.mean(data ** mm_)
 
 
 def Hankel(m_mx, data):
@@ -427,6 +428,32 @@ def uniHank(n, a=0.0, b=1.0):
             H[k, l] = np.dot(va, vb) / (m+1)
     return H
 
+
+def norm_hank(n_mx, mu=0.0, sigma=1.0):
+    """
+    Generates Hankel Matrix H_n for N(mu, sigma),
+    uses m_n=norm.moment(n, mu, sigma)
+    
+    Parameters
+    ----------
+    n_mx : int
+        max order.
+    mu : float, optional
+        mean. The default is 0.
+    sigma : float, optional
+        standard deviation. The default is 1.
+    
+    Returns
+    -------
+    H : np.array
+        Hankel matrix.
+    """
+    H = np.zeros((n_mx + 1, n_mx + 1), dtype=np.float64)
+    for k_ in range(n_mx + 1):
+        for l_ in range(k_, n_mx + 1):
+            H[k_, l_] = norm.moment(k_ + l_, loc=mu, scale=sigma)
+            H[l_, k_] = H[k_, l_]
+    return H
 
 def gen_pc_mx(H, method=0, No=-1):
     """

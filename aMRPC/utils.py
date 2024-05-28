@@ -71,6 +71,7 @@ def gen_multi_idx_old1(n_o, dim):
                 break
     return alphas
 
+
 def gen_multi_idx(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
@@ -82,6 +83,7 @@ def gen_multi_idx(n_o, dim):
         a_tmp = np.vstack((np.repeat(alphas, n_o +1, axis=0).T, np.tile(a, alphas.shape[0]))).T
         alphas = a_tmp[a_tmp.sum(axis=1) < n_o+1]
     return alphas.reshape((-1, dim))
+
 
 @jit(nopython=True, nogil=True, cache=True)
 def gen_midx_mask(alphas, no_max):
