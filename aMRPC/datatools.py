@@ -1137,15 +1137,15 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     #     n_x = 1
     if isinstance(f_cov_mx , dict):
         for f_cov_mx_mk in f_cov_mx.values():
-            if f_cov_mx_mk.ndim >=3:
+            if f_cov_mx_mk.ndim > 2:
                 n_x = f_cov_mx_mk.shape[2]
             else:
-                n_x = 0
+                n_x = 1
             break
-    elif f_cov_mx.ndim >= 4:
+    elif f_cov_mx.ndim > 3:
         n_x = f_cov_mx.shape[3]
     else:
-        n_x = 0
+        n_x = 1
             
     # n_so = kwargs.get('n_samples_out', 1)
     # n_p = n_tup[1]
@@ -1179,11 +1179,15 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
        
         vec_x = np.arange(x_start, x_start + x_len)
         if isinstance(f_cov_mx, dict):
+            if f_cov_mx[mkey].ndim < 4:
+                f_cov_mx_mk = np.expand_dims(f_cov_mx[mkey], -1)
+            else:
+                f_cov_mx_mk = f_cov_mx[mkey]
             var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
-                                              f_cov_mx[mkey])
+                                              f_cov_mx_mk)
         else:
             if f_cov_mx.ndim < 4:
-                f_cov_mx = np.expand_dims(f_cov_mx, 0)
+                f_cov_mx = np.expand_dims(f_cov_mx, -1)
     
             var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
                                               f_cov_mx[sids[0], :, :, :])
@@ -1224,9 +1228,9 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
     alphas : np.array
         matrix of multi-indexes representing pol. degrees of
         multi-variate polynomials.
-    f_cfs : np.array
+    f_cfs : np.array or dict[mkey]->np.array
         reconstr. coefficients f_cfs[sample,alpha_p,idx_x].
-    f_cov_mx : np.array
+    f_cov_mx : np.array or dict[mkey]->np.array
         reconstr. cov_matrices f_cov_mx[sample,alpha_p, alpha_p,idx_x].
     mk2sid : dict
         (multi key) -> sample id dictionary.
@@ -1247,14 +1251,24 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
         amrpc coeficients f, f_cfs[sample_out, sample_id, alpha_p, idx_x].
         aMR-PC coefficients f, f_cfs[mkey] -> [sample_out, alpha_p, idx_x]
     """
-    n_tup = f_cfs.shape
-    if len(n_tup) > 2:
-        n_x = n_tup[2]
-    else:
-        n_x = 1
     n_so = kwargs.get('n_samples_out', 1)
-    n_p = n_tup[1]
-    n_s = n_tup[0]
+    if isinstance(f_cfs, dict):
+        for f_cfs_mk in f_cfs.values():
+            n_tup = f_cfs_mk.shape
+            break
+        if len(n_tup) > 1:
+            n_x = n_tup[1]
+        else:
+            n_x = 1
+    else:
+        n_tup = f_cfs.shape
+        if len(n_tup) > 2:
+            n_x = n_tup[2]
+        else:
+            n_x = 1
+        
+        n_p = n_tup[1]
+        n_s = n_tup[0]
     mkey_out = kwargs.get('mkey_out', False)
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
