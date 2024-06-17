@@ -1252,10 +1252,11 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
         aMR-PC coefficients f, f_cfs[mkey] -> [sample_out, alpha_p, idx_x]
     """
     n_so = kwargs.get('n_samples_out', 1)
+    n_s = 0
     if isinstance(f_cfs, dict):
         for f_cfs_mk in f_cfs.values():
             n_tup = f_cfs_mk.shape
-            break
+            n_s += n_tup[0]
         if len(n_tup) > 1:
             n_x = n_tup[1]
         else:
@@ -1266,9 +1267,10 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
             n_x = n_tup[2]
         else:
             n_x = 1
-        
-        n_p = n_tup[1]
         n_s = n_tup[0]
+        
+    n_p = n_tup[1]
+    
     mkey_out = kwargs.get('mkey_out', False)
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
@@ -1291,9 +1293,14 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
         
         for idx_x in range(x_len):
             dt_idx_x = x_start + idx_x
-            s_cfs = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
-                                            f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
-                                            n_so)
+            if isinstance(f_cfs, dict):
+                s_cfs = rng.multivariate_normal(f_cfs[mkey][alpha_mask, dt_idx_x],
+                                                f_cov_mx[mkey][alpha_mask, :, dt_idx_x][:, alpha_mask],
+                                                n_so)
+            else:
+                s_cfs = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
+                                                f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
+                                                n_so)
             # print(s_cfs.shape)
 
             if mkey_out:
