@@ -1106,7 +1106,8 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
         matrix of multi-indexes representing pol. degrees of
         multi-variate polynomials.
     f_cov_mx : np.array
-        reconstr. cov_matrices of coefs. f_cov_mx[sample,alpha_p, alpha_p,idx_x].
+        reconstr. cov_matrices of coefs. f_cov_mx[sample,alpha_p, alpha_p,idx_x]
+        or dict{mkey -> np.array[alpha_p, alpha_p, idx_x]}.
     npc_dict : dict
         dictionary of normed piecewise polynomials.
     nrb_dict : dict
@@ -1134,7 +1135,18 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     #     n_x = n_tup[2]
     # else:
     #     n_x = 1
-    n_x = f_cov_mx.shape[3]
+    if isinstance(f_cov_mx , dict):
+        for f_cov_mx_mk in f_cov_mx.values():
+            if f_cov_mx_mk.ndim >=3:
+                n_x = f_cov_mx_mk.shape[2]
+            else:
+                n_x = 0
+            break
+    elif f_cov_mx.ndim >= 4:
+        n_x = f_cov_mx.shape[3]
+    else:
+        n_x = 0
+            
     # n_so = kwargs.get('n_samples_out', 1)
     # n_p = n_tup[1]
     n_s = samples.shape[0]
@@ -1159,25 +1171,22 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
         sids = mk2sid[mkey]
         if alpha_masks is not None and len(alpha_masks) != 0:
             idxs_pm = idxs_p[alpha_masks[mkey]]
-            alpha_mask = alpha_masks[mkey]
+            # alpha_mask = alpha_masks[mkey]
         else:
             idxs_pm = idxs_p
-            alpha_mask = np.ones(alphas.shape[0], dtype=np.bool8)
+            # alpha_mask = np.ones(alphas.shape[0], dtype=np.bool_)
 #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
-        if f_cov_mx.ndim < 4:
-            f_cov_mx = np.expand_dims(f_cov_mx, 0)
-
-        # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
-        # for idx_x in range(x_len):
-        #     dt_idx_x = x_start + idx_x
-        #     std_l = (phi @
-        #               f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask]
-        #               @ phi.T).diagonal()
-
-        #     std_ret[sids_l, idx_x] = np.sqrt(std_l)
+       
         vec_x = np.arange(x_start, x_start + x_len)
-        var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
-                                          f_cov_mx[sids[0], :, :, :])
+        if isinstance(f_cov_mx, dict):
+            var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
+                                              f_cov_mx[mkey])
+        else:
+            if f_cov_mx.ndim < 4:
+                f_cov_mx = np.expand_dims(f_cov_mx, 0)
+    
+            var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
+                                              f_cov_mx[sids[0], :, :, :])
 
     return var_ret
 
