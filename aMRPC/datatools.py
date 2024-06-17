@@ -935,7 +935,9 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         (multi key) -> sample id dictionary.
     alpha_masks: dict
         (multi key) -> mask for alphas, such that only true degrees were used
-
+    
+    kwargs:
+        x_pos: x_values
 
     Returns
     -------
@@ -950,11 +952,9 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         if len(f_n_tuple) > 2:
             n_so = f_n_tuple[0]
             n_x = f_n_tuple[2]
-            f_rec = np.zeros((n_so, n_s, n_x))
         else:
             n_x = f_n_tuple[1]
             n_so = 0
-            f_rec = np.zeros((n_s, n_x))
 
     else:
         mkey_type = False
@@ -963,11 +963,25 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         if len(f_n_tuple) > 3:
             n_so = f_n_tuple[0]
             n_x = f_n_tuple[3]
-            f_rec = np.zeros((n_so, n_s, n_x))
+            
         else:
             n_x = f_n_tuple[2]
             n_so = 0
-            f_rec = np.zeros((n_s, n_x))
+
+    pos_x = kwargs.get('pos_x', None)
+    if isinstance(pos_x, (int, float)):
+        n_x = 1
+        vec_x = np.array([pos_x])
+    elif isinstance(pos_x, (list, np.ndarray)):
+        n_x = len(pos_x)
+        vec_x = np.array(pos_x)
+    else:
+        vec_x = np.arange(n_x)
+
+    if n_so > 0:
+        f_rec = np.zeros((n_so, n_s, n_x))
+    else:
+        f_rec = np.zeros((n_s, n_x))
 
     key = "mk2sid_samples"
     mk2sid_loc = kwargs.get(key, None)
@@ -992,19 +1006,21 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
             if mkey_type:
                 f_rec[:, sids_l, :] = gen_loc_amrpc_rec_so(n_so, n_x, p_vals,
                                                            idxs_pm,
-                                                           sids_l, f_cfs[mkey])
+                                                           sids_l,
+                                                           f_cfs[mkey][:, :, vec_x])
             else:
                 f_rec[:, sids_l, :] = gen_loc_amrpc_rec_so(n_so, n_x, p_vals,
                                                            idxs_pm,
                                                            sids_l,
-                                                           f_cfs[:, sids[0], :, :])
+                                                           f_cfs[:, sids[0], :, vec_x])
         else:
             if mkey_type:
                 f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
-                                                         sids_l, f_cfs[mkey])
+                                                         sids_l,
+                                                         f_cfs[mkey][:, vec_x])
             else:
                 f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
-                                                         sids_l, f_cfs[sids[0], :, :])
+                                                         sids_l, f_cfs[sids[0], :, vec_x])
         # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
         # if mkey_type:
         #     if n_so > 0:
@@ -1123,7 +1139,7 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
             first space_point_nr to eval.
         x_len: integer
             length of the x-vector to eval, default x_len=-1 -> all.
-
+        pos_x: x_values
     Returns
     -------
     var_ret : np.array
@@ -1136,12 +1152,11 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     # else:
     #     n_x = 1
     if isinstance(f_cov_mx , dict):
-        for f_cov_mx_mk in f_cov_mx.values():
-            if f_cov_mx_mk.ndim > 2:
-                n_x = f_cov_mx_mk.shape[2]
-            else:
-                n_x = 1
-            break
+        f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))]    
+        if f_cov_mx_mk.ndim > 2:
+            n_x = f_cov_mx_mk.shape[2]
+        else:
+            n_x = 1
     elif f_cov_mx.ndim > 3:
         n_x = f_cov_mx.shape[3]
     else:
@@ -1152,7 +1167,20 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     n_s = samples.shape[0]
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
-
+    pos_x = kwargs.get('pos_x', None)
+    
+    if isinstance(pos_x, (list, np.ndarray)):
+        n_x = len(pos_x)
+        x_start = pos_x[0]
+        vec_x = np.array(pos_x)
+    elif isinstance(pos_x, (float, int)):
+        n_x = 1
+        x_start = pos_x
+        vec_x = np.array([int(n_x)])
+    else:
+        vec_x = np.arange(x_start, x_start + x_len)
+    
+    
     var_ret = np.zeros((n_s, n_x))  # return array
 
     para = kwargs.get('para', False)
@@ -1175,9 +1203,8 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
         else:
             idxs_pm = idxs_p
             # alpha_mask = np.ones(alphas.shape[0], dtype=np.bool_)
-#        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
-       
-        vec_x = np.arange(x_start, x_start + x_len)
+        #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
+        
         if isinstance(f_cov_mx, dict):
             if f_cov_mx[mkey].ndim < 3:
                 f_cov_mx_mk = np.expand_dims(f_cov_mx[mkey], -1)
@@ -1679,7 +1706,8 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
 
     Returns
     -------
-    cf_ls_4mkeys: dictionary of np.arrays of f_i for mkey-> [p, x_i]
+    cf_ls_4mkeys: dictionary of np.arrays of f_i for mkey-> [p, x_i] 
+    ret_std_cov: mkey->[p, x_i] / mkey->[p, p, x_i]
 
     """
     # compute function coefficients by least-squares
