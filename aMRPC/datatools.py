@@ -926,6 +926,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
     f_cfs : np.array
         reconstr. coefficients f_cfs[sample_mkey,alpha_p,idx_x]
         or f_cfs[sample_cf, sample_mkey, ,alpha_p,idx_x].
+        or dict [mkey] -> ...
     npc_dict : dict
         dictionary of normed piecewise polynomials.
     nrb_dict : dict
@@ -1264,6 +1265,7 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
         else:
             alpha_mask = np.ones(alphas.shape[0], dtype=bool)
 
+        
         for idx_x in range(x_len):
             dt_idx_x = x_start + idx_x
             s_cfs = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
@@ -1635,8 +1637,15 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
             first space_point_nr to eval.
         x_len: integer
             length of the x-vector to eval, default x_len=-1
-        method :  'pinv', 'pinvt', 'pinvth', 'ls'
+        method :  'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
             switches between least-squares and psedo-inverse based lsq
+        sigma_n : sigma_noise, LS-weighting parameter
+        sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
+                    parameter for 'reg'
+        return_std: bool, default=False, returns std-of the coeffs. for reg_t
+        return_cov: bool, default=False, returns cov-mx of the coeffs. for reg_t
+        mask_dict : dictionary / None
+            MR-related multi-key -> numpy mask for used pc coefficients.
 
     Returns
     -------
@@ -1654,17 +1663,53 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
+    assert x_start + x_len <= n_x
+    
     method = kwargs.get("method", 'pinv')
     if method in ('reg_n', 'reg_t'):
         sigma_n = kwargs.get('sigma_n', 1e-10)
         sigma_p = kwargs.get('sigma_p', 1)
-    assert x_start + x_len <= n_x
+    
+    mask_dict = kwargs.get('mask_dict', None)
+    ret_std = kwargs.get('return_std', False)
+    ret_cov = kwargs.get('return_cov', False)
+    numba_aux = kwargs.get('num_aux', False)
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
+    
+    if ret_std:
+        ret_std_cov = {}
+        cov_mode = 1
+    elif ret_cov:
+        ret_std_cov = {}
+        cov_mode = 2
+    
+    alpha_mask = np.ones(p_max, dtype=np.bool_)
     cf_ls_4mkeys = {}
     cf_ls_4mk = np.zeros((p_max, x_len))
     for mkey, sids in mk2sid.items():
-        phi = pol_vals[:, sids].T
+        if mask_dict:
+            alpha_mask = mask_dict[mkey]
+            phi = gen_phi_fast(pol_vals, sids, alpha_mask)
+        else:
+            phi = pol_vals[:, sids].T
+            
+        if method in ('reg_n', 'reg_t'):
+            if isinstance(sigma_n, dict):
+                sigma_n_sq = sigma_n[mkey]**2
+            elif isinstance(sigma_n, float):
+                sigma_n_sq = sigma_n**2
+            if isinstance(sigma_p, dict):
+                sigma_p_sq = sigma_p[mkey]**2
+            elif isinstance(sigma_p, float):
+                sigma_p_sq = sigma_p**2
+                
+            if cov_mode == 2:
+                cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
+                ret_std_cov_4mk = np.zeros((p_max, p_max, x_len))
+            elif cov_mode == 1:
+                ret_std_cov_4mk = np.zeros((p_max, x_len))
+
         for idx_x in range(x_len):
             # v, resid, rank, sigma = linalg.lstsq(A,y)
             # solves Av = y using least squares
@@ -1680,12 +1725,22 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                     v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
                             @ phi.T @ data[sids, dt_idx_x])
                 elif method == 'reg_n':
-                    v_ls = (np.linalg.pinv(1/sigma_n * phi.T @ phi) @ phi.T / sigma_n
+                    v_ls = (np.linalg.pinv(1/sigma_n * phi.T @ phi) @ phi.T / sigma_n_sq
                             @ data[sids, dt_idx_x])
                 elif method == 'reg_t':
-                    P = (phi.T / sigma_n) @ phi + np.eye(phi.shape[1]) / sigma_p
-                    v_ls = (np.linalg.pinv(P) @ phi.T / sigma_n
+                    P = (phi.T / sigma_n) @ phi + np.eye(phi.shape[1]) / sigma_p_sq
+                    try:
+                        P_inv = np.linalg.pinv(P)
+                    except:
+                        L = np.linalg.cholesky(P)
+                        L_inv = np.linalg.pinv(L)
+                        P_inv = L_inv.T @ L_inv
+                    v_ls = (P_inv @ phi.T / sigma_n_sq
                             @ data[sids, dt_idx_x])
+                    if ret_std:
+                        ret_std_cov_4mk[:, idx_x] = np.sqrt(np.diag(P_inv))
+                    elif ret_cov:
+                        ret_std_cov_4mk[cov_mask, idx_x] = P_inv.flatten()   
                 else:
                     if n_s == len(sids):
                         v_ls, _, _, _ = np.linalg.lstsq(
@@ -1699,7 +1754,9 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                 v_ls = data[dt_idx_x]/phi
             cf_ls_4mk[:, idx_x] = v_ls
         cf_ls_4mkeys[mkey] = cf_ls_4mk
-    return cf_ls_4mkeys
+        if ret_std or ret_cov:
+            ret_std_cov[mkey] = ret_std_cov_4mk
+    return (cf_ls_4mkeys, ret_std_cov) if ret_std or ret_cov else cf_ls_4mkeys
 
 
 def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
