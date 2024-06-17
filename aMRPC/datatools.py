@@ -925,7 +925,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         multi-variate polynomials.
     f_cfs : np.array
         reconstr. coefficients f_cfs[sample_mkey,alpha_p,idx_x]
-        or f_cfs[sample_cf, sample_mkey, ,alpha_p,idx_x].
+        or f_cfs[sample_cf_out, sample_mkey, ,alpha_p,idx_x].
         or dict [mkey] -> ...
     npc_dict : dict
         dictionary of normed piecewise polynomials.
@@ -1179,7 +1179,7 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
        
         vec_x = np.arange(x_start, x_start + x_len)
         if isinstance(f_cov_mx, dict):
-            if f_cov_mx[mkey].ndim < 4:
+            if f_cov_mx[mkey].ndim < 3:
                 f_cov_mx_mk = np.expand_dims(f_cov_mx[mkey], -1)
             else:
                 f_cov_mx_mk = f_cov_mx[mkey]
