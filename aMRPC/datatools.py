@@ -1151,14 +1151,22 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     #     n_x = n_tup[2]
     # else:
     #     n_x = 1
+    meas = kwargs.get('meas', None)
+    
     if isinstance(f_cov_mx , dict):
-        f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))]    
+        if meas:
+            f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))][meas]
+        else:
+            f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))]
+
         if f_cov_mx_mk.ndim > 2:
             n_x = f_cov_mx_mk.shape[2]
         else:
             n_x = 1
-    elif f_cov_mx.ndim > 3:
+    elif meas is None and  f_cov_mx.ndim > 3:
         n_x = f_cov_mx.shape[3]
+    elif meas is not None and f_cov_mx.ndim > 4:
+        n_x = f_cov_mx.shape[4]
     else:
         n_x = 1
             
@@ -1206,18 +1214,28 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
         #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
         
         if isinstance(f_cov_mx, dict):
-            if f_cov_mx[mkey].ndim < 3:
-                f_cov_mx_mk = np.expand_dims(f_cov_mx[mkey], -1)
+            if meas is None:
+                if f_cov_mx[mkey].ndim < 3:
+                    f_cov_mx_mk = np.expand_dims(f_cov_mx[mkey], -1)
+                else:
+                    f_cov_mx_mk = f_cov_mx[mkey]
             else:
-                f_cov_mx_mk = f_cov_mx[mkey]
+                if f_cov_mx[mkey][meas].ndim < 3:
+                    f_cov_mx_mk = f_cov_mx[mkey][meas, :, :, np.newaxis]
+                else:
+                    f_cov_mx_mk = f_cov_mx[mkey][meas]
             var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
                                               f_cov_mx_mk)
         else:
-            if f_cov_mx.ndim < 4:
-                f_cov_mx = np.expand_dims(f_cov_mx, -1)
+            if meas is None:
+                if f_cov_mx.ndim < 4:
+                    f_cov_mx_mk = f_cov_mx[sids[0], :, :, np.newaxis]
+            elif f_cov_mx[meas].ndim < 4:
+                f_cov_mx_mk = f_cov_mx[meas, sids[0], :, :, np.newaxis]
+                
     
             var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
-                                              f_cov_mx[sids[0], :, :, :])
+                                              f_cov_mx_mk)
 
     return var_ret
 
