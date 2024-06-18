@@ -1154,10 +1154,10 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     meas = kwargs.get('meas', None)
     
     if isinstance(f_cov_mx , dict):
-        if meas:
-            f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))][meas]
-        else:
+        if meas is None:
             f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))]
+        else:
+            f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))][meas]
 
         if f_cov_mx_mk.ndim > 2:
             n_x = f_cov_mx_mk.shape[2]
@@ -1297,55 +1297,93 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
         aMR-PC coefficients f, f_cfs[mkey] -> [sample_out, alpha_p, idx_x]
     """
     n_so = kwargs.get('n_samples_out', 1)
-    n_s = 0
+    meas = kwargs.get('meas', None)
+    if meas is None:
+        m_shift = 0
+    else:
+        m_shift = 1
+    
+    n_s = 1
+    
     if isinstance(f_cfs, dict):
-        for f_cfs_mk in f_cfs.values():
-            n_tup = f_cfs_mk.shape
-            n_s += n_tup[0]
-        if len(n_tup) > 1:
-            n_x = n_tup[1]
+        n_tup = f_cfs[next(iter(f_cfs))].shape
+        if len(n_tup) > (1 + m_shift):
+            n_x = n_tup[1 + m_shift]
         else:
             n_x = 1
+        n_p = n_tup[m_shift]
     else:
         n_tup = f_cfs.shape
-        if len(n_tup) > 2:
-            n_x = n_tup[2]
+        if len(n_tup) > (2 + m_shift):
+            n_x = n_tup[2 + m_shift]
         else:
             n_x = 1
-        n_s = n_tup[0]
-        
-    n_p = n_tup[1]
+
+        n_s = n_tup[0 + m_shift]
+        n_p = n_tup[1 + m_shift]
     
     mkey_out = kwargs.get('mkey_out', False)
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
+    pos_x = kwargs.get('pos_x', None)
+    if pos_x:
+        x_start = pos_x
+        x_len = 1
     x_len = n_x if x_len < 0 else x_len
     if mkey_out:
         ret_f_cfs = {}
     else:
-        ret_f_cfs = np.zeros((n_so, n_s, n_p, n_x))
+        ret_f_cfs = np.zeros((n_so, n_s, n_p, x_len))
     rng = np.random.default_rng()
     # idxs_p = np.arange(n_p)
     for mkey in mk_list:
         sids = mk2sid[mkey]
         if mkey_out:
-            ret_f_cfs[mkey] = np.zeros((n_so, n_p, n_x))
+            ret_f_cfs[mkey] = np.zeros((n_so, n_p, x_len))
         if alpha_masks is not None and len(alpha_masks) != 0:
             alpha_mask = alpha_masks[mkey]
         else:
             alpha_mask = np.ones(alphas.shape[0], dtype=bool)
 
-        
+        if meas is None:
+            if isinstance(f_cfs, dict):
+                f_cfs_mk = f_cfs[mkey].reshape((n_p, n_x))
+                f_cov_mx_mk = f_cov_mx[mkey].reshape((n_p, n_p, n_x))
+            else:
+                f_cfs_mk = f_cfs[sids[0]].reshape((n_p, n_x))
+                f_cov_mx_mk = f_cov_mx[sids[0]].reshape((n_p, n_p, n_x))
+        else:
+            if isinstance(f_cfs, dict):
+                f_cfs_mk = f_cfs[mkey][meas].reshape((n_p, n_x))
+                f_cov_mx_mk = f_cov_mx[mkey][meas].reshape((n_p, n_p, n_x))
+            else:
+                f_cfs_mk = f_cfs[meas, sids[0]].reshape((n_p, n_x))
+                f_cov_mx_mk = f_cov_mx[meas, sids[0]].reshape((n_p, n_p, n_x))
+
         for idx_x in range(x_len):
             dt_idx_x = x_start + idx_x
-            if isinstance(f_cfs, dict):
-                s_cfs = rng.multivariate_normal(f_cfs[mkey][alpha_mask, dt_idx_x],
-                                                f_cov_mx[mkey][alpha_mask, :, dt_idx_x][:, alpha_mask],
-                                                n_so)
-            else:
-                s_cfs = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
-                                                f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
-                                                n_so)
+            
+            # if meas is None:
+            #     if isinstance(f_cfs, dict):
+            #         s_cfs = rng.multivariate_normal(f_cfs[mkey][alpha_mask, dt_idx_x],
+            #                                         f_cov_mx[mkey][alpha_mask, :, dt_idx_x][:, alpha_mask],
+            #                                         n_so)
+            #     else:
+            #         s_cfs = rng.multivariate_normal(f_cfs[sids[0], alpha_mask, dt_idx_x],
+            #                                         f_cov_mx[sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
+            #                                         n_so)
+            # else:
+            #     if isinstance(f_cfs, dict):
+            #         s_cfs = rng.multivariate_normal(f_cfs[mkey][meas, alpha_mask, dt_idx_x],
+            #                                         f_cov_mx[mkey][meas, alpha_mask, :, dt_idx_x][:, alpha_mask],
+            #                                         n_so)
+            #     else:
+            #         s_cfs = rng.multivariate_normal(f_cfs[meas, sids[0], alpha_mask, dt_idx_x],
+            #                                         f_cov_mx[meas, sids[0], alpha_mask, :, dt_idx_x][:, alpha_mask],
+            #                                         n_so)
+            s_cfs = rng.multivariate_normal(f_cfs_mk[alpha_mask, dt_idx_x],
+                                            f_cov_mx_mk[alpha_mask, :, dt_idx_x][:, alpha_mask],
+                                            n_so)
             # print(s_cfs.shape)
 
             if mkey_out:
