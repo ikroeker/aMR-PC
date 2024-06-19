@@ -927,6 +927,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         reconstr. coefficients f_cfs[sample_mkey,alpha_p,idx_x]
         or f_cfs[sample_cf_out, sample_mkey, ,alpha_p,idx_x].
         or dict [mkey] -> ...
+        or f_cfs[mkey][meas/gauss sampling,...] / f_cfs[meas/gauss sampling,...]
     npc_dict : dict
         dictionary of normed piecewise polynomials.
     nrb_dict : dict
@@ -935,9 +936,10 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
         (multi key) -> sample id dictionary.
     alpha_masks: dict
         (multi key) -> mask for alphas, such that only true degrees were used
-    
+
     kwargs:
         x_pos: x_values
+        meas: number of measurement
 
     Returns
     -------
@@ -946,27 +948,51 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 
     """
     n_s = samples.shape[0]
-    if isinstance(f_cfs, dict):
-        mkey_type = True
-        f_n_tuple = f_cfs[next(iter(f_cfs))].shape
-        if len(f_n_tuple) > 2:
-            n_so = f_n_tuple[0]
-            n_x = f_n_tuple[2]
-        else:
-            n_x = f_n_tuple[1]
-            n_so = 0
+    meas = kwargs.get('meas', None)
+    if meas is None:
+        if isinstance(f_cfs, dict):
+            mkey_type = True
+            f_n_tuple = f_cfs[next(iter(f_cfs))].shape
+            if len(f_n_tuple) > 2:
+                n_so = f_n_tuple[0]
+                n_x = f_n_tuple[2]
+            else:
+                n_x = f_n_tuple[1]
+                n_so = 0
 
+        else:
+            mkey_type = False
+            f_n_tuple = f_cfs.shape
+
+            if len(f_n_tuple) > 3:
+                n_so = f_n_tuple[0]
+                n_x = f_n_tuple[3]
+
+            else:
+                n_x = f_n_tuple[2]
+                n_so = 0
     else:
-        mkey_type = False
-        f_n_tuple = f_cfs.shape
+        if isinstance(f_cfs, dict):
+            mkey_type = True
+            f_n_tuple = f_cfs[next(iter(f_cfs))][meas].shape
+            if len(f_n_tuple) > 2:
+                n_so = f_n_tuple[0]
+                n_x = f_n_tuple[2]
+            else:
+                n_x = f_n_tuple[1]
+                n_so = 0
 
-        if len(f_n_tuple) > 3:
-            n_so = f_n_tuple[0]
-            n_x = f_n_tuple[3]
-            
         else:
-            n_x = f_n_tuple[2]
-            n_so = 0
+            mkey_type = False
+            f_n_tuple = f_cfs[meas].shape
+
+            if len(f_n_tuple) > 3:
+                n_so = f_n_tuple[0]
+                n_x = f_n_tuple[3]
+
+            else:
+                n_x = f_n_tuple[2]
+                n_so = 0
 
     pos_x = kwargs.get('pos_x', None)
     if isinstance(pos_x, (int, float)):
@@ -1013,6 +1039,14 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
                                                            idxs_pm,
                                                            sids_l,
                                                            f_cfs[:, sids[0], :, vec_x])
+        elif meas is not None:
+            if mkey_type:
+                f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
+                                                         sids_l,
+                                                         f_cfs[mkey][meas, :, vec_x])
+            else:
+                f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
+                                                         sids_l, f_cfs[meas, sids[0], :, vec_x])
         else:
             if mkey_type:
                 f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
@@ -1152,7 +1186,7 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     # else:
     #     n_x = 1
     meas = kwargs.get('meas', None)
-    
+
     if isinstance(f_cov_mx , dict):
         if meas is None:
             f_cov_mx_mk = f_cov_mx[next(iter(f_cov_mx))]
@@ -1169,14 +1203,14 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
         n_x = f_cov_mx.shape[4]
     else:
         n_x = 1
-            
+
     # n_so = kwargs.get('n_samples_out', 1)
     # n_p = n_tup[1]
     n_s = samples.shape[0]
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
     pos_x = kwargs.get('pos_x', None)
-    
+
     if isinstance(pos_x, (list, np.ndarray)):
         n_x = len(pos_x)
         x_start = pos_x[0]
@@ -1187,8 +1221,8 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
         vec_x = np.array([int(n_x)])
     else:
         vec_x = np.arange(x_start, x_start + x_len)
-    
-    
+
+
     var_ret = np.zeros((n_s, n_x))  # return array
 
     para = kwargs.get('para', False)
@@ -1212,7 +1246,7 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
             idxs_pm = idxs_p
             # alpha_mask = np.ones(alphas.shape[0], dtype=np.bool_)
         #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
-        
+
         if isinstance(f_cov_mx, dict):
             if meas is None:
                 if f_cov_mx[mkey].ndim < 3:
@@ -1232,8 +1266,8 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
                     f_cov_mx_mk = f_cov_mx[sids[0], :, :, np.newaxis]
             elif f_cov_mx[meas].ndim < 4:
                 f_cov_mx_mk = f_cov_mx[meas, sids[0], :, :, np.newaxis]
-                
-    
+
+
             var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
                                               f_cov_mx_mk)
 
@@ -1302,9 +1336,9 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
         m_shift = 0
     else:
         m_shift = 1
-    
+
     n_s = 1
-    
+
     if isinstance(f_cfs, dict):
         n_tup = f_cfs[next(iter(f_cfs))].shape
         if len(n_tup) > (1 + m_shift):
@@ -1321,7 +1355,7 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
 
         n_s = n_tup[0 + m_shift]
         n_p = n_tup[1 + m_shift]
-    
+
     mkey_out = kwargs.get('mkey_out', False)
     x_start = kwargs.get('x_start', 0)
     x_len = kwargs.get("x_len", n_x)
@@ -1362,7 +1396,7 @@ def sample_amrpc_cfs(mk_list, alphas, f_cfs, f_cov_mx,
 
         for idx_x in range(x_len):
             dt_idx_x = x_start + idx_x
-            
+
             # if meas is None:
             #     if isinstance(f_cfs, dict):
             #         s_cfs = rng.multivariate_normal(f_cfs[mkey][alpha_mask, dt_idx_x],
@@ -1635,7 +1669,7 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                         elif ret_cov:
                             # cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
                             # for sid in sids:
-                            ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()    
+                            ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()
                     elif method == 'unbias':
                         v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
                     elif method == 'unbias_herm':
@@ -1762,7 +1796,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
 
     Returns
     -------
-    cf_ls_4mkeys: dictionary of np.arrays of f_i for mkey-> [p, x_i] 
+    cf_ls_4mkeys: dictionary of np.arrays of f_i for mkey-> [p, x_i]
     ret_std_cov: mkey->[p, x_i] / mkey->[p, p, x_i]
 
     """
@@ -1778,26 +1812,26 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     x_len = kwargs.get("x_len", n_x)
     x_len = n_x if x_len < 0 else x_len
     assert x_start + x_len <= n_x
-    
+
     method = kwargs.get("method", 'pinv')
     if method in ('reg_n', 'reg_t'):
         sigma_n = kwargs.get('sigma_n', 1e-10)
         sigma_p = kwargs.get('sigma_p', 1)
-    
+
     mask_dict = kwargs.get('mask_dict', None)
     ret_std = kwargs.get('return_std', False)
     ret_cov = kwargs.get('return_cov', False)
     numba_aux = kwargs.get('num_aux', False)
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
-    
+
     if ret_std:
         ret_std_cov = {}
         cov_mode = 1
     elif ret_cov:
         ret_std_cov = {}
         cov_mode = 2
-    
+
     alpha_mask = np.ones(p_max, dtype=np.bool_)
     cf_ls_4mkeys = {}
     cf_ls_4mk = np.zeros((p_max, x_len))
@@ -1807,7 +1841,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
             phi = gen_phi_fast(pol_vals, sids, alpha_mask)
         else:
             phi = pol_vals[:, sids].T
-            
+
         if method in ('reg_n', 'reg_t'):
             if isinstance(sigma_n, dict):
                 sigma_n_sq = sigma_n[mkey]**2
@@ -1817,7 +1851,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                 sigma_p_sq = sigma_p[mkey]**2
             elif isinstance(sigma_p, float):
                 sigma_p_sq = sigma_p**2
-                
+
             if cov_mode == 2:
                 cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
                 ret_std_cov_4mk = np.zeros((p_max, p_max, x_len))
@@ -1854,7 +1888,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                     if ret_std:
                         ret_std_cov_4mk[:, idx_x] = np.sqrt(np.diag(P_inv))
                     elif ret_cov:
-                        ret_std_cov_4mk[cov_mask, idx_x] = P_inv.flatten()   
+                        ret_std_cov_4mk[cov_mask, idx_x] = P_inv.flatten()
                 else:
                     if n_s == len(sids):
                         v_ls, _, _, _ = np.linalg.lstsq(
