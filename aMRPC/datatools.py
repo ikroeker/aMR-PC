@@ -1244,7 +1244,7 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
             # alpha_mask = alpha_masks[mkey]
         else:
             idxs_pm = idxs_p
-        print("idxs_pm:", idxs_pm)
+        # print("idxs_pm:", idxs_pm)
             # alpha_mask = np.ones(alphas.shape[0], dtype=np.bool_)
         #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
 
@@ -1259,18 +1259,24 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
                     f_cov_mx_mk = f_cov_mx[mkey][meas, :, :, np.newaxis]
                 else:
                     f_cov_mx_mk = f_cov_mx[mkey][meas]
-            var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
-                                              f_cov_mx_mk)
+            # var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
+            #                                   f_cov_mx_mk)
         else:
             if meas is None:
                 if f_cov_mx.ndim < 4:
                     f_cov_mx_mk = f_cov_mx[sids[0], :, :, np.newaxis]
+                else:
+                    f_cov_mx_mk = f_cov_mx[sids[0]]
             elif f_cov_mx[meas].ndim < 4:
                 f_cov_mx_mk = f_cov_mx[meas, sids[0], :, :, np.newaxis]
+            else:
+                f_cov_mx_mk = f_cov_mx[meas, sids[0]]
 
 
-            var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l,
-                                              f_cov_mx_mk)
+        print("f_cov_mx:", f_cov_mx_mk.shape, "pvals:", p_vals.shape,
+              "p_vals_l", p_vals[:, sids_l].shape)
+        var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals[:, sids_l], idxs_pm,
+                                          sids_l, f_cov_mx_mk)
 
     return var_ret
 
@@ -1284,7 +1290,7 @@ def cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l, f_cov):
     var_ret = np.zeros((n_s, len(vec_x)))
     for idx_x in vec_x:
         for s_i in range(n_s):
-            s_var = 0
+            s_var = 0.0
             for k in idxs_pm:
                 for r in idxs_pm:
                     s_var += p_vals[k, s_i] * p_vals[r, s_i] * f_cov[k, r, idx_x]
@@ -1854,7 +1860,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
     ret_std = kwargs.get('return_std', False)
     ret_cov = kwargs.get('return_cov', False)
     numba_aux = kwargs.get('num_aux', False)
-    print("numba.", numba_aux)
+    # print("numba.", numba_aux)
     n_s = n_tup[0]
     p_max = pol_vals.shape[0]
     cov_mask = np.empty((1, 1), dtype=np.bool8)
@@ -1886,7 +1892,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
         if mask_dict is not None:
             alpha_mask = mask_dict[mkey]
         cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
-        print(alpha_mask)
+        # print(alpha_mask)
 
         if method in ('reg_n', 'reg_t'):
             if isinstance(sigma_n, dict):
@@ -1897,10 +1903,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                 sigma_p_sq = sigma_p[mkey]**2
             elif isinstance(sigma_p, float):
                 sigma_p_sq = sigma_p**2
-            
-            
-
-        
+      
         if numba_aux:
             cf_ls, cov_mx = gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals,
                                                       alpha_mask, cov_mask,
@@ -1941,11 +1944,12 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                     elif method == 'reg_t':
                         P = (phi.T / sigma_n_sq) @ phi + np.eye(phi.shape[1]) / sigma_p_sq
                         try:
+                            P_inv = np.linalg.pinv(P)
+                        except:
                             L = np.linalg.cholesky(P)
                             L_inv = np.linalg.pinv(L)
                             P_inv = L_inv.T @ L_inv
-                        except:
-                            P_inv = np.linalg.pinv(P)
+                            
                         v_ls = (P_inv @ phi.T / sigma_n_sq
                                 @ np.ascontiguousarray(data[sids, dt_idx_x]))
                         if ret_std:
