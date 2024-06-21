@@ -1046,15 +1046,17 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
                                                          f_cfs[mkey][meas, :, vec_x])
             else:
                 f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
-                                                         sids_l, f_cfs[meas, sids[0], :, vec_x])
+                                                         sids_l, f_cfs[meas, sids[0]][:, vec_x])
         else:
             if mkey_type:
                 f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
                                                          sids_l,
                                                          f_cfs[mkey][:, vec_x])
             else:
+                # print("frec/f_cfs", f_rec.shape, f_cfs.shape, p_vals.shape, vec_x, f_cfs[sids[0]].shape,
+                #      f_cfs[sids[0]][:, vec_x].shape)
                 f_rec[sids_l, :] = gen_loc_amrpc_rec_nso(p_vals, idxs_pm,
-                                                         sids_l, f_cfs[sids[0], :, vec_x])
+                                                         sids_l, f_cfs[sids[0]][:, vec_x])
         # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
         # if mkey_type:
         #     if n_so > 0:
