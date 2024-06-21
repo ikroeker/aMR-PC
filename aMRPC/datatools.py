@@ -1218,7 +1218,7 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
     elif isinstance(pos_x, (float, int)):
         n_x = 1
         x_start = pos_x
-        vec_x = np.array([int(n_x)])
+        vec_x = np.array([int(pos_x)])
     else:
         vec_x = np.arange(x_start, x_start + x_len)
 
@@ -1243,7 +1243,7 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
             idxs_pm = idxs_p[alpha_masks[mkey]]
             # alpha_mask = alpha_masks[mkey]
         else:
-            idxs_pm = idxs_p
+            idxs_pm = idxs_p.copy()
         # print("idxs_pm:", idxs_pm)
             # alpha_mask = np.ones(alphas.shape[0], dtype=np.bool_)
         #        cov_pmask = np.multiply.outer(alpha_mask, alpha_mask)
@@ -1273,20 +1273,18 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
                 f_cov_mx_mk = f_cov_mx[meas, sids[0]]
 
 
-        print("f_cov_mx:", f_cov_mx_mk.shape, "pvals:", p_vals.shape,
-              "p_vals_l", p_vals[:, sids_l].shape)
         var_ret[sids_l, :] = cmp_var_4_mk(vec_x, p_vals[:, sids_l], idxs_pm,
-                                          sids_l, f_cov_mx_mk)
+                                          len(sids_l), f_cov_mx_mk)
 
     return var_ret
 
 
-@njit(float64[:, :](int64[:], float64[:, :], int64[:], int64[:],
+@njit(float64[:, :](int64[:], float64[:, :], int64[:], int64,
                     float64[:, :, :]),
       nogil=True, parallel=True, cache=True)
-def cmp_var_4_mk(vec_x, p_vals, idxs_pm, sids_l, f_cov):
+def cmp_var_4_mk(vec_x, p_vals, idxs_pm, n_s, f_cov):
     # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
-    n_s = len(sids_l)
+    # n_s = len(sids_l)
     var_ret = np.zeros((n_s, len(vec_x)))
     for idx_x in vec_x:
         for s_i in range(n_s):
@@ -1757,11 +1755,15 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                   P = ((phi.T / sigma_n_mk) @ phi
                        + np.eye(phi.shape[1]) / sigma_p_mk)
                   try:
-                      P_inv = np.linalg.pinv(P)
-                  except:
+                      # P_inv = np.linalg.pinv(P)
                       L = np.linalg.cholesky(P)
                       L_inv = np.linalg.pinv(L)
                       P_inv = L_inv.T @ L_inv
+                  except:
+                      P_inv = np.linalg.pinv(P)
+                      # L = np.linalg.cholesky(P)
+                      # L_inv = np.linalg.pinv(L)
+                      # P_inv = L_inv.T @ L_inv
                   v_ls = (P_inv @ phi.T / sigma_n_mk
                           @ rs_data)
                   if cov_mode == 1:  # std
