@@ -1712,20 +1712,20 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                               meth_mode, cov_mode, p_max, x_start, x_len):
 
     n_s = sids.shape[0]
-    phi = gen_phi_fast(pol_vals, sids, alpha_mask)
+    phi = np.ascontiguousarray(gen_phi_fast(pol_vals, sids, alpha_mask))
     # alpha_mask = np.ones(p_max, dtype=np.bool8)
     # define P_inv
     if meth_mode == 1:  # pinv
-        P_inv = np.linalg.pinv(phi)
+        P_inv = np.ascontiguousarray(np.linalg.pinv(phi))
     elif meth_mode == 2: # reg_t for sample based output
         P = ((phi.T / sigma_n_mk) @ phi
              + np.eye(phi.shape[1]) / sigma_p_mk)
         try:
-            P_inv = np.linalg.pinv(P)
+            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
         except:
             L = np.linalg.cholesky(P)
             L_inv = np.linalg.pinv(L)
-            P_inv = L_inv.T @ L_inv
+            P_inv = np.ascontiguousarray(L_inv.T @ L_inv)
     elif meth_mode == 5: # reg_t for mkey-based output
         P = ((phi.T / sigma_n_mk) @ phi
              + np.eye(phi.shape[1]) / sigma_p_mk)
@@ -1733,9 +1733,9 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
             # P_inv = np.linalg.pinv(P)
             L = np.linalg.cholesky(P)
             L_inv = np.linalg.pinv(L)
-            P_inv = L_inv.T @ L_inv
+            P_inv = np.ascontiguousarray(L_inv.T @ L_inv)
         except:
-            P_inv = np.linalg.pinv(P)
+            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
             # L = np.linalg.cholesky(P)
             # L_inv = np.linalg.pinv(L)
             # P_inv = L_inv.T @ L_inv      
@@ -1805,11 +1805,12 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                   elif cov_mode == 2:  # cov
                       # for sid in sids:
                       # for s_idx in range(n_s):
-                      # ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()
+                      # ret_std_cov_4s[0, cov_mask, idx_x] = P_inv.flatten()
                       p_mx = np.zeros((p_max*p_max), dtype=np.float64)
                       p_mx[cov_mask.flatten()] = P_inv.flatten()
-                      p_mx = p_mx.reshape((p_max, -1))
-                      ret_std_cov_4s[0, :, :, idx_x] = p_mx
+                      # p_mx = p_mx.reshape((p_max, -1))
+                      ret_std_cov_4s[0, :, :, idx_x] = p_mx.reshape((p_max, -1))
+                      
             elif meth_mode == 3:  # unbias
                 # v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
                 v_ls = P_inv @ phi.T @ rs_data
@@ -1916,13 +1917,13 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
         elif method == 'reg_t':
             meth_mode = 5
         elif method == 'reg_n':
-            meth_mode = 3
-        elif method == 'unbias':
             meth_mode = 4
+        elif method == 'unbias':
+            meth_mode = 3
         else:
             meth_mode = 0  # lsq
 
-    alpha_mask = np.ones(p_max, dtype=np.bool8)
+    alpha_mask = np.ones(p_max, dtype=np.bool_)
     cf_ls_4mkeys = {}
 
     for mkey, sids in mk2sid.items():
@@ -1950,9 +1951,9 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
 
             cf_ls_4mkeys[mkey] = cf_ls[0]
             if cov_mode == 1:  # std
-                ret_std_cov[mkey] = cov_mx[0, :, 0, :]
+                ret_std_cov[mkey] = cov_mx[0, :, 0, :].copy()
             elif cov_mode == 2:  # cov
-                ret_std_cov[mkey] = cov_mx[0]
+                ret_std_cov[mkey] = cov_mx[0].copy()
         else:
             if cov_mode == 2:
                 ret_std_cov_4mk = np.zeros((p_max, p_max, x_len))
