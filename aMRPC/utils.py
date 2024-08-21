@@ -92,7 +92,7 @@ def gen_midx_mask(alphas, no_max):
     are below ( <=)no_max
     """
     p_cnt = alphas.shape[0]
-    a_mask = np.empty(p_cnt, dtype=np.bool8)
+    a_mask = np.empty(p_cnt, dtype=np.bool_)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
     return a_mask
@@ -106,7 +106,7 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     for idx not in idx_st pol degree <=no_min
     """
     p_cnt, dim = alphas.shape
-    a_mask = np.zeros(p_cnt, dtype=np.bool8)
+    a_mask = np.zeros(p_cnt, dtype=np.bool_)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
         for _d in range(dim):
@@ -126,7 +126,7 @@ def gen_midx_mask_hyp(alphas, no_max, p_norm):
     Nora Lüthen, Stefano Marelli, and Bruno Sudret
     """
     p_cnt = alphas.shape[0]
-    a_mask = np.empty(p_cnt, dtype=np.bool8)
+    a_mask = np.empty(p_cnt, dtype=np.bool_)
     for i in range(p_cnt):
         i_arr = alphas[i, :].astype(np.float32)
         a_mask[i] = np.linalg.norm(i_arr, p_norm) <= no_max
