@@ -818,16 +818,20 @@ def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
     Q = np.eye(phi.shape[0]) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
-    # try:
-    #     cov_mx_inv = np.linalg.pinv(cov_mx)
-    # except:
-    # inverse according to eq. (A.9) in Rasmussen and Williams
-    Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
-    R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
-    P = phi.T @ Q_inv @ phi + R_inv
-    P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-    # inverse according to eq. (A.9) in Rasmussen and Williams
-    cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+    try:
+        # L = np.linalg.cholesky(cov_mx)
+        L_inv = np.linalg.inv(np.linalg.cholesky(cov_mx))
+        cov_mx_inv = L_inv.T @ L_inv
+        # cov_mx_inv = np.linalg.inv(cov_mx)
+    except:
+        # print("ex in cov_inv")
+        # inverse according to eq. (A.9) in Rasmussen and Williams
+        Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
+        R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
+        P = phi.T @ Q_inv @ phi + R_inv
+        P_inv = np.ascontiguousarray(np.linalg.pinv(P))
+        # inverse according to eq. (A.9) in Rasmussen and Williams
+        cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
     return cov_mx, cov_mx_inv
 
 
@@ -1964,9 +1968,7 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
             cf_ls_4mk = np.zeros((p_max, x_len))
 
             # prepare P_inv
-            if method in ('pinv', 'reg'):
-                P_inv = np.linalg.pinv(phi)
-            elif method in ('unbias', 'pinvt'):
+            if method in ('unbias', 'pinvt'):
                 P_inv = np.linalg.pinv(phi.T @ phi)
             elif method == 'pinvth':
                 P_inv = np.linalg.pinv(phi.T @ phi, hermitian=True)
@@ -1975,11 +1977,11 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
             elif method == 'reg_t':
                 P = (phi.T / sigma_n_sq) @ phi + np.eye(phi.shape[1]) / sigma_p_sq
                 try:
-                    L = np.linalg.cholesky(P)
-                    L_inv = np.linalg.pinv(L)
+                    L_inv = np.linalg.inv(np.linalg.cholesky(P))
                     P_inv = L_inv.T @ L_inv
                 except:
                     P_inv = np.linalg.pinv(P)
+
 
             # solve for all idx_x
             for idx_x in range(x_len):
