@@ -285,11 +285,14 @@ def pcfs4eval(pc_dict, mkey, alpha):
     mdeg = np.max(alpha)
     alen = len(alpha)
     assert alen == len(mkey)
+    # rcfs = np.stack([pc_dict[mkey[d]][alpha[d], 0:mdeg+1] for d in range(alen)],
+    #                 dtype=np.float64)
     rcfs = np.zeros((alen, mdeg+1), dtype=np.float64)
     for d in range(alen):
         ad = alpha[d]
         cfs = pc_dict[mkey[d]]
         rcfs[d, :] = cfs[ad, 0:mdeg+1]
+
     return rcfs
 
 
@@ -640,7 +643,7 @@ def gen_mkey_sid_rel(samples, mk_lst, nrb_dict, bds='all'):
             mk2sids[mkey] = sids[B]
             for sid in mk2sids[mkey]:
                 if sid in sid2mk:
-                    sid2mk[sid] += mkey
+                    sid2mk[sid] += [mkey]
                 else:
                     sid2mk[sid] = [mkey]
     return sid2mk, mk2sids
@@ -1081,7 +1084,7 @@ def gen_amrpc_rec(samples, mk_list, alphas, f_cfs, npc_dict, nrb_dict,
 @njit(float64[:, :, :](int64, int64, float64[:, :], int64[:], int64[:], float64[:, :, :]),
       nogil=True, parallel=True, cache=True)
 def gen_loc_amrpc_rec_so(n_so, n_x, p_vals, idxs_pm, sids_l, f_cfs):
-    n_s_l = len(sids_l)
+    n_s_l = sids_l.size
     phi = np.ascontiguousarray(((p_vals[:, sids_l])[idxs_pm, :]).T)
     f_rec = np.zeros((n_so, n_s_l, n_x), dtype=np.float64)
     for idx_x in prange(n_x):
@@ -1961,22 +1964,24 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
         # solve for all idx_x
         if n_s > 1:
             if method in ('pinv', 'reg'):
+                P_inv  = np.linalg.pinv(phi)
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
                     # v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
-                    P_inv  = np.linalg.pinv(phi)
                     v_ls = P_inv @ data[sids, dt_idx_x]
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls   
             elif method in ('unbias', 'pinvt', 'pinvth'):
+                # P_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
+                mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi)) @ phi.T
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
-                    P_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
-                    v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
+                    v_ls = mx_inv @ data[sids, dt_idx_x]
+                    # v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls   
             elif method == 'reg_n':
+                P_inv = np.linalg.inv(np.linalg.cholesky(1/sigma_n * phi.T @ phi))
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
-                    P_inv = np.linalg.inv(np.linalg.cholesky(1/sigma_n * phi.T @ phi))
                     v_ls = (P_inv @ phi.T / sigma_n_sq
                             @ data[sids, dt_idx_x])
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls 
@@ -1985,7 +1990,8 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                 #                                  sigma_n_sq, sigma_p_sq,
                 #                                  x_start, x_len)
                 
-                P = (phi.T / sigma_n_sq) @ phi + np.eye(phi.shape[1]) / sigma_p_sq
+                P = (phi.T / sigma_n_sq) @ phi + np.diag(np.repeat(1.0/sigma_p_sq, phi.shape[1]))
+                # np.eye(phi.shape[1]) / sigma_p_sq
                 try:
                     L_inv = np.linalg.inv(np.linalg.cholesky(P))
                     P_inv = L_inv.T @ L_inv
@@ -2001,10 +2007,10 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                 #     one = np.sqrt(np.diag(P_inv))
                 #     ret_std_cov_4mk = np.stack([one for _ in range(x_len)],
                 #                                axis=1)
+                mx_inv = P_inv @ phi.T / sigma_n_sq
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
-                    v_ls = (P_inv @ phi.T / sigma_n_sq
-                            @ np.ascontiguousarray(data[sids, dt_idx_x]))
+                    v_ls = (mx_inv @ np.ascontiguousarray(data[sids, dt_idx_x]))
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls  
                     if ret_cov:
                         ret_std_cov_4mk[cov_mask, idx_x] = P_inv.flatten()
