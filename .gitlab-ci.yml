@@ -1,4 +1,4 @@
-image: "python:latest"
+image: python:3.10 #Otherwise use 'latest'
 
 # Change pip's cache directory to be inside the project directory since we can
 # only cache local items.
@@ -15,20 +15,56 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - pip install -r requirements.txt
+  - pip install --upgrade pip setuptools wheel
+  # - pip install -r requirements.txt
 
+stages:          # List of stages for jobs, and their order of execution
+  - build
+  - test
+  #- deploy
 
-test:
+build-job:       # This job runs in the build stage, which runs first.
+  stage: build
   script:
-    - pip install pytest
-    - pytest3
-
-
-run:
-  script:
-    - pip install .
+    - echo "Compiling the code..."
+    #- pip install h5py --only-binary h5py
+    - pip install -e .
+    - echo "Compile complete."
   artifacts:
     paths:
       - build/*
-    when: on_success
-    expire_in: 3 days
+
+unit-test-job:   # This job runs in the test stage.
+  stage: test
+  script:
+    - echo "Running unit tests..."
+    - pip install pytest
+    - pip install pytest-cov
+    - pip install -e .
+    - pytest --junitxml=report.xml
+  artifacts:
+    paths:
+      - report.xml
+    reports:
+      junit: report.xml
+  rules:
+    - changes:
+       - src/**/*
+       - tests/**/*
+      when: always
+      
+      
+#test:
+#  script:
+#    - pip install pytest
+#    - pytest3
+
+
+#run:
+#  script:
+#    - pip install .
+#  artifacts:
+#    paths:
+#      - build/*
+#    when: on_success
+#    expire_in: 3 days
