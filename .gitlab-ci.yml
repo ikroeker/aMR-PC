@@ -41,7 +41,7 @@ unit-test-job:   # This job runs in the test stage.
     - pip install pytest
     - pip install pytest-cov
     - pip install -e .
-    - pip install numpy pandas scipy
+    - pip install numpy pandas scipy numba
     - pytest --junitxml=report.xml
   artifacts:
     paths:
@@ -50,7 +50,7 @@ unit-test-job:   # This job runs in the test stage.
       junit: report.xml
   rules:
     - changes:
-       - src/**/*
+       - aMRPC/**/*
        - tests/**/*
       when: always
       
