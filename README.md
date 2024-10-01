@@ -50,3 +50,8 @@ https://doi.org/10.1007/s10596-023-10199-1
 Ilja Kroeker, Sergey Oladyshkin, Iryna Rybak
 *Global sensitivity analysis using multi-resolution polynomial chaos expansion for coupled Stokes-Darcy flow problems.*
 https://doi.org/10.1007/s10596-023-10236-z
+
+
+Ilja Kröker, Tim Brünnette, Nils Wildt, Maria Fernanda Morales Oreamuno, Rebecca Kohlhaas, Sergey Oladyshkin, Wolfgang Nowak
+*Bayesian³ Active learning for regularized arbitrary multi-element polynomial chaos using information theory*
+https://doi.org/10.1615/int.j.uncertaintyquantification.2024052675

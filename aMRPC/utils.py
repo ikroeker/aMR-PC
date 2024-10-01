@@ -7,16 +7,17 @@ https://orcid.org/0000-0003-0360-5307
 
 """
 
-import itertools as it
+# from functools import lru_cache
+from itertools import product
 # from math import comb
 import numpy as np
 from scipy.special import comb
 try:
-    from numba import jit, njit  # , jit_module
+    from numba import jit, njit, int64  # , jit_module
     NJM = True
 except ImportError:
     NJM = False
-    pass
+    # pass
 
 # import math
 
@@ -25,14 +26,15 @@ except ImportError:
 ParPos = {'Nr': 0, 'aNr': 0, 'Nri': 1, 'src': 2}
 
 
+# @njit(int64[:, :](int64, int64), nogil=True)
 def gen_multi_idx_old(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
     old version
     """
-    p_cnt = comb(n_o+dim, dim)
-    alphas = np.zeros((np.uint32(p_cnt), dim), dtype=np.int32)
+    p_cnt = np.int64(comb(n_o+dim, dim, exact=True))
+    alphas = np.zeros((np.int64(p_cnt), dim), dtype=np.int64)
     tmp_arr = np.zeros(dim)
     l_idx = 1
     pmax = (n_o+1)**dim
@@ -52,7 +54,7 @@ def gen_multi_idx_old(n_o, dim):
 
 
 # @jit(debug=True)
-def gen_multi_idx(n_o, dim):
+def gen_multi_idx_old1(n_o, dim):
     """
     generates mulit-indices of multi-variate polynomial base
     uses graded lexicographic ordering (p. 156, Sullivan)
@@ -60,7 +62,7 @@ def gen_multi_idx(n_o, dim):
     p_cnt = np.int64(comb(n_o+dim, dim, exact=True))
     alphas = np.zeros((p_cnt, dim), dtype=np.uint32)
     l_idx = 0
-    tmp_it = it.product(range(n_o+1), repeat=dim)
+    tmp_it = product(range(n_o+1), repeat=dim)
     for p_it in tmp_it:
         if sum(p_it) <= n_o:
             alphas[l_idx, :] = np.array(p_it, dtype=np.uint32)
@@ -70,20 +72,33 @@ def gen_multi_idx(n_o, dim):
     return alphas
 
 
-@jit(nopython=True, nogil=True)
+def gen_multi_idx(n_o, dim):
+    """
+    generates mulit-indices of multi-variate polynomial base
+    uses graded lexicographic ordering (p. 156, Sullivan)
+    """
+    a = np.arange(n_o+1, dtype=np.uint32)
+    alphas = a
+    for d in range(1, dim):
+        a_tmp = np.vstack((np.repeat(alphas, n_o +1, axis=0).T, np.tile(a, alphas.shape[0]))).T
+        alphas = a_tmp[a_tmp.sum(axis=1) < n_o+1]
+    return alphas.reshape((-1, dim))
+
+
+@jit(nopython=True, nogil=True, cache=True)
 def gen_midx_mask(alphas, no_max):
     """
     generates a mask for alphas, such that all multi-index polynomial degrees
     are below ( <=)no_max
     """
     p_cnt = alphas.shape[0]
-    a_mask = np.empty(p_cnt, dtype=np.bool8)
+    a_mask = np.empty(p_cnt, dtype=np.bool_)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
     return a_mask
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     """
     generates a mask for alphas, such that all multi-index polynomial degrees
@@ -91,7 +106,7 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     for idx not in idx_st pol degree <=no_min
     """
     p_cnt, dim = alphas.shape
-    a_mask = np.zeros(p_cnt, dtype=np.bool8)
+    a_mask = np.zeros(p_cnt, dtype=np.bool_)
     for i in range(p_cnt):
         a_mask[i] = alphas[i, :].sum() <= no_max
         for _d in range(dim):
@@ -100,7 +115,7 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
     return a_mask
 
 
-@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True, cache=True)
 def gen_midx_mask_hyp(alphas, no_max, p_norm):
     """
     generates a mask for alphas, such that all P-Norms of
@@ -111,7 +126,7 @@ def gen_midx_mask_hyp(alphas, no_max, p_norm):
     Nora Lüthen, Stefano Marelli, and Bruno Sudret
     """
     p_cnt = alphas.shape[0]
-    a_mask = np.empty(p_cnt, dtype=np.bool8)
+    a_mask = np.empty(p_cnt, dtype=np.bool_)
     for i in range(p_cnt):
         i_arr = alphas[i, :].astype(np.float32)
         a_mask[i] = np.linalg.norm(i_arr, p_norm) <= no_max
@@ -139,7 +154,7 @@ def gen_nri_range(nrs):
     nris = np.zeros((nri_cnt, dim), dtype=np.uint32)
     for nri in range(nri_cnt):
         for d_idx in range(dim):
-            val = (nri//divs[d_idx] % nri_cnts[d_idx])
+            val = nri//divs[d_idx] % nri_cnts[d_idx]
             nris[nri, d_idx] = val
     return nris, nri_cnt
 
@@ -167,7 +182,7 @@ def gen_nri_range_4mkset(mkey_set, dim):
     return nris, nri_cnt
 
 
-@njit(nogil=True)
+@njit(nogil=True, cache=True)
 def midx4quad(ar_lens):
     """ generates indexes for eval. points etc. """
     # n_lens = np.array(ar_lens, dtype=np.int32)
@@ -180,7 +195,7 @@ def midx4quad(ar_lens):
     # print(divs)
     for l_idx in range(lines):
         for col in range(cols):
-            val = (l_idx//divs[col] % ar_lens[col])
+            val = l_idx//divs[col] % ar_lens[col]
             idx_mx[l_idx, col] = val
     return idx_mx
 

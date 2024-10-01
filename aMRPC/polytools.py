@@ -7,18 +7,19 @@ https://orcid.org/0000-0003-0360-5307
 """
 # import sys
 import math
+from scipy.stats import norm
 import numpy as np
 # from numpy.polynomial import polynomial as P
 try:
-    from numba import njit, prange, float64  # int64, jit, float64, int32 # , jit_module
+    from numba import njit, prange # int64, jit, float64, int32 # , jit_module
     NJM = True
 except ImportError:
     NJM = False
     pass
 
 
-@njit(nogil=True)
-def moment(mm, data):
+@njit(nogil=True, cache=True)
+def moment(mm_, data):
     """
     computes mm-th raw moment
 
@@ -37,14 +38,14 @@ def moment(mm, data):
     """
     # print(mm)
     # return np.power(data, mm, dtype=np.float64).mean()
-    return np.mean(data ** mm)
+    return np.mean(data ** mm_)
 
 
 def Hankel(m_mx, data):
     return Hankel_np(m_mx, np.array(data, dtype=np.float64))
 
 
-@njit(nogil=True, parallel=True)
+@njit(nogil=True, parallel=True, cache=True)
 def Hankel_np(m_mx, data):
     """
       Generates Hankel matrix for max. order m_mx for dateset given in data
@@ -117,7 +118,8 @@ def apc_cfs(H, k=-1, alen=-1):
     for j in range(k+1):
         rH[k, j] = 0
     rH[k, k] = 1
-    cfs = np.linalg.solve(rH, rs)
+    # cfs = np.linalg.solve(rH, rs)
+    cfs = np.linalg.lstsq(rH, rs, rcond=None)[0]
     # if not np.allclose(np.dot(rH, cfs), rs):
     #    cfs, _, _, _ = np.linalg.lstsq(rH, rs, rcond=-1)
 
@@ -390,7 +392,7 @@ def cmp_norm_cf_moments(cfs, H_mx, eps=0):
     return math.sqrt(ltwo_norm)
 
 
-@njit(nogil=True, parallel=True)
+@njit(nogil=True, parallel=True, cache=True)
 def uniHank(n, a=0.0, b=1.0):
     """
     Generates Hankel Matrix H_n for U(a,b),
@@ -426,6 +428,32 @@ def uniHank(n, a=0.0, b=1.0):
             H[k, l] = np.dot(va, vb) / (m+1)
     return H
 
+
+def norm_hank(n_mx, mu=0.0, sigma=1.0):
+    """
+    Generates Hankel Matrix H_n for N(mu, sigma),
+    uses m_n=norm.moment(n, mu, sigma)
+    
+    Parameters
+    ----------
+    n_mx : int
+        max order.
+    mu : float, optional
+        mean. The default is 0.
+    sigma : float, optional
+        standard deviation. The default is 1.
+    
+    Returns
+    -------
+    H : np.array
+        Hankel matrix.
+    """
+    H = np.zeros((n_mx + 1, n_mx + 1), dtype=np.float64)
+    for k_ in range(n_mx + 1):
+        for l_ in range(k_, n_mx + 1):
+            H[k_, l_] = norm.moment(k_ + l_, loc=mu, scale=sigma)
+            H[l_, k_] = H[k_, l_]
+    return H
 
 def gen_pc_mx(H, method=0, No=-1):
     """
@@ -567,8 +595,8 @@ def gen_npc_mx_mm(cf, H_mx, No=-1):
     return ncf
 
 
-#@njit(float64[:](float64[:], float64[:]), nogil=True)
-@njit(nogil=True)
+# @njit(float64[:](float64[:], float64[:]), nogil=True)
+@njit(nogil=True, cache=True)
 def pc_eval(cfs, X):
     """
     Applies polyval with polyonomial p defined by  Cfs on X [p(X)]

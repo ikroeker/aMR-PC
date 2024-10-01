@@ -104,13 +104,13 @@ def cmp_log_likelihood_cf_mv(covariance_matrix):
     """
     dim = covariance_matrix.shape[0]
     if np.all(covariance_matrix == np.diag(np.diag(covariance_matrix))):
-        logdet = np.log(np.diag(covariance_matrix)).sum()/2
+        logdet_half = np.log(np.diag(covariance_matrix)).sum()/2
         # print("cov_mx:", covariance_matrix.diagonal())
     else:
         # logdet = np.linalg.slogdet(covariance_matrix)[1]
-        logdet = np.log(np.diag(np.linalg.cholesky(covariance_matrix))).sum()
+        logdet_half = np.log(np.diag(np.linalg.cholesky(covariance_matrix))).sum()
     # return (-np.log(2*pi)*dim/2 - np.log(np.diag(np.linalg.cholesky(covariance_matrix))).sum())
-    return -np.log(2*pi)*dim/2 - logdet
+    return -np.log(2*pi)*dim/2 - logdet_half
 
 
 # @njit
@@ -614,7 +614,7 @@ def entropy_prior_response(observation, response_surfaces, covariance_matrix,
 
 
 if NJM:
-    jit_module(nopython=True, error_model="numpy", nogil=True)
+    jit_module(nopython=True, error_model="numpy", nogil=True, cache=True)
 
 
 def entropy_norm_response(observation, response_surfaces, covariance_matrix,
