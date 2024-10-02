@@ -519,7 +519,7 @@ def gen_rw(H, method=0, No=-1):
     else:
         pcf = apc_cfs(H, No)
         p = np.poly1d(np.flip(pcf, 0))
-        r = p.r
+        r = np.real(p.r)
         w = gen_Gw(H[0, :], r)
     return r, w
 
