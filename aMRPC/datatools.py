@@ -1971,13 +1971,14 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                     v_ls = P_inv @ data[sids, dt_idx_x]
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls   
             elif method in ('unbias', 'pinvt', 'pinvth'):
-                # P_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
-                _eps = 1.0e-11
-                _s = phi.shape[1]
+                mx_inv = np.linalg.pinv(phi.T @ phi) @ phi.T
+                # _eps = 1.0e-11
+                # _s = phi.shape[1]
                 # print("phi.shape:", phi.shape, _s)
-                mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi
-                                                          + np.eye(_s)*_eps))
-                mx_inv = mx_inv.T @ mx_inv @ phi.T
+                # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi
+                #                                           + np.eye(_s)*_eps))
+                # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
+                # mx_inv = mx_inv.T @ mx_inv @ phi.T
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
                     v_ls = mx_inv @ data[sids, dt_idx_x]
