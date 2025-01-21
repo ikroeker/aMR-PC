@@ -1963,27 +1963,28 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
 
         # solve for all idx_x
         if n_s > 1:
-            if method in ('pinv', 'reg'):
+            if method in ('pinv', 'reg', 'unbias', 'pinvt', 'pinvth'):
+                # pinv = inv(p*p.T) * p.T
                 P_inv  = np.linalg.pinv(phi)
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
                     # v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
                     v_ls = P_inv @ data[sids, dt_idx_x]
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls   
-            elif method in ('unbias', 'pinvt', 'pinvth'):
-                mx_inv = np.linalg.pinv(phi.T @ phi) @ phi.T
-                # _eps = 1.0e-11
-                # _s = phi.shape[1]
-                # print("phi.shape:", phi.shape, _s)
-                # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi
-                #                                           + np.eye(_s)*_eps))
-                # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
-                # mx_inv = mx_inv.T @ mx_inv @ phi.T
-                for idx_x in range(x_len):
-                    dt_idx_x = x_start + idx_x
-                    v_ls = mx_inv @ data[sids, dt_idx_x]
-                    # v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
-                    cf_ls_4mk[alpha_mask, idx_x] = v_ls   
+            # elif method in ('unbias', 'pinvt', 'pinvth'):
+            #     mx_inv = np.linalg.pinv(phi.T @ phi) @ phi.T
+            #     # _eps = 1.0e-11
+            #     # _s = phi.shape[1]
+            #     # print("phi.shape:", phi.shape, _s)
+            #     # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi
+            #     #                                           + np.eye(_s)*_eps))
+            #     # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
+            #     # mx_inv = mx_inv.T @ mx_inv @ phi.T
+            #     for idx_x in range(x_len):
+            #         dt_idx_x = x_start + idx_x
+            #         v_ls = mx_inv @ data[sids, dt_idx_x]
+            #         # v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
+            #         cf_ls_4mk[alpha_mask, idx_x] = v_ls   
             elif method == 'reg_n':
                 P_inv = np.linalg.inv(np.linalg.cholesky(1/sigma_n * phi.T @ phi))
                 P_inv = P_inv.T @ P_inv 
