@@ -1,5 +1,6 @@
 """
-datatools.py - provides data management functions,
+datatools.py - provides data management functions.
+
 - load data
 - generate polynomial bases and multi-wavelet (mw) details
 - generate and apply quadrature
@@ -31,7 +32,7 @@ EPS = 1e-20  # epsilon
 
 
 def genHankel(dataframe, srcs, nr_range, n_o):
-    """ generates Hankel matrixes for each Nri, writes in h_dict """
+    """Generate Hankel matrixes for each Nri, writes in h_dict."""
     # Nr=max(NrRange)
     h_dict = {}
 

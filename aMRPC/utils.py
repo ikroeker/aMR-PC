@@ -118,12 +118,14 @@ def gen_midx_mask_part(alphas, no_min, no_max, idx_set):
 @jit(nopython=True, nogil=True, cache=True)
 def gen_midx_mask_hyp(alphas, no_max, p_norm):
     """
-    generates a mask for alphas, such that all P-Norms of
-    multi-index polynomial degrees
-    are below ( <=) no_max
+    Generate a mask for alphas respecive P-Norms.
+
+    All P-norms of multi-index polynomial degrees are below ( <=) no_max
     see Hyperbolic trunction in
     Sparse Polynomial Chaos Expansions: Literature Survey and Benchmark
     Nora Lüthen, Stefano Marelli, and Bruno Sudret
+    https://doi.org/10.48550/arXiv.2002.01290
+    https://doi.org/10.1137/20M1315774
     """
     p_cnt = alphas.shape[0]
     a_mask = np.empty(p_cnt, dtype=np.bool_)
