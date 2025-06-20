@@ -21,9 +21,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.10',
-    requires=[
-        "numpy", "pandas", "scipy", "math", "pickle", "os", "itertools",
-        "numba"
+    install_requires=[
+        "numpy", "pandas", "scipy",  "numba"
         ],
     project_urls={
         'LS3':'https://www.iws.uni-stuttgart.de/ls3/',

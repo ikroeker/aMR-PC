@@ -327,7 +327,7 @@ def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
     mk2sid : dict
         mkey -> sample_id.
     alphas : np.array
-        relatted to polynomial degrees.
+        related to polynomial degrees.
     idx_list : list, touple
         idx set to generate the Sobol indexes.
     eps : float, optional
