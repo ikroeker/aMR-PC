@@ -1,5 +1,6 @@
 """
-datatools.py - provides data management functions,
+datatools.py - provides data management functions.
+
 - load data
 - generate polynomial bases and multi-wavelet (mw) details
 - generate and apply quadrature
@@ -31,7 +32,7 @@ EPS = 1e-20  # epsilon
 
 
 def genHankel(dataframe, srcs, nr_range, n_o):
-    """ generates Hankel matrixes for each Nri, writes in h_dict """
+    """Generate Hankel matrixes for each Nri, writes in h_dict."""
     # Nr=max(NrRange)
     h_dict = {}
 
@@ -153,8 +154,8 @@ def gen_roots_weights(h_dict, method, nr_bounds=None):
         r, w = pt.gen_rw(h_dict[key], method)
         roots[key] = r
         if nr_bounds is not None:
-            assert min(r) >= nr_bounds[key][0], "roots violate the lower boundary"
-            assert max(r) <= nr_bounds[key][1], "roots violate the upper boudnary"
+            assert min(r) >= nr_bounds[key][0], f"key={key}: min(roots) {min(r)} violates the lower boundary {nr_bounds[key][0]}"
+            assert max(r) <= nr_bounds[key][1], f"key={key}: max(roots) {max(r)} violates the upper boudnary {nr_bounds[key][1]}"
         weights[key] = w
     return roots, weights
 
@@ -1963,23 +1964,31 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
 
         # solve for all idx_x
         if n_s > 1:
-            if method in ('pinv', 'reg'):
+            if method in ('pinv', 'reg', 'unbias', 'pinvt', 'pinvth'):
+                # pinv = inv(p*p.T) * p.T
                 P_inv  = np.linalg.pinv(phi)
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
                     # v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
                     v_ls = P_inv @ data[sids, dt_idx_x]
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls   
-            elif method in ('unbias', 'pinvt', 'pinvth'):
-                # P_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
-                mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi)) @ phi.T
-                for idx_x in range(x_len):
-                    dt_idx_x = x_start + idx_x
-                    v_ls = mx_inv @ data[sids, dt_idx_x]
-                    # v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
-                    cf_ls_4mk[alpha_mask, idx_x] = v_ls   
+            # elif method in ('unbias', 'pinvt', 'pinvth'):
+            #     mx_inv = np.linalg.pinv(phi.T @ phi) @ phi.T
+            #     # _eps = 1.0e-11
+            #     # _s = phi.shape[1]
+            #     # print("phi.shape:", phi.shape, _s)
+            #     # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi
+            #     #                                           + np.eye(_s)*_eps))
+            #     # mx_inv = np.linalg.inv(np.linalg.cholesky(phi.T @ phi))
+            #     # mx_inv = mx_inv.T @ mx_inv @ phi.T
+            #     for idx_x in range(x_len):
+            #         dt_idx_x = x_start + idx_x
+            #         v_ls = mx_inv @ data[sids, dt_idx_x]
+            #         # v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
+            #         cf_ls_4mk[alpha_mask, idx_x] = v_ls   
             elif method == 'reg_n':
                 P_inv = np.linalg.inv(np.linalg.cholesky(1/sigma_n * phi.T @ phi))
+                P_inv = P_inv.T @ P_inv 
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
                     v_ls = (P_inv @ phi.T / sigma_n_sq
