@@ -18,7 +18,8 @@ outDir = dataDir  # directory for output data
 
 def write_eval_points(points, fname, **kwargs):
     """
-    writes evals points in asci file
+    Write evals points in asci file.
+
     additionals args: dir and template
 
     Parameters
@@ -45,7 +46,7 @@ def write_eval_points(points, fname, **kwargs):
 
 def gen_file_url(fname, mydir=None):
     """
-    generates file url for load routines
+    Generate file url for load routines.
 
     Parameters
     ----------
@@ -67,7 +68,7 @@ def gen_file_url(fname, mydir=None):
 
 def chk_file_url(fname, mydir=None):
     """
-    checks if file fname exists
+    Check if file fname exists.
 
     Parameters
     ----------
@@ -87,13 +88,12 @@ def chk_file_url(fname, mydir=None):
 
 
 def load_eval_points(fname, mydir=None):
-    """
-    loads eval points from an ascii file
-    """
+    """Load eval points from an ascii file."""
     url = gen_file_url(fname, mydir)
     if op.exists(url):
         try:
-            dataframe = pd.read_csv(url, header=None, delim_whitespace=True, engine='python')
+            dataframe = pd.read_csv(url, header=None,
+                                    delim_whitespace=True, engine='python')
             # dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
         except (IOError, ValueError):
             print("An I/O error or a ValueError occurred")
@@ -105,7 +105,7 @@ def load_eval_points(fname, mydir=None):
 
 
 def store_data_dict(out_dict, fname, mydir=None):
-    """ stores dictionary in {dir}/{fname}.p using pickle """
+    """Store dictionary in {dir}/{fname}.p using pickle."""
     if mydir is None:
         mydir = outDir
     file = gen_file_url(fname, mydir)
@@ -121,7 +121,7 @@ def store_data_dict(out_dict, fname, mydir=None):
 
 
 def load_data_dict(fname, mydir=None):
-    """ load picle stored data from {dir}/{fname}.p """
+    """Load pickle stored data from {dir}/{fname}.p."""
     if mydir is None:
         mydir = outDir
     file = gen_file_url(fname, mydir)
@@ -137,7 +137,7 @@ def load_data_dict(fname, mydir=None):
 
 
 def store_np_arr(np_array, fname, mydir=None):
-    """ stores numpy.array npArray in {dir}/{fname} """
+    """Store numpy.array npArray in {dir}/{fname}."""
     if mydir is None:
         mydir = outDir
     file = gen_file_url(fname, mydir)
@@ -151,7 +151,7 @@ def store_np_arr(np_array, fname, mydir=None):
 
 
 def load_np_arr(fname, mydir=None):
-    """ loads numpy.array from {mydir}/{fname} """
+    """Load numpy.array from {mydir}/{fname}."""
     if mydir is None:
         mydir = outDir
     file = gen_file_url(fname, mydir)
@@ -198,7 +198,7 @@ FileSfx = {
 
 
 def gen_fname(fkt, **kwargs):
-    """ generates filename"""
+    """Generate filename."""
     pfx_chk = fkt in FilePfx
     sfx_chk = fkt in FileSfx
     assert pfx_chk and sfx_chk
@@ -218,7 +218,7 @@ def gen_fname(fkt, **kwargs):
 
 
 def main():
-    """ main function for testing """
+    """Test using the main function."""
     rpts = np.random.randn(100, 4)
     print(rpts.shape)
     write_eval_points(rpts, 'pts.txt')
