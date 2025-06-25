@@ -338,7 +338,7 @@ def gen_corr_rcf(mkey, srcs):
     nr_pos = ParPos['aNr']
     correct_cf = 1
     for src in srcs:
-        correct_cf *= 2**(-mkey[src][nr_pos])
+        correct_cf *= 2.0**(-mkey[src][nr_pos])
     return correct_cf
 
 
