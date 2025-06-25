@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="aMRPC",
-    version="1.0.3",
+    version="1.0.4",
     author="Ilja Kröker",
     author_email="ilja.kroeker@iws.uni-stuttgart.de",
     description="aMRPC python implementation",

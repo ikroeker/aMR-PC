@@ -8,6 +8,10 @@ Provides routines for computing of global sensitivity (Sobol) coefficients
 @author: kroeker
 https://orcid.org/0000-0003-0360-5307
 
+Related publication:
+
+https://doi.org/10.1007/s10596-023-10236-z
+
 """
 import math
 import itertools as it
@@ -70,7 +74,7 @@ def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=1e-15):
 
 def gen_idx_subsets(dim):
     """
-    Generates all possible source combination for dim-sources
+    Generate all possible source combination for dim-sources.
 
     Parameters
     ----------
@@ -91,7 +95,7 @@ def gen_idx_subsets(dim):
 
 def gen_sidx_subsets(sidx):
     """
-    Generates all possible source / index combination of sidx
+    Generate all possible source / index combination of sidx.
 
     Parameters
     ----------
@@ -112,7 +116,7 @@ def gen_sidx_subsets(sidx):
 
 def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
     """
-    Computes total sensitivity coeficients for polynomial-chaos (PC) expansion
+    Compute total sensitivity coeficients for polynomial-chaos (PC) expansion.
 
     Parameters
     ----------
@@ -141,7 +145,7 @@ def sobol_tot_sen_pc(pc_coefs, alphas, src_idxs, idx_list):
 
 def sobol_tot_sens(sob_dict, src_idxs, idx_list):
     """
-    total sensitivity
+    Compute total sensitivity.
 
     Parameters
     ----------
@@ -169,8 +173,9 @@ def sobol_tot_sens(sob_dict, src_idxs, idx_list):
 def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
                            eps=1e-15):
     """
-    Helper function for computation of Sobol indexes for aMR-PC expansion
-    results are required by sobol_idx_amrpc(...)
+    Evaluate the helper function for computation of Sobol indexes for aMR-PC.
+
+    Results are required by sobol_idx_amrpc(...)
 
     Parameters
     ----------
@@ -249,8 +254,9 @@ def sobol_idx_amrpc_helper(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
 
 def sobol_idx_amrpc(sobol_dict, idx_set):
     """
-    Computes Sobol indexes for aMR-PC expansion using dictionary provided by
-    sobol_idx_amrpc_helper(...)
+    Compute Sobol indexes for aMR-PC expansion.
+
+    Using dictionary provided by sobol_idx_amrpc_helper(...)
 
     Parameters
     ----------
@@ -281,8 +287,10 @@ def sobol_idx_amrpc(sobol_dict, idx_set):
 def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
                        eps=1e-15):
     """
-    Generates auxiliary values for aux. dict. for computing of Sobol coeficients
-    for sample-based or mkey-based aMR-PC
+    Generate auxiliary values for aux. dict.
+
+    Addresses computing of Sobol coeficients for sample-based or
+    mkey-based aMR-PC
 
     Parameters
     ----------
@@ -315,8 +323,9 @@ def sobol_idx_amrpc_jj(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
 def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
                           eps=1e-15):
     """
-    Generates auxiliary values for aux. dict. for computing of Sobol coeficients
-    for sample-based aMR-PC
+    Generate auxiliary values for aux. dict.
+
+    Addresses computing of Sobol coeficients for sample-based aMR-PC
 
     Parameters
     ----------
@@ -391,8 +400,9 @@ def sobol_idx_amrpc_jj_4s(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
 
 def sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15):
     """
-    Generates auxiliary values for aux. dict. for computing of Sobol coeficients
-    for mkey-based aMR-PC
+    Generate auxiliary values for aux. dict.
+
+    Addresses computing of Sobol coeficients for mkey-based aMR-PC
 
     Parameters
     ----------
@@ -466,7 +476,7 @@ def sobol_idx_amrpc_jj_4mkey(pc_coefs, rsc_dict, alphas, idx_list, eps=1e-15):
 def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
                          eps=1e-15):
     """
-    Generates auxiliary dictionary for computing of Sobol coeficients
+    Generate auxiliary dictionary for computing of Sobol coeficients.
 
     Parameters
     ----------
@@ -504,8 +514,9 @@ def gen_sobol_amrpc_dict(pc_coefs, rsc_dict, mk2sid, alphas, idx_list,
 
 def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
     """
-    Computes Sobol indexes for aMR-PC expansion using dictionary provided by
-    gen_sobol_amrpc_dict(...)
+    Compute Sobol indexes for aMR-PC expansion.
+
+    Using dictionary provided by gen_sobol_amrpc_dict(...)
 
     Parameters
     ----------
@@ -548,7 +559,7 @@ def sobol_idx_amrpc_comb(help_sobol_dict, idx_set, tmp_sobol_dict):
 def sobol_idx_amrpc_dynamic(idx_set, pc_coefs, rsc_dict, mk2sid, alphas,
                             sobol_dict, help_sobol_dict, eps=1e-15):
     """
-    computes Sobol coeficients, exploiting dynamic programming.
+    Compute Sobol coeficients, exploiting dynamic programming.
 
     Parameters
     ----------

@@ -1,0 +1,7 @@
+# ignore temporary artifacts
+build
+dist
+.cache
+__pycache__
+*.pyc
+*.egg-info
