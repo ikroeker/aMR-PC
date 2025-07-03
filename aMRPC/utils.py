@@ -165,7 +165,8 @@ def gen_nri_range(nrs):
 
 def gen_nri_range_4mkset(mkey_set, dim):
     """
-    generates an np.array with Nri-entries
+    Generate an np.array with Nri-entries.
+
     input:
     mkey_set -- set of multi-keys
     dim -- dimension, also number of keys in each mkey
@@ -188,7 +189,7 @@ def gen_nri_range_4mkset(mkey_set, dim):
 
 @njit(nogil=True, cache=True)
 def midx4quad(ar_lens):
-    """ generates indexes for eval. points etc. """
+    """Generate indexes for eval. points etc."""
     # n_lens = np.array(ar_lens, dtype=np.int32)
     cols = len(ar_lens)
     lines = ar_lens.prod()
@@ -206,9 +207,9 @@ def midx4quad(ar_lens):
 
 def gen_dict_key(anr, nri, src=None):
     """
-    generates dictionary key for
-    aNr - actually Nr, Nri , src
-    according to ParPos
+    Generate dictionary key for aNr.
+
+    Actually Nr, Nri , src according to ParPos
     """
     # chkNri = Nri < 2**aNr
     # assert(chkNri)
@@ -220,14 +221,15 @@ def gen_dict_key(anr, nri, src=None):
 
 
 def get_dict_entry(adict, anr, nri, src=-1):
-    """ returns dictionary entry """
+    """Return dictionary entry."""
     key = gen_dict_key(int(anr), int(nri), int(src))
     return adict[key]
 
 
 def gen_multi_key(anrs, nris, srcs):
     """
-    generates a tuple of tuples that will be used as a key
+    Generate a tuple of tuples that will be used as a key.
+
     srcs - source numbers
     aNrs - Nr- levels for each entree in srcs
     Nris - Nr indices for each entree in src
@@ -238,14 +240,14 @@ def gen_multi_key(anrs, nris, srcs):
 
 
 def multi_key2srcs(mkey):
-    """ generates srcs list from multi-key """
+    """Generate srcs list from multi-key."""
     src_pos = ParPos['src']
     return [c[src_pos] for c in mkey]
 
 
 def multi_key_diff_srcs(mkey_one, mkey_two):
     """
-    Computes difference between two multi keys
+    Compute difference between two multi keys.
 
     Parameters
     ----------
@@ -269,7 +271,7 @@ def multi_key_diff_srcs(mkey_one, mkey_two):
 
 def multi_key_intersect_srcs(mkey_one, mkey_two):
     """
-    Computes intersection between two multi keys
+    Compute intersection between two multi keys.
 
     Parameters
     ----------
@@ -293,7 +295,7 @@ def multi_key_intersect_srcs(mkey_one, mkey_two):
 
 def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
     """
-    Comapres two multi-keys for indexes given in srcs
+    Comapre two multi-keys for indexes given in srcs.
 
     Parameters
     ----------
@@ -322,7 +324,7 @@ def compare_multi_key_for_idx(mkey_one, mkey_two, srcs):
 
 def gen_corr_rcf(mkey, srcs):
     """
-    Generates multi-resolution correcting/re-scalling coefficient for a multi-key
+    Generate multi-resolution correcting/re-scalling coefficient for a multi-key.
 
     Parameters
     ----------
@@ -345,13 +347,13 @@ def gen_corr_rcf(mkey, srcs):
 
 
 def get_multi_entry(adict, anrs, nris, srcs):
-    """ returns dictionary entry """
+    """Return dictionary entry."""
     key = gen_multi_key(anrs, nris, srcs)
     return adict[key]
 
 
 def choose_cols(arr, ccols, zero_cols=-1):
-    """ picks the ccols columns from arr """
+    """Pick the ccols columns from arr."""
     ret = arr[:, ccols]
     if zero_cols != -1:
         ret[:, zero_cols] = 0
@@ -359,7 +361,7 @@ def choose_cols(arr, ccols, zero_cols=-1):
 
 
 def inv_src_arr(srcs):
-    """ generates dictionary with positions of srcs """
+    """Generate dictionary with positions of srcs."""
     isrc = {}
     i = 0
     for src in srcs:
