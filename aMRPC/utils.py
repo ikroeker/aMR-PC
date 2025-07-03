@@ -131,17 +131,19 @@ def gen_midx_mask_hyp(alphas, no_max, p_norm):
     a_mask = np.empty(p_cnt, dtype=np.bool_)
     for i in range(p_cnt):
         i_arr = alphas[i, :].astype(np.float32)
-        a_mask[i] = np.linalg.norm(i_arr, p_norm) <= no_max
+        a_mask[i] = round(np.linalg.norm(i_arr, p_norm), 2) <= no_max
     return a_mask
 
 
 def gen_nri_range(nrs):
     """
-    generates an array with Nri-entries
+    Generate an array with Nri-entries.
+
     input:
     Nrs : list of Nr for each dim, e.g. [Nr, Nr]
 
-    return:
+    Return:
+    ------
     Nris :  np.array with Nri-(integer) entries
     NriCnt : length of the array
     """
