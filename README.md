@@ -1,6 +1,7 @@
 # aMR-PC
 **Arbitrary Multi-Resolution Polynomial Chaos python toolbox**
 
+![example workflow](https://github.com/ikroeker/aMR-PC/actions/workflows/python-packages.yml/badge.svg)
 
 This module can be installed by using `pip` inside this directory
 ```
@@ -11,6 +12,10 @@ where all your python packages are installed, so that any changes in the source
 code are taking place directly, and you don't have to reinstall after changes.
 The dot command (.) is a  synonym for the current directory.
 
+Or built directly from github by using
+```
+pip install git+https://github.com/ikroeker/aMR-PC.git
+``
 ---
 
 ## Code sources
