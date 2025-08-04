@@ -1,7 +1,7 @@
 # aMR-PC
 **Arbitrary Multi-Resolution Polynomial Chaos python toolbox**
 
-![test status](https://github.com/ikroeker/aMR-PC/actions/workflows/python-packages.yml/badge.svg?event=push)
+![test status](https://github.com/ikroeker/aMR-PC/actions/workflows/python-package.yml/badge.svg?event=push)
 
 This module can be installed by using `pip` inside this directory
 ```
