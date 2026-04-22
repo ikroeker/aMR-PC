@@ -42,7 +42,7 @@ unit-test-job:   # This job runs in the test stage.
     - pip install pytest-cov
     - pip install -e .
     - pip install numpy pandas scipy numba
-    - pytest --junitxml=report.xml
+    - pytest -W error --junitxml=report.xml
   artifacts:
     paths:
       - report.xml
