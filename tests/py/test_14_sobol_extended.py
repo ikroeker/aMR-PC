@@ -186,11 +186,10 @@ def test_sobol_indices_sum_to_one():
 # --- Sobol with zero variance edge case ---
 
 def test_sobol_idx_pc_zero_variance():
-    """sobol_idx_pc handles zero variance (constant function) producing 0 or NaN."""
+    """sobol_idx_pc handles zero variance (constant function) returning 0."""
     # Constant function: all coefficients except c0 are zero
     pc_cfs = np.zeros(P_PC)
     pc_cfs[0] = 5.0
     result = sob.sobol_idx_pc(pc_cfs, ALPHAS, [0])
-    # With zero variance, result is 0/0 = NaN for scalar case (no eps protection)
-    # or 0 if var_pc was set to 1 by the eps threshold
-    assert result == 0 or np.isnan(result)
+    # With zero variance, eps threshold sets var_pc=1, so result is 0
+    assert result == 0

@@ -93,8 +93,7 @@ def load_eval_points(fname, mydir=None):
     if op.exists(url):
         try:
             dataframe = pd.read_csv(url, header=None,
-                                    delim_whitespace=True, engine='python')
-            # dataframe = pd.read_csv(url, header=None, sep='\s+ ', engine='python')
+                                    sep=r'\s+', engine='python')
         except (IOError, ValueError):
             print("An I/O error or a ValueError occurred")
             raise

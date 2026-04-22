@@ -47,6 +47,8 @@ def sobol_idx_pc(pc_coefs, alphas, idx_set, eps=1e-15):
     cf_tup = pc_coefs.shape
     if len(cf_tup) == 1:  # or cf_tup[1] == 1:
         var_pc = (pc_coefs[1:].T @ pc_coefs[1:]).squeeze()
+        if var_pc <= eps:
+            var_pc = 1
         sobol = 0
     else:
         sobol = np.zeros(cf_tup[1])
