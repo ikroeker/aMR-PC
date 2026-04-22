@@ -5,3 +5,8 @@ dist
 __pycache__
 *.pyc
 *.egg-info
+
+# runtime-generated test artifacts
+tests/data/pts.txt
+tests/data/tst.npy
+tests/data/tst.p
