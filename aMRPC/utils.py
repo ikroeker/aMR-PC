@@ -29,7 +29,8 @@ ParPos = {'Nr': 0, 'aNr': 0, 'Nri': 1, 'src': 2}
 # @njit(int64[:, :](int64, int64), nogil=True)
 def gen_multi_idx_old(n_o, dim):
     """
-    generates mulit-indices of multi-variate polynomial base
+    Generate mulit-indices of multi-variate polynomial base.
+
     uses graded lexicographic ordering (p. 156, Sullivan)
     old version
     """
