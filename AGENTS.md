@@ -70,3 +70,23 @@ flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 - Dictionary-based data structures keyed by multi-resolution tuples.
 - Numba-decorated functions use `cache=True` and `nogil=True`.
 - Tests are ordered by dependency: basic tests (`test_00`-`test_07`) run before extended tests (`test_08`-`test_14`).
+
+## Context7 Skills
+
+The following Context7 skills are installed locally (in `.agents/skills/` and `.claude/skills/`, gitignored) to provide domain-specific guidance for AI agents:
+
+| Skill | Source | Purpose |
+|-------|--------|---------|
+| `numpy` | `/microsoft/debugpy` | NumPy best practices: arrays, broadcasting, vectorization |
+| `pytest` | `/microsoft/debugpy` | Test writing: fixtures, parametrize, plugins |
+| `python` | `/alinaqi/claude-bootstrap` | Python development: ruff, mypy, pytest, TDD, type safety |
+| `github-actions` | `/tartinerlabs/skills` | CI/CD workflow creation, auditing, SHA pinning |
+
+To reinstall skills after a fresh clone:
+
+```bash
+npx ctx7 skills install /microsoft/debugpy numpy --universal -y
+npx ctx7 skills install /microsoft/debugpy pytest --universal -y
+npx ctx7 skills install /alinaqi/claude-bootstrap python --universal -y
+npx ctx7 skills install /tartinerlabs/skills github-actions --universal -y
+```

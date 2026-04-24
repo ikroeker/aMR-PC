@@ -10,3 +10,7 @@ __pycache__
 tests/data/pts.txt
 tests/data/tst.npy
 tests/data/tst.p
+
+# AI agent skill directories (Context7, installed locally)
+.agents/
+.claude/
