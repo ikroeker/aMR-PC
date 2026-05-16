@@ -12,7 +12,7 @@ Provides statistic and information theoretic tools.
 from math import sqrt, pi
 import numpy as np
 try:
-    from numba import jit_module, jit  # jit, njit  # jit_module
+    from numba import jit_module  # jit, njit
     NJM = True
 except ImportError:
     NJM = False
@@ -593,10 +593,8 @@ def entropy_prior_response(observation, response_surfaces, covariance_matrix,
     n, m = response_surfaces.shape
     if m == len(observation):
         sample_cnt = n
-        measurs = m
         response_surfaces = np.ascontiguousarray(response_surfaces)
     else:
-        measurs = n
         sample_cnt = m
         response_surfaces = np.ascontiguousarray(response_surfaces.T)
 

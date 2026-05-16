@@ -14,3 +14,8 @@ tests/data/tst.p
 # AI agent skill directories (Context7, installed locally)
 .agents/
 .claude/
+
+# AI agent session artifacts and heap dumps
+Heap-*.heapsnapshot
+session-ses_*.md
+testing_experience.md

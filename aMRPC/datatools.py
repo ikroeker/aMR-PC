@@ -19,7 +19,7 @@ from . import polytools as pt
 from . import utils as u
 # from . import wavetools as wt
 try:
-    from numba import jit, njit, prange  # , jit_module
+    from numba import njit, prange  # , jit, jit_module
     from numba.types import int64, float64, b1
     # from numba.core import types
     # from numba.typed import Dict, List
