@@ -5,14 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="aMRPC",
-    version="1.0.4",
+    version="1.0.5",
     author="Ilja Kröker",
     author_email="ilja.kroeker@iws.uni-stuttgart.de",
     description="aMRPC python implementation",
     keywords="arbirtray multi-resolution polynomial chaos, multi-wavelet",
     long_description=long_description,
-    #long_description_content_type="text/markdown",
-    #url="https://git.iws.uni-stuttgart.de/ikroeker/ik_amr-pc",
+    long_description_content_type="text/markdown",
     url="https://github.com/ikroeker/aMR-PC",
     packages=setuptools.find_packages(),
     classifiers=[

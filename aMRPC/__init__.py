@@ -6,4 +6,4 @@ https://orcid.org/0000-0003-0360-5307
 """
 
 name = "aMRPC"
-__version__ = "1.0.4"
+__version__ = "1.0.5"

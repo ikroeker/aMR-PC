@@ -62,7 +62,7 @@ aMR-PC Python code is hosted on
 
 ```
 aMRPC/                   # Main Python package
-  __init__.py            # Package init, version (1.0.4)
+  __init__.py            # Package init, version (1.0.5)
   datatools.py           # Core data management, MR decomposition, reconstruction
   iodata.py              # File I/O routines, naming conventions
   polytools.py           # aPC polynomial basis, Gaussian quadrature

@@ -13,7 +13,7 @@ from itertools import product
 import numpy as np
 from scipy.special import comb
 try:
-    from numba import jit, njit, int64  # , jit_module
+    from numba import jit, njit  # , int64, jit_module
     NJM = True
 except ImportError:
     NJM = False
