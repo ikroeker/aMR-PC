@@ -49,8 +49,9 @@ flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
 ## CI/CD
 
-- **GitLab CI** (`.gitlab-ci.yml`): Two stages (build, test) on Python 3.10 image.
-- **GitHub Actions** (`.github/workflows/python-package.yml`): Flake8 linting + pytest across Python 3.9, 3.10, 3.11.
+- **GitLab CI** (`.gitlab-ci.yml`): build + test stages on Python 3.10. Test job runs `pytest -W error` and only triggers on changes to `aMRPC/**` or `tests/**`.
+- **GitHub Actions** (`.github/workflows/python-package.yml`): flake8 lint + `pytest -W error` across Python 3.10–3.13, on push/PR to `master`.
+- CI treats warnings as errors, so run `pytest -W error` locally before pushing.
 
 ## Module Guide
 
@@ -69,7 +70,12 @@ flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 - Primarily procedural/functional style; `WaveTools` in `wavetools.py` is the only class.
 - Dictionary-based data structures keyed by multi-resolution tuples.
 - Numba-decorated functions use `cache=True` and `nogil=True`.
-- Tests are ordered by dependency: basic tests (`test_00`-`test_07`) run before extended tests (`test_08`-`test_14`).
+
+## Testing Notes
+
+- No pytest config file exists; tests are collected in filename order. Basic tests (`test_00`-`test_07`) are meant to run before extended tests (`test_08`-`test_14`).
+- Test files do `import context` first (see `tests/py/context.py`) to insert the repo root on `sys.path`, then `import aMRPC.<module>`. New test files must keep the `import context` line before any `aMRPC` import.
+- Test input data lives in `tests/data/`.
 
 ## Context7 Skills
 
