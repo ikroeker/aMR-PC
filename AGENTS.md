@@ -31,6 +31,7 @@ tests/
 - **Multi-keys** are tuples of tuples for multi-dimensional problems.
 - **Numba JIT** (`@njit`, `@jit`) is used extensively for performance-critical functions with graceful fallback when Numba is unavailable.
 - **Sherman-Morrison-Woodbury identity** (`gen_cov_mx_4lh`, `gen_cov_mx_4lh_noex` in `datatools.py`) is used to invert the likelihood covariance matrix `cov_mx = Q + phi @ R @ phi.T` (n x n, n = number of samples), routed by the relative size of n and p (p = number of polynomials, `phi.shape[1]`): Woodbury (inverting the much smaller `P = phi.T @ Q_inv @ phi + R_inv`, p x p) when `p < n`; a direct Cholesky inverse of `cov_mx` when `p >= n` (Woodbury gives no benefit there). `np.linalg.pinv(cov_mx)` is used only as a last-resort exception fallback (e.g. if `P` or `cov_mx` is not positive definite).
+- The regularized `reg_n`/`reg_t` methods of the `gen_amrpc_dec_*` functions (`gen_amrpc_dec_ls`, `gen_amrpc_dec_ls_mask(_aux)`, `gen_amrpc_dec_mk_ls`, `gen_reg_t_aux` in `datatools.py`) invert the (SPD by construction) p x p normal-equations matrix `P = phi.T @ phi / sigma_n^2 [+ I / sigma_p^2]` directly via its Cholesky factorization (`inv(cholesky(P))`), with `np.linalg.pinv(P)` used only as a last-resort exception fallback. Unlike `gen_cov_mx_4lh`, Woodbury does not apply here since `P` is already the small p x p matrix (there is no larger n x n matrix to avoid inverting).
 
 ## Build and Test
 

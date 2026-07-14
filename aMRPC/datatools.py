@@ -1533,7 +1533,11 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
         x_len: integer
             length of the x-vector to eval, default x_len=-1
         method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
-            switches between least-squares and psedo-inverse based lsq
+            switches between least-squares and psedo-inverse based lsq.
+            'reg_n' and 'reg_t' invert the (SPD by construction) p x p
+            normal-equations matrix P via its Cholesky factorization,
+            falling back to np.linalg.pinv(P) only if P is not
+            positive definite.
         sigma_n : sigma_noise, LS-weighting parameter
         sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
                     parameter for 'reg'
@@ -1596,11 +1600,22 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
                     v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
                             @ phi.T @ data[sids, dt_idx_x])
                 elif method == 'reg_n':
-                    v_ls = (np.linalg.pinv(1/sigma_n_mk * phi.T @ phi) @ phi.T / sigma_n_mk
+                    P = 1/sigma_n_mk * phi.T @ phi
+                    try:
+                        L_inv = np.linalg.inv(np.linalg.cholesky(P))
+                        P_inv = L_inv.T @ L_inv
+                    except np.linalg.LinAlgError:
+                        P_inv = np.linalg.pinv(P)
+                    v_ls = (P_inv @ phi.T / sigma_n_mk
                             @ data[sids, dt_idx_x])
                 elif method == 'reg_t':
-                    P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi
-                                           + np.eye(phi.shape[1]) / sigma_p_mk)
+                    P = ((phi.T / sigma_n_mk) @ phi
+                         + np.eye(phi.shape[1]) / sigma_p_mk)
+                    try:
+                        L_inv = np.linalg.inv(np.linalg.cholesky(P))
+                        P_inv = L_inv.T @ L_inv
+                    except np.linalg.LinAlgError:
+                        P_inv = np.linalg.pinv(P)
                     v_ls = (P_inv @ phi.T / sigma_n_mk @ data[sids, dt_idx_x])
                     if ret_std:
                         ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
@@ -1641,7 +1656,11 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         x_len: integer
             length of the x-vector to eval, default x_len=-1 -> all.
         method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
-            switches between least-squares and psedo-inverse based lsq
+            switches between least-squares and psedo-inverse based lsq.
+            'reg_n' and 'reg_t' invert the (SPD by construction) p x p
+            normal-equations matrix P via its Cholesky factorization,
+            falling back to np.linalg.pinv(P) only if P is not
+            positive definite.
         sigma_n : sigma_noise, LS-weighting parameter
         sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
                     parameter for 'reg'
@@ -1740,10 +1759,9 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                         P = ((phi.T / sigma_n_mk) @ phi
                              + np.eye(phi.shape[1]) / sigma_p_mk)
                         try:
-                            L = np.linalg.cholesky(P)
-                            L_inv = np.linalg.pinv(L)
+                            L_inv = np.linalg.inv(np.linalg.cholesky(P))
                             P_inv = L_inv.T @ L_inv
-                        except:
+                        except np.linalg.LinAlgError:
                             P_inv = np.linalg.pinv(P)
                         v_ls = (P_inv @ phi.T / sigma_n_mk
                                 @ rs_data)
@@ -1797,28 +1815,24 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
         P = ((phi.T / sigma_n_mk) @ phi
              + np.eye(phi.shape[1]) / sigma_p_mk)
         try:
-            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-        except:
-            L = np.linalg.cholesky(P)
-            L_inv = np.linalg.pinv(L)
+            L_inv = np.linalg.inv(np.linalg.cholesky(P))
             P_inv = np.ascontiguousarray(L_inv.T @ L_inv)
+        except:
+            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
+        mx_inv = np.ascontiguousarray(P_inv @ phi.T / sigma_n_mk)
     elif meth_mode == 5: # reg_t for mkey-based output
         P = ((phi.T / sigma_n_mk) @ phi
              + np.eye(phi.shape[1]) / sigma_p_mk)
         try:
-            # P_inv = np.linalg.pinv(P)
-            L = np.linalg.cholesky(P)
-            L_inv = np.linalg.pinv(L)
+            L_inv = np.linalg.inv(np.linalg.cholesky(P))
             P_inv = np.ascontiguousarray(L_inv.T @ L_inv)
         except:
             P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-            # L = np.linalg.cholesky(P)
-            # L_inv = np.linalg.pinv(L)
-            # P_inv = L_inv.T @ L_inv
+        mx_inv = np.ascontiguousarray(P_inv @ phi.T / sigma_n_mk)
     elif meth_mode == 3:  # unbias
-        P_inv = np.linalg.pinv(phi.T @ phi)
+        P_inv = np.ascontiguousarray(np.linalg.pinv(phi.T @ phi))
     elif meth_mode == 4:  # reg_n
-        cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
+        cov_op = np.ascontiguousarray(np.linalg.pinv(1/sigma_n_mk * phi.T @ phi))
 
     # define return
     if meth_mode == 5:
@@ -1840,16 +1854,7 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                 # v_ls = np.linalg.pinv(phi) @ rs_data
                 v_ls = P_inv @ np.ascontiguousarray(rs_data)
             elif meth_mode == 2:  # reg_t for sample based output
-                # P = ((phi.T / sigma_n_mk) @ phi
-                #      + np.eye(phi.shape[1]) / sigma_p_mk)
-                # try:
-                #     P_inv = np.linalg.pinv(P)
-                # except:
-                #     L = np.linalg.cholesky(P)
-                #     L_inv = np.linalg.pinv(L)
-                #     P_inv = L_inv.T @ L_inv
-                v_ls = (P_inv @ phi.T / sigma_n_mk
-                        @ rs_data)
+                v_ls = mx_inv @ rs_data
                 if cov_mode == 1:  # std
                     ret_std_cov_4s[:, :, 0, idx_x] = np.sqrt(np.diag(P_inv))
                 elif cov_mode == 2:  # cov
@@ -1862,20 +1867,7 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
                     for s_idx in range(n_s):
                         ret_std_cov_4s[s_idx, :, :, idx_x] = p_mx
             elif meth_mode == 5: # reg_t for mkey-based output
-                # P = ((phi.T / sigma_n_mk) @ phi
-                #      + np.eye(phi.shape[1]) / sigma_p_mk)
-                # try:
-                #     # P_inv = np.linalg.pinv(P)
-                #     L = np.linalg.cholesky(P)
-                #     L_inv = np.linalg.pinv(L)
-                #     P_inv = L_inv.T @ L_inv
-                # except:
-                #     P_inv = np.linalg.pinv(P)
-                #     # L = np.linalg.cholesky(P)
-                #     # L_inv = np.linalg.pinv(L)
-                #     # P_inv = L_inv.T @ L_inv
-                v_ls = (P_inv @ phi.T / sigma_n_mk
-                        @ rs_data)
+                v_ls = mx_inv @ rs_data
                 if cov_mode == 1:  # std
                     ret_std_cov_4s[0, :, 0, idx_x] = np.sqrt(np.diag(P_inv))
                 elif cov_mode == 2:  # cov
@@ -2061,11 +2053,12 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                     # v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
                     cf_ls_4mk[alpha_mask, idx_x] = v_ls   
             elif method == 'reg_n':
+                P = phi.T @ phi / sigma_n_sq
                 try:
-                    P_inv = np.linalg.inv(np.linalg.cholesky(1/sigma_n * phi.T @ phi))
-                    P_inv = P_inv.T @ P_inv 
-                except:
-                    P_inv = np.linalg.pinv(1/sigma_n * phi.T @ phi)
+                    L_inv = np.linalg.inv(np.linalg.cholesky(P))
+                    P_inv = L_inv.T @ L_inv
+                except np.linalg.LinAlgError:
+                    P_inv = np.linalg.pinv(P)
                 for idx_x in range(x_len):
                     dt_idx_x = x_start + idx_x
                     v_ls = (P_inv @ phi.T / sigma_n_sq

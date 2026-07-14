@@ -11,7 +11,9 @@ Covers functions not tested in test_05_datatools.py:
 - cmp_mv_quant_domain_mk / cmp_mv_quant_domain_arr
 - Gauss_quad, inner_prod
 - Gauss_quad_fct, inner_prod_fct, Gauss_quad_arr, inner_prod_tuples
-- gen_amrpc_dec_ls (basic LS decomposition)
+- gen_amrpc_dec_ls (basic LS decomposition, incl. reg_n/reg_t)
+- gen_amrpc_dec_ls_mask (masked LS decomposition, incl. reg_t / num_aux)
+- gen_amrpc_dec_mk_ls (mkey-based LS decomposition, incl. reg_n/reg_t)
 - gen_amrpc_dec_q (quadrature decomposition)
 - cf_2_mean_var, cf_2_mean_var_4s, cf_2_mean_var_4mkey
 - add_samples
@@ -277,6 +279,161 @@ def test_gen_amrpc_dec_ls_constant():
         assert abs(c0 - 5.0) < 0.1
         for p_idx in range(1, P):
             assert abs(cfs[sids[0], p_idx, 0]) < 0.1
+
+
+def _setup_amrpc_pipeline():
+    """Shared pipeline setup for gen_amrpc_dec_* tests.
+
+    Returns (tR, mk2sid, polVals, p_max, data) with a non-constant
+    data column (data = sin(tR[:, 0])) so regularized regression
+    coefficients are non-trivial.
+    """
+    dataframe = load()
+    Hdict = dt.genHankel(dataframe, SRCS, NR_RANGE, NO)
+    R, W = dt.gen_roots_weights(Hdict, METHOD)
+    PCdict = dt.gen_pcs(Hdict, METHOD)
+    nPCdict = dt.gen_npcs(PCdict, R, W)
+    Alphas = u.gen_multi_idx(NO, DIM)
+    p_max = int(comb(NO + DIM, DIM))
+    NRBdict = dt.gen_nr_range_bds(dataframe, SRCS, [NR])
+    mkLst = dt.gen_mkey_list(NRBdict, SRCS)
+    tR, tW, mkLstLong = dt.get_rw_4mkey(mkLst, R, W)
+    sid2mk, mk2sid = dt.gen_mkey_sid_rel(tR, mkLst, NRBdict)
+    polVals = dt.gen_pol_on_samples_arr(tR, nPCdict, Alphas, mk2sid)
+
+    data = np.sin(tR[:, 0]).reshape(-1, 1)
+    return tR, mk2sid, polVals, p_max, data
+
+
+def _ref_reg_t(phi, data_col, sigma_n, sigma_p):
+    """Reference reg_t coefficients/P_inv via a direct np.linalg.pinv(P)."""
+    sigma_n_sq = sigma_n ** 2
+    sigma_p_sq = sigma_p ** 2
+    P = (phi.T / sigma_n_sq) @ phi + np.eye(phi.shape[1]) / sigma_p_sq
+    P_inv = np.linalg.pinv(P)
+    v_ls = P_inv @ phi.T / sigma_n_sq @ data_col
+    return v_ls, P_inv
+
+
+def _ref_reg_n(phi, data_col, sigma_n):
+    """Reference reg_n coefficients/P_inv via a direct np.linalg.pinv(P)."""
+    sigma_n_sq = sigma_n ** 2
+    P = phi.T @ phi / sigma_n_sq
+    P_inv = np.linalg.pinv(P)
+    v_ls = P_inv @ phi.T / sigma_n_sq @ data_col
+    return v_ls, P_inv
+
+
+def test_gen_amrpc_dec_ls_reg_t_matches_pinv_reference():
+    """method='reg_t' (Cholesky-primary) matches a direct pinv(P) reference."""
+    tR, mk2sid, polVals, p_max, data = _setup_amrpc_pipeline()
+    sigma_n, sigma_p = 0.1, 2.0
+
+    cfs = dt.gen_amrpc_dec_ls(data, polVals, mk2sid, method='reg_t',
+                              sigma_n=sigma_n, sigma_p=sigma_p)
+
+    for mk, sids in mk2sid.items():
+        phi = polVals[:, sids].T
+        v_ref, _ = _ref_reg_t(phi, data[sids, 0], sigma_n, sigma_p)
+        np.testing.assert_allclose(cfs[sids[0], :, 0], v_ref, atol=1e-8)
+
+
+def test_gen_amrpc_dec_ls_reg_n_matches_pinv_reference():
+    """method='reg_n' (Cholesky-primary) matches a direct pinv(P) reference."""
+    tR, mk2sid, polVals, p_max, data = _setup_amrpc_pipeline()
+    sigma_n = 0.1
+
+    cfs = dt.gen_amrpc_dec_ls(data, polVals, mk2sid, method='reg_n',
+                              sigma_n=sigma_n)
+
+    for mk, sids in mk2sid.items():
+        phi = polVals[:, sids].T
+        v_ref, _ = _ref_reg_n(phi, data[sids, 0], sigma_n)
+        np.testing.assert_allclose(cfs[sids[0], :, 0], v_ref, atol=1e-8)
+
+
+def test_gen_amrpc_dec_ls_reg_t_return_cov():
+    """reg_t return_cov option returns P_inv matching the pinv reference."""
+    tR, mk2sid, polVals, p_max, data = _setup_amrpc_pipeline()
+    sigma_n, sigma_p = 0.1, 2.0
+
+    cfs, covs = dt.gen_amrpc_dec_ls(data, polVals, mk2sid, method='reg_t',
+                                    sigma_n=sigma_n, sigma_p=sigma_p,
+                                    return_cov=True)
+
+    for mk, sids in mk2sid.items():
+        phi = polVals[:, sids].T
+        _, P_inv_ref = _ref_reg_t(phi, data[sids, 0], sigma_n, sigma_p)
+        np.testing.assert_allclose(covs[sids[0], :, :, 0], P_inv_ref, atol=1e-8)
+
+
+# --- gen_amrpc_dec_ls_mask (masked LS decomposition) ---
+
+def test_gen_amrpc_dec_ls_mask_reg_t_matches_pinv_reference():
+    """gen_amrpc_dec_ls_mask reg_t (num_aux=False) matches pinv(P) reference."""
+    tR, mk2sid, polVals, p_max, data = _setup_amrpc_pipeline()
+    sigma_n, sigma_p = 0.1, 2.0
+    mask_dict = {mk: np.ones(p_max, dtype=np.bool_) for mk in mk2sid}
+
+    cfs = dt.gen_amrpc_dec_ls_mask(data, polVals, mk2sid, mask_dict,
+                                   method='reg_t', sigma_n=sigma_n,
+                                   sigma_p=sigma_p, num_aux=False)
+
+    for mk, sids in mk2sid.items():
+        phi = polVals[:, sids].T
+        v_ref, _ = _ref_reg_t(phi, data[sids, 0], sigma_n, sigma_p)
+        np.testing.assert_allclose(cfs[sids[0], :, 0], v_ref, atol=1e-8)
+
+
+def test_gen_amrpc_dec_ls_mask_reg_t_numba_aux_matches_reference():
+    """gen_amrpc_dec_ls_mask reg_t (num_aux=True, numba path) matches
+    pinv(P) reference and agrees with the non-numba path."""
+    tR, mk2sid, polVals, p_max, data = _setup_amrpc_pipeline()
+    sigma_n, sigma_p = 0.1, 2.0
+    mask_dict = {mk: np.ones(p_max, dtype=np.bool_) for mk in mk2sid}
+
+    cfs_aux = dt.gen_amrpc_dec_ls_mask(data, polVals, mk2sid, mask_dict,
+                                       method='reg_t', sigma_n=sigma_n,
+                                       sigma_p=sigma_p, num_aux=True)
+    cfs_noaux = dt.gen_amrpc_dec_ls_mask(data, polVals, mk2sid, mask_dict,
+                                         method='reg_t', sigma_n=sigma_n,
+                                         sigma_p=sigma_p, num_aux=False)
+
+    np.testing.assert_allclose(cfs_aux, cfs_noaux, atol=1e-8)
+    for mk, sids in mk2sid.items():
+        phi = polVals[:, sids].T
+        v_ref, _ = _ref_reg_t(phi, data[sids, 0], sigma_n, sigma_p)
+        np.testing.assert_allclose(cfs_aux[sids[0], :, 0], v_ref, atol=1e-8)
+
+
+# --- gen_amrpc_dec_mk_ls (mkey-based LS decomposition) ---
+
+def test_gen_amrpc_dec_mk_ls_reg_t_matches_pinv_reference():
+    """gen_amrpc_dec_mk_ls reg_t matches a direct pinv(P) reference."""
+    tR, mk2sid, polVals, p_max, data = _setup_amrpc_pipeline()
+    sigma_n, sigma_p = 0.1, 2.0
+
+    cfs = dt.gen_amrpc_dec_mk_ls(data, polVals, mk2sid, method='reg_t',
+                                 sigma_n=sigma_n, sigma_p=sigma_p)
+
+    for mk, sids in mk2sid.items():
+        phi = polVals[:, sids].T
+        v_ref, _ = _ref_reg_t(phi, data[sids, 0], sigma_n, sigma_p)
+        np.testing.assert_allclose(cfs[mk][:, 0], v_ref, atol=1e-8)
+
+
+def test_gen_amrpc_dec_mk_ls_reg_n_matches_pinv_reference():
+    """gen_amrpc_dec_mk_ls reg_n matches a direct pinv(P) reference."""
+    tR, mk2sid, polVals, p_max, data = _setup_amrpc_pipeline()
+    sigma_n = 0.1
+
+    cfs = dt.gen_amrpc_dec_mk_ls(data, polVals, mk2sid, method='reg_n',
+                                 sigma_n=sigma_n)
+
+    for mk, sids in mk2sid.items():
+        phi = polVals[:, sids].T
+        v_ref, _ = _ref_reg_n(phi, data[sids, 0], sigma_n)
+        np.testing.assert_allclose(cfs[mk][:, 0], v_ref, atol=1e-8)
 
 
 # --- gen_amrpc_dec_q (quadrature decomposition) ---
