@@ -424,9 +424,11 @@ def test_get_rw_4nrs():
 #
 # cov_mx = Q + phi @ R @ phi.T, Q = s_sigma_n * I_n, R = s_sigma_p * I_p.
 # The inverse is computed via the Sherman-Morrison-Woodbury identity
-# (eq. A.9 in Rasmussen & Williams), inverting the (typically much
+# (eq. A.9 in Rasmussen & Williams) when p < n, inverting the (much
 # smaller) p x p matrix P = phi.T @ Q_inv @ phi + R_inv instead of the
-# n x n matrix cov_mx directly.
+# n x n matrix cov_mx directly. When p >= n, Woodbury gives no benefit,
+# so cov_mx is inverted directly via Cholesky. np.linalg.pinv of
+# cov_mx is used only as a last-resort exception fallback.
 
 def _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p):
     """Reference cov_mx / cov_mx_inv via direct construction + pinv."""
@@ -494,7 +496,7 @@ def test_gen_cov_mx_4lh_variants_agree():
 
 
 def test_gen_cov_mx_4lh_p_greater_than_n():
-    """Woodbury path should still be correct when p > n (few samples)."""
+    """Direct-Cholesky path (p >= n) should still be correct (few samples)."""
     np.random.seed(5)
     phi = np.random.randn(3, 10)
     s_sigma_n, s_sigma_p = 0.5, 2.0
@@ -502,3 +504,31 @@ def test_gen_cov_mx_4lh_p_greater_than_n():
     ref_cov_mx, ref_inv = _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p)
     np.testing.assert_allclose(cov_mx, ref_cov_mx, atol=TOL)
     np.testing.assert_allclose(cov_mx_inv, ref_inv, atol=1e-6)
+
+
+def test_gen_cov_mx_4lh_noex_p_greater_than_n():
+    """Direct-Cholesky path (p >= n) should be correct for gen_cov_mx_4lh_noex."""
+    np.random.seed(6)
+    phi = np.random.randn(3, 10)
+    s_sigma_n, s_sigma_p = 0.5, 2.0
+    cov_mx, cov_mx_inv = dt.gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p)
+    ref_cov_mx, ref_inv = _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p)
+    np.testing.assert_allclose(cov_mx, ref_cov_mx, atol=TOL)
+    np.testing.assert_allclose(cov_mx_inv, ref_inv, atol=1e-6)
+
+
+def test_gen_cov_mx_4lh_p_equals_n_boundary():
+    """p == n boundary (routed to the direct-Cholesky path) is correct
+    for both gen_cov_mx_4lh and gen_cov_mx_4lh_noex."""
+    np.random.seed(7)
+    phi = np.random.randn(8, 8)
+    s_sigma_n, s_sigma_p = 0.4, 1.1
+    ref_cov_mx, ref_inv = _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p)
+
+    cov_a, inv_a = dt.gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p)
+    np.testing.assert_allclose(cov_a, ref_cov_mx, atol=TOL)
+    np.testing.assert_allclose(inv_a, ref_inv, atol=1e-6)
+
+    cov_b, inv_b = dt.gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p)
+    np.testing.assert_allclose(cov_b, ref_cov_mx, atol=TOL)
+    np.testing.assert_allclose(inv_b, ref_inv, atol=1e-6)

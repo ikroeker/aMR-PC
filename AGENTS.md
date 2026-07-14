@@ -30,7 +30,7 @@ tests/
 - **Multi-resolution elements** are identified by tuple keys `(aNr, Nri, src)` where `aNr` = resolution level, `Nri` = element index, `src` = source/dimension.
 - **Multi-keys** are tuples of tuples for multi-dimensional problems.
 - **Numba JIT** (`@njit`, `@jit`) is used extensively for performance-critical functions with graceful fallback when Numba is unavailable.
-- **Sherman-Morrison-Woodbury identity** (`gen_cov_mx_4lh`, `gen_cov_mx_4lh_noex` in `datatools.py`) is used as the primary path to invert the likelihood covariance matrix `cov_mx = Q + phi @ R @ phi.T` (n x n, n = number of samples) by instead inverting the much smaller `P = phi.T @ Q_inv @ phi + R_inv` (p x p, p = number of polynomials), since typically `p << n`. Falls back to a direct pseudo-inverse/Cholesky of `cov_mx` if `P` is (near-)singular.
+- **Sherman-Morrison-Woodbury identity** (`gen_cov_mx_4lh`, `gen_cov_mx_4lh_noex` in `datatools.py`) is used to invert the likelihood covariance matrix `cov_mx = Q + phi @ R @ phi.T` (n x n, n = number of samples), routed by the relative size of n and p (p = number of polynomials, `phi.shape[1]`): Woodbury (inverting the much smaller `P = phi.T @ Q_inv @ phi + R_inv`, p x p) when `p < n`; a direct Cholesky inverse of `cov_mx` when `p >= n` (Woodbury gives no benefit there). `np.linalg.pinv(cov_mx)` is used only as a last-resort exception fallback (e.g. if `P` or `cov_mx` is not positive definite).
 
 ## Build and Test
 
