@@ -16,6 +16,7 @@ Covers functions not tested in test_05_datatools.py:
 - cf_2_mean_var, cf_2_mean_var_4s, cf_2_mean_var_4mkey
 - add_samples
 - gen_phi
+- gen_cov_mx_4lh, gen_cov_mx_4lh_noex (Woodbury-based covariance inverse)
 """
 import numpy as np
 import pandas as pd
@@ -417,3 +418,87 @@ def test_get_rw_4nrs():
     assert tR.shape[1] == DIM
     assert tR.shape == tW.shape
     assert len(mkLstLong) == tR.shape[0]
+
+
+# --- gen_cov_mx_4lh / gen_cov_mx_4lh_noex (Woodbury identity) ---
+#
+# cov_mx = Q + phi @ R @ phi.T, Q = s_sigma_n * I_n, R = s_sigma_p * I_p.
+# The inverse is computed via the Sherman-Morrison-Woodbury identity
+# (eq. A.9 in Rasmussen & Williams), inverting the (typically much
+# smaller) p x p matrix P = phi.T @ Q_inv @ phi + R_inv instead of the
+# n x n matrix cov_mx directly.
+
+def _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p):
+    """Reference cov_mx / cov_mx_inv via direct construction + pinv."""
+    n_s = phi.shape[0]
+    Q = np.eye(n_s) * s_sigma_n
+    R = np.eye(phi.shape[1]) * s_sigma_p
+    cov_mx = phi @ R @ phi.T + Q
+    cov_mx_inv = np.linalg.pinv(cov_mx)
+    return cov_mx, cov_mx_inv
+
+
+def test_gen_cov_mx_4lh_matches_direct_inverse():
+    """gen_cov_mx_4lh (Woodbury) matches a direct pinv reference."""
+    np.random.seed(0)
+    for n_s, n_p in [(20, 4), (200, 6), (50, 10)]:
+        phi = np.random.randn(n_s, n_p)
+        s_sigma_n, s_sigma_p = 0.7, 1.3
+        cov_mx, cov_mx_inv = dt.gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p)
+        ref_cov_mx, ref_inv = _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p)
+        np.testing.assert_allclose(cov_mx, ref_cov_mx, atol=TOL)
+        np.testing.assert_allclose(cov_mx_inv, ref_inv, atol=1e-6)
+
+
+def test_gen_cov_mx_4lh_identity_property():
+    """cov_mx @ cov_mx_inv should be (approximately) the identity."""
+    np.random.seed(1)
+    phi = np.random.randn(100, 5)
+    s_sigma_n, s_sigma_p = 0.5, 2.0
+    cov_mx, cov_mx_inv = dt.gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p)
+    n_s = phi.shape[0]
+    np.testing.assert_allclose(cov_mx @ cov_mx_inv, np.eye(n_s), atol=1e-6)
+
+
+def test_gen_cov_mx_4lh_noex_matches_direct_inverse():
+    """gen_cov_mx_4lh_noex (Woodbury, numba) matches a direct pinv reference."""
+    np.random.seed(2)
+    for n_s, n_p in [(20, 4), (200, 6), (50, 10)]:
+        phi = np.random.randn(n_s, n_p)
+        s_sigma_n, s_sigma_p = 0.7, 1.3
+        cov_mx, cov_mx_inv = dt.gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p)
+        ref_cov_mx, ref_inv = _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p)
+        np.testing.assert_allclose(cov_mx, ref_cov_mx, atol=TOL)
+        np.testing.assert_allclose(cov_mx_inv, ref_inv, atol=1e-6)
+
+
+def test_gen_cov_mx_4lh_noex_identity_property():
+    """cov_mx @ cov_mx_inv should be (approximately) the identity."""
+    np.random.seed(3)
+    phi = np.random.randn(100, 5)
+    s_sigma_n, s_sigma_p = 0.5, 2.0
+    cov_mx, cov_mx_inv = dt.gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p)
+    n_s = phi.shape[0]
+    np.testing.assert_allclose(cov_mx @ cov_mx_inv, np.eye(n_s), atol=1e-6)
+
+
+def test_gen_cov_mx_4lh_variants_agree():
+    """gen_cov_mx_4lh and gen_cov_mx_4lh_noex should agree with each other."""
+    np.random.seed(4)
+    phi = np.random.randn(60, 6)
+    s_sigma_n, s_sigma_p = 0.3, 1.7
+    cov_a, inv_a = dt.gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p)
+    cov_b, inv_b = dt.gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p)
+    np.testing.assert_allclose(cov_a, cov_b, atol=TOL)
+    np.testing.assert_allclose(inv_a, inv_b, atol=1e-6)
+
+
+def test_gen_cov_mx_4lh_p_greater_than_n():
+    """Woodbury path should still be correct when p > n (few samples)."""
+    np.random.seed(5)
+    phi = np.random.randn(3, 10)
+    s_sigma_n, s_sigma_p = 0.5, 2.0
+    cov_mx, cov_mx_inv = dt.gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p)
+    ref_cov_mx, ref_inv = _ref_cov_mx_inv(phi, s_sigma_n, s_sigma_p)
+    np.testing.assert_allclose(cov_mx, ref_cov_mx, atol=TOL)
+    np.testing.assert_allclose(cov_mx_inv, ref_inv, atol=1e-6)

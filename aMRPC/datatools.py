@@ -759,7 +759,24 @@ def gen_phi_as(pol_vals, alpha_mask):
 # @njit
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
-    generates covariance etc. matrixes for likelihood
+    Generates the covariance matrix and its inverse for the likelihood.
+
+    The covariance matrix is cov_mx = Q + phi @ R @ phi.T, with
+    Q = s_sigma_n * I (n x n) and R = s_sigma_p * I (p x p), where
+    n = phi.shape[0] (number of samples) and p = phi.shape[1]
+    (number of polynomials).
+
+    The inverse is computed primarily via the Sherman-Morrison-Woodbury
+    identity (eq. (A.9) in Rasmussen and Williams, 2006):
+
+        cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv,
+        P = phi.T @ Q_inv @ phi + R_inv
+
+    which only requires inverting the p x p matrix P instead of the
+    n x n matrix cov_mx. Since typically p << n (few polynomials,
+    many samples), this is substantially faster than inverting cov_mx
+    directly. If P is (near-)singular, this falls back to a direct
+    pseudo-inverse of cov_mx.
 
     Parameters
     ----------
@@ -769,37 +786,35 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
 
     Returns
     --------
-    cov_mx_inv inverse cov. matrix
+    cov_mx : np.array, [n, n] covariance matrix
+    cov_mx_inv : np.array, [n, n] inverse covariance matrix
     """
 #    if s_sigma_n < 1e-42 or s_sigma_p < 1e-42:
 #        print("sigma n/p", s_sigma_n, s_sigma_p)
 #        return np.nan, np.nan
-    Q = np.eye(phi.shape[0]) * s_sigma_n
+    n_s = phi.shape[0]
+    Q = np.eye(n_s) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
 
     try:
-        cov_mx_inv = np.linalg.pinv(cov_mx)
-        # if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
-        #     P_inv = np.linalg.pinv(P)
-        #     # inverse according to eq. (A.9) in Rasmussen and Williams
-        #     cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
-        # else:
-        #     cov_mx_inv = np.nan
-    except (RuntimeError, ValueError, np.linalg.LinAlgError):
-        cov_mx_inv = np.nan  # * np.empty(cov_mx.shape, dtype=np.float64)
-        Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
+        # Sherman-Morrison-Woodbury identity (Rasmussen & Williams, eq. A.9):
+        # inverting the p x p matrix P is cheaper than the n x n cov_mx
+        # whenever p (number of polynomials) << n (number of samples).
+        Q_inv = np.ascontiguousarray(np.eye(n_s) / s_sigma_n)
         R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
         P = phi.T @ Q_inv @ phi + R_inv
 
+        if np.prod(np.diag(np.linalg.cholesky(P))) > 0:
+            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
+            cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+        else:
+            cov_mx_inv = np.linalg.pinv(cov_mx)
+    except (RuntimeError, ValueError, np.linalg.LinAlgError):
         try:
-            # if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
-            if np.prod(np.diag(np.linalg.cholesky(P))) > 0:
-                P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-                # inverse according to eq. (A.9) in Rasmussen and Williams
-                cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+            cov_mx_inv = np.linalg.pinv(cov_mx)
         except (RuntimeError, ValueError, np.linalg.LinAlgError):
-            cov_mx_inv = np.nan
+            cov_mx_inv = np.full(cov_mx.shape, np.nan)
 
     return cov_mx, cov_mx_inv
 
@@ -807,7 +822,25 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
 @njit(nogil=True, cache=True)
 def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
     """
-    generates covariance etc. matrixes for likelihood
+    Generates the covariance matrix and its inverse for the likelihood
+    (numba-jitted version).
+
+    The covariance matrix is cov_mx = Q + phi @ R @ phi.T, with
+    Q = s_sigma_n * I (n x n) and R = s_sigma_p * I (p x p), where
+    n = phi.shape[0] (number of samples) and p = phi.shape[1]
+    (number of polynomials).
+
+    The inverse is computed primarily via the Sherman-Morrison-Woodbury
+    identity (eq. (A.9) in Rasmussen and Williams, 2006):
+
+        cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv,
+        P = phi.T @ Q_inv @ phi + R_inv
+
+    which only requires inverting the p x p matrix P instead of the
+    n x n matrix cov_mx. Since typically p << n (few polynomials,
+    many samples), this is substantially faster than a Cholesky-based
+    inverse of cov_mx. If P is (near-)singular, this falls back to a
+    Cholesky-based inverse of cov_mx directly.
 
     Parameters
     ----------
@@ -817,25 +850,27 @@ def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
 
     Returns
     --------
-    cov_mx_inv inverse cov. matrix
+    cov_mx : np.array, [n, n] covariance matrix
+    cov_mx_inv : np.array, [n, n] inverse covariance matrix
     """
-    Q = np.eye(phi.shape[0]) * s_sigma_n
+    n_s = phi.shape[0]
+    Q = np.eye(n_s) * s_sigma_n
     R = np.eye(phi.shape[1]) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
     try:
-        # L = np.linalg.cholesky(cov_mx)
-        L_inv = np.linalg.inv(np.linalg.cholesky(cov_mx))
-        cov_mx_inv = L_inv.T @ L_inv
-        # cov_mx_inv = np.linalg.inv(cov_mx)
-    except:
-        # print("ex in cov_inv")
-        # inverse according to eq. (A.9) in Rasmussen and Williams
-        Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
+        # Sherman-Morrison-Woodbury identity (Rasmussen & Williams,
+        # eq. A.9): inverting the p x p matrix P is cheaper than the
+        # n x n cov_mx whenever p (number of polynomials) << n
+        # (number of samples).
+        Q_inv = np.ascontiguousarray(np.eye(n_s) / s_sigma_n)
         R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
         P = phi.T @ Q_inv @ phi + R_inv
         P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-        # inverse according to eq. (A.9) in Rasmussen and Williams
         cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+    except:
+        # print("ex in cov_inv")
+        L_inv = np.linalg.inv(np.linalg.cholesky(cov_mx))
+        cov_mx_inv = L_inv.T @ L_inv
     return cov_mx, cov_mx_inv
 
 
