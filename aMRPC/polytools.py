@@ -287,7 +287,11 @@ def cmp_Grw(H, k=-1):
     alpha, beta = cmp_alpha_beta(H, k)
     J = Jacobi_mx(alpha, beta)
     # print(J)
-    tau, V = np.linalg.eig(J)
+    # J is real symmetric tridiagonal by construction, so its eigenvalues are
+    # real. eigh guarantees real (float) output, whereas the general eig may
+    # return complex dtype with zero imaginary parts on some numpy/LAPACK
+    # versions, which triggers ComplexWarning downstream.
+    tau, V = np.linalg.eigh(J)
     roots = tau
     weights = beta[0] * (V[0, :]**2)
     # v=np.zeros(roots.shape[0])
