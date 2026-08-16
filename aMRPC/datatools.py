@@ -759,7 +759,35 @@ def gen_phi_as(pol_vals, alpha_mask):
 # @njit
 def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
     """
-    generates covariance etc. matrixes for likelihood
+    Generates the covariance matrix and its inverse for the likelihood.
+
+    The covariance matrix is cov_mx = Q + phi @ R @ phi.T, with
+    Q = s_sigma_n * I (n x n) and R = s_sigma_p * I (p x p), where
+    n = phi.shape[0] (number of samples) and p = phi.shape[1]
+    (number of polynomials).
+
+    The inverse is computed with one of two "reasonable" approaches,
+    chosen based on the relative size of n and p, with np.linalg.pinv
+    of cov_mx used only as a last-resort exception fallback:
+
+    - p < n: Sherman-Morrison-Woodbury identity (eq. (A.9) in
+      Rasmussen and Williams, 2006):
+
+          cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv,
+          P = phi.T @ Q_inv @ phi + R_inv
+
+      which only requires inverting the p x p matrix P instead of the
+      n x n matrix cov_mx, and is therefore substantially faster
+      whenever p << n (few polynomials, many samples). If P is
+      (near-)singular, this falls through to the pinv fallback below.
+    - p >= n: Woodbury gives no benefit (P is at least as large as
+      cov_mx), so cov_mx is inverted directly via its Cholesky
+      factorization.
+
+    If either approach raises (e.g. cov_mx or P is not positive
+    definite), a direct pseudo-inverse (np.linalg.pinv) of cov_mx is
+    used as a fallback; if that also fails, a NaN-filled matrix of the
+    same shape as cov_mx is returned.
 
     Parameters
     ----------
@@ -769,37 +797,43 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
 
     Returns
     --------
-    cov_mx_inv inverse cov. matrix
+    cov_mx : np.array, [n, n] covariance matrix
+    cov_mx_inv : np.array, [n, n] inverse covariance matrix
     """
 #    if s_sigma_n < 1e-42 or s_sigma_p < 1e-42:
 #        print("sigma n/p", s_sigma_n, s_sigma_p)
 #        return np.nan, np.nan
-    Q = np.eye(phi.shape[0]) * s_sigma_n
-    R = np.eye(phi.shape[1]) * s_sigma_p
+    n_s = phi.shape[0]
+    n_p = phi.shape[1]
+    Q = np.eye(n_s) * s_sigma_n
+    R = np.eye(n_p) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
 
     try:
-        cov_mx_inv = np.linalg.pinv(cov_mx)
-        # if  np.multiply.reduce(np.diag(np.linalg.cholesky(P)))> 0:
-        #     P_inv = np.linalg.pinv(P)
-        #     # inverse according to eq. (A.9) in Rasmussen and Williams
-        #     cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
-        # else:
-        #     cov_mx_inv = np.nan
-    except (RuntimeError, ValueError, np.linalg.LinAlgError):
-        cov_mx_inv = np.nan  # * np.empty(cov_mx.shape, dtype=np.float64)
-        Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
-        R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
-        P = phi.T @ Q_inv @ phi + R_inv
+        if n_p < n_s:
+            # Sherman-Morrison-Woodbury identity (Rasmussen & Williams,
+            # eq. A.9): inverting the p x p matrix P is cheaper than
+            # the n x n cov_mx whenever p (number of polynomials) <
+            # n (number of samples).
+            Q_inv = np.ascontiguousarray(np.eye(n_s) / s_sigma_n)
+            R_inv = np.ascontiguousarray(np.eye(n_p) / s_sigma_p)
+            P = phi.T @ Q_inv @ phi + R_inv
 
-        try:
-            # if np.multiply.reduce(np.diag(np.linalg.cholesky(P))) > 0:
             if np.prod(np.diag(np.linalg.cholesky(P))) > 0:
                 P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-                # inverse according to eq. (A.9) in Rasmussen and Williams
                 cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+            else:
+                # P (near-)singular: defer to the pinv fallback below.
+                raise np.linalg.LinAlgError("P is (near-)singular")
+        else:
+            # p >= n: no Woodbury gain, invert cov_mx directly.
+            L_inv = np.linalg.inv(np.linalg.cholesky(cov_mx))
+            cov_mx_inv = L_inv.T @ L_inv
+    except (RuntimeError, ValueError, np.linalg.LinAlgError):
+        try:
+            cov_mx_inv = np.linalg.pinv(cov_mx)
         except (RuntimeError, ValueError, np.linalg.LinAlgError):
-            cov_mx_inv = np.nan
+            cov_mx_inv = np.full(cov_mx.shape, np.nan)
 
     return cov_mx, cov_mx_inv
 
@@ -807,7 +841,34 @@ def gen_cov_mx_4lh(phi, s_sigma_n, s_sigma_p):
 @njit(nogil=True, cache=True)
 def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
     """
-    generates covariance etc. matrixes for likelihood
+    Generates the covariance matrix and its inverse for the likelihood
+    (numba-jitted version).
+
+    The covariance matrix is cov_mx = Q + phi @ R @ phi.T, with
+    Q = s_sigma_n * I (n x n) and R = s_sigma_p * I (p x p), where
+    n = phi.shape[0] (number of samples) and p = phi.shape[1]
+    (number of polynomials).
+
+    The inverse is computed with one of two "reasonable" approaches,
+    chosen based on the relative size of n and p, with np.linalg.pinv
+    of cov_mx used only as a last-resort exception fallback:
+
+    - p < n: Sherman-Morrison-Woodbury identity (eq. (A.9) in
+      Rasmussen and Williams, 2006):
+
+          cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv,
+          P = phi.T @ Q_inv @ phi + R_inv
+
+      which only requires inverting the p x p matrix P instead of the
+      n x n matrix cov_mx, and is therefore substantially faster
+      whenever p << n (few polynomials, many samples).
+    - p >= n: Woodbury gives no benefit (P is at least as large as
+      cov_mx), so cov_mx is inverted directly via its Cholesky
+      factorization.
+
+    If either approach raises (e.g. cov_mx or P is not positive
+    definite), a direct pseudo-inverse (np.linalg.pinv) of cov_mx is
+    used as a fallback.
 
     Parameters
     ----------
@@ -817,25 +878,32 @@ def gen_cov_mx_4lh_noex(phi, s_sigma_n, s_sigma_p):
 
     Returns
     --------
-    cov_mx_inv inverse cov. matrix
+    cov_mx : np.array, [n, n] covariance matrix
+    cov_mx_inv : np.array, [n, n] inverse covariance matrix
     """
-    Q = np.eye(phi.shape[0]) * s_sigma_n
-    R = np.eye(phi.shape[1]) * s_sigma_p
+    n_s = phi.shape[0]
+    n_p = phi.shape[1]
+    Q = np.eye(n_s) * s_sigma_n
+    R = np.eye(n_p) * s_sigma_p
     cov_mx = phi @ R @ phi.T + Q
     try:
-        # L = np.linalg.cholesky(cov_mx)
-        L_inv = np.linalg.inv(np.linalg.cholesky(cov_mx))
-        cov_mx_inv = L_inv.T @ L_inv
-        # cov_mx_inv = np.linalg.inv(cov_mx)
+        if n_p < n_s:
+            # Sherman-Morrison-Woodbury identity (Rasmussen & Williams,
+            # eq. A.9): inverting the p x p matrix P is cheaper than
+            # the n x n cov_mx whenever p (number of polynomials) <
+            # n (number of samples).
+            Q_inv = np.ascontiguousarray(np.eye(n_s) / s_sigma_n)
+            R_inv = np.ascontiguousarray(np.eye(n_p) / s_sigma_p)
+            P = phi.T @ Q_inv @ phi + R_inv
+            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
+            cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+        else:
+            # p >= n: no Woodbury gain, invert cov_mx directly.
+            L_inv = np.linalg.inv(np.linalg.cholesky(cov_mx))
+            cov_mx_inv = L_inv.T @ L_inv
     except:
         # print("ex in cov_inv")
-        # inverse according to eq. (A.9) in Rasmussen and Williams
-        Q_inv = np.ascontiguousarray(np.eye(phi.shape[0]) / s_sigma_n)
-        R_inv = np.ascontiguousarray(np.eye(phi.shape[1]) / s_sigma_p)
-        P = phi.T @ Q_inv @ phi + R_inv
-        P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-        # inverse according to eq. (A.9) in Rasmussen and Williams
-        cov_mx_inv = Q_inv - Q_inv @ phi @ P_inv @ phi.T @ Q_inv
+        cov_mx_inv = np.linalg.pinv(cov_mx)
     return cov_mx, cov_mx_inv
 
 
@@ -1295,17 +1363,24 @@ def cmp_bamrpc_var(samples, mk_list, alphas, f_cov_mx,
 def cmp_var_4_mk(vec_x, p_vals, idxs_pm, n_s, f_cov):
     # phi = np.ascontiguousarray((p_vals[:, sids_l][idxs_pm, :]).T)
     # n_s = len(sids_l)
+    #
+    # Vectorized: for each idx_x, the double loop over (k, r) in idxs_pm
+    # computing sum_kr p_vals[k,s]*p_vals[r,s]*f_cov[k,r,idx_x] is the
+    # quadratic form phi_sub[:, s] @ f_cov_sub[:, :, idx_x] @ phi_sub[:, s]
+    # for each sample s, batched here via a single matmul + elementwise
+    # reduction across all n_s samples at once (instead of a per-sample
+    # double loop over idxs_pm).
     var_ret = np.zeros((n_s, len(vec_x)))
-    for idx_x in vec_x:
+    phi_sub = np.ascontiguousarray(p_vals[idxs_pm, :])  # (n_pm, n_s)
+    n_x = len(vec_x)
+    for j in prange(n_x):
+        idx_x = vec_x[j]
+        fc = np.ascontiguousarray(f_cov[idxs_pm][:, idxs_pm, idx_x])  # (n_pm, n_pm)
+        tmp = fc @ phi_sub  # (n_pm, n_s)
         for s_i in range(n_s):
             s_var = 0.0
-            for k in idxs_pm:
-                for r in idxs_pm:
-                    s_var += p_vals[k, s_i] * p_vals[r, s_i] * f_cov[k, r, idx_x]
-                    # s_var += phi[s_i, p_k] * phi[s_i, p_r] * f_cov[k, r, idx_x]
-            # s_var = np.array([phi[s_i, k] * phi[s_i, r] * f_cov[k, r, idx_x]
-            #                   for k in range(n_k)
-            #                   for r in range(n_r)], dtype=np.float64).sum()
+            for p_i in range(phi_sub.shape[0]):
+                s_var += phi_sub[p_i, s_i] * tmp[p_i, s_i]
             var_ret[s_i, idx_x] = s_var
     return var_ret
 
@@ -1465,7 +1540,11 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
         x_len: integer
             length of the x-vector to eval, default x_len=-1
         method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
-            switches between least-squares and psedo-inverse based lsq
+            switches between least-squares and psedo-inverse based lsq.
+            'reg_n' and 'reg_t' invert the (SPD by construction) p x p
+            normal-equations matrix P via its Cholesky factorization,
+            falling back to np.linalg.pinv(P) only if P is not
+            positive definite.
         sigma_n : sigma_noise, LS-weighting parameter
         sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
                     parameter for 'reg'
@@ -1514,40 +1593,53 @@ def gen_amrpc_dec_ls(data, pol_vals, mk2sid, **kwargs):
                 sigma_p_mk = sigma_p[mkey]**2
             elif isinstance(sigma_p, float):
                 sigma_p_mk = sigma_p**2
-        for idx_x in range(x_len):
-            # v, resid, rank, sigma = linalg.lstsq(A,y)
-            # solves Av = y using least squares
-            # sigma - singular values of A
-            dt_idx_x = x_start + idx_x
-            if n_s > 1:
-                if method == 'pinv':
-                    v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
-                elif method in ('unbias', 'pinvt'):
-                    v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data[sids, dt_idx_x]
-                elif method == 'pinvth':
-                    v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
-                            @ phi.T @ data[sids, dt_idx_x])
-                elif method == 'reg_n':
-                    v_ls = (np.linalg.pinv(1/sigma_n_mk * phi.T @ phi) @ phi.T / sigma_n_mk
-                            @ data[sids, dt_idx_x])
-                elif method == 'reg_t':
-                    P_inv = np.linalg.pinv((phi.T / sigma_n_mk) @ phi
-                                           + np.eye(phi.shape[1]) / sigma_p_mk)
-                    v_ls = (P_inv @ phi.T / sigma_n_mk @ data[sids, dt_idx_x])
-                    if ret_std:
-                        ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
-                    elif ret_cov:
-                        ret_std_cov_4s[sids, :, :, idx_x] = P_inv
-                else:
-                    # v_ls, resid, rank, sigma = np.linalg.lstsq(
-                    #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                    v_ls, _, _, _ = lstsq(
-                        phi, data[sids, dt_idx_x])  # LS - output
-    #                v_ls, _, _, _ = np.linalg.lstsq(
-    #                    phi, data[sids, dt_idx_x], rcond=None) # LS - output
+        # Solve for all idx_x at once (vectorized: single GEMM/lstsq call
+        # over the x_len block instead of a per-column Python loop), since
+        # the operator (P_inv, ...) is constant across idx_x. All samples
+        # sharing a mkey get the same coefficient vector(s), broadcast
+        # across the sids axis exactly as the original per-column loop did.
+        if n_s > 1:
+            data_block = np.ascontiguousarray(
+                data[sids, x_start:x_start + x_len])  # (n_s, x_len)
+            if method == 'pinv':
+                v_ls = np.linalg.pinv(phi) @ data_block
+            elif method in ('unbias', 'pinvt'):
+                v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data_block
+            elif method == 'pinvth':
+                v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
+                        @ phi.T @ data_block)
+            elif method == 'reg_n':
+                P = 1/sigma_n_mk * phi.T @ phi
+                try:
+                    L_inv = np.linalg.inv(np.linalg.cholesky(P))
+                    P_inv = L_inv.T @ L_inv
+                except np.linalg.LinAlgError:
+                    P_inv = np.linalg.pinv(P)
+                v_ls = (P_inv @ phi.T / sigma_n_mk @ data_block)
+            elif method == 'reg_t':
+                P = ((phi.T / sigma_n_mk) @ phi
+                     + np.eye(phi.shape[1]) / sigma_p_mk)
+                try:
+                    L_inv = np.linalg.inv(np.linalg.cholesky(P))
+                    P_inv = L_inv.T @ L_inv
+                except np.linalg.LinAlgError:
+                    P_inv = np.linalg.pinv(P)
+                v_ls = (P_inv @ phi.T / sigma_n_mk @ data_block)
+                if ret_std:
+                    # P_inv is constant across idx_x: broadcast-fill
+                    ret_std_cov_4s[sids, :, :] = np.sqrt(np.diag(P_inv))[:, None]
+                elif ret_cov:
+                    ret_std_cov_4s[sids, :, :, :] = P_inv[:, :, None]
             else:
+                # scipy.linalg.lstsq supports a 2-D (multi-column) rhs,
+                # solving all x_len columns in a single call.
+                v_ls, _, _, _ = lstsq(phi, data_block)  # LS - output
+            cf_ls_4s[sids, :, :] = v_ls
+        else:
+            for idx_x in range(x_len):
+                dt_idx_x = x_start + idx_x
                 v_ls = data[dt_idx_x]/phi
-            cf_ls_4s[sids, :, idx_x] = v_ls
+                cf_ls_4s[sids, :, idx_x] = v_ls
     return (cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else cf_ls_4s
 
 
@@ -1573,7 +1665,11 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
         x_len: integer
             length of the x-vector to eval, default x_len=-1 -> all.
         method :   'pinv', 'pinvt', 'pinvth', 'ls', 'reg_n', 'reg_t'
-            switches between least-squares and psedo-inverse based lsq
+            switches between least-squares and psedo-inverse based lsq.
+            'reg_n' and 'reg_t' invert the (SPD by construction) p x p
+            normal-equations matrix P via its Cholesky factorization,
+            falling back to np.linalg.pinv(P) only if P is not
+            positive definite.
         sigma_n : sigma_noise, LS-weighting parameter
         sigma_p : sigma_prior  parameter for Tikhonov / ridge regularization
                     parameter for 'reg'
@@ -1659,55 +1755,62 @@ def gen_amrpc_dec_ls_mask(data, pol_vals, mk2sid, mask_dict, **kwargs):
                 ret_std_cov_4s[sids] = cov_mx
         else:
             phi = gen_phi_fast(pol_vals, sids, alpha_mask)
-            for idx_x in range(x_len):
-                # v, resid, rank, sigma = linalg.lstsq(A,y)
-                # solves Av = y using least squares
-                # sigma - singular values of A
-                dt_idx_x = x_start + idx_x
-                if n_s > 1:
-                    rs_data = np.ascontiguousarray(data[sids, dt_idx_x])
-                    if method == 'pinv':
-                        v_ls = np.linalg.pinv(phi) @ rs_data
-                    elif method == 'reg_t':
-                        P = ((phi.T / sigma_n_mk) @ phi
-                             + np.eye(phi.shape[1]) / sigma_p_mk)
-                        try:
-                            L = np.linalg.cholesky(P)
-                            L_inv = np.linalg.pinv(L)
-                            P_inv = L_inv.T @ L_inv
-                        except:
-                            P_inv = np.linalg.pinv(P)
-                        v_ls = (P_inv @ phi.T / sigma_n_mk
-                                @ rs_data)
-                        if ret_std:
-                            ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(P_inv))
-                        elif ret_cov:
-                            # cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
-                            # for sid in sids:
-                            ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()
-                    elif method == 'unbias':
-                        v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
-                    elif method == 'unbias_herm':
-                        v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
-                                @ phi.T @ rs_data)
-                    elif method == 'reg_n':
-                        cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
-                        v_ls = (cov_op @ phi.T / sigma_n_mk
-                                @ rs_data)
-                        if ret_std:
-                            ret_std_cov_4s[sids, :, idx_x] = np.sqrt(np.diag(cov_op))
-                        elif ret_cov:
-                            ret_std_cov_4s[sids, :, :, idx_x] = cov_op
-                    else:
-                        v_ls, _, _, _ = np.linalg.lstsq(phi, rs_data,
-                                                        rcond=None)  # LS - output
-                elif len(n_tup) > 1:
-                    v_ls = np.ravel(data[0, dt_idx_x]/phi)
+            # Solve for all idx_x at once (vectorized: single GEMM/lstsq
+            # call over the x_len block instead of a per-column Python
+            # loop), since the operator (P_inv, cov_op, ...) is constant
+            # across idx_x.
+            if n_s > 1:
+                rs_data = np.ascontiguousarray(
+                    data[sids, x_start:x_start + x_len])  # (n_s, x_len)
+                if method == 'pinv':
+                    v_ls = np.linalg.pinv(phi) @ rs_data
+                elif method == 'reg_t':
+                    P = ((phi.T / sigma_n_mk) @ phi
+                         + np.eye(phi.shape[1]) / sigma_p_mk)
+                    try:
+                        L_inv = np.linalg.inv(np.linalg.cholesky(P))
+                        P_inv = L_inv.T @ L_inv
+                    except np.linalg.LinAlgError:
+                        P_inv = np.linalg.pinv(P)
+                    v_ls = (P_inv @ phi.T / sigma_n_mk
+                            @ rs_data)
+                    if ret_std:
+                        # P_inv constant across idx_x: broadcast-fill
+                        ret_std_cov_4s[sids, :, :] = np.sqrt(np.diag(P_inv))[:, None]
+                    elif ret_cov:
+                        # cov_mask = np.multiply.outer(alpha_mask, alpha_mask)
+                        # for sid in sids:
+                        ret_std_cov_4s[:, cov_mask, :] = P_inv.flatten()[:, None]
+                elif method == 'unbias':
+                    v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
+                elif method == 'unbias_herm':
+                    v_ls = (np.linalg.pinv(phi.T @ phi, hermitian=True)
+                            @ phi.T @ rs_data)
+                elif method == 'reg_n':
+                    cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
+                    v_ls = (cov_op @ phi.T / sigma_n_mk
+                            @ rs_data)
+                    if ret_std:
+                        ret_std_cov_4s[sids, :, :] = np.sqrt(np.diag(cov_op))[:, None]
+                    elif ret_cov:
+                        ret_std_cov_4s[sids, :, :, :] = cov_op[:, :, None]
                 else:
-                    v_ls = data[dt_idx_x]/phi
-                tmp = np.zeros(p_max)
-                tmp[alpha_mask] = v_ls
-                ret_cf_ls_4s[sids, :, idx_x] = tmp
+                    v_ls, _, _, _ = np.linalg.lstsq(phi, rs_data,
+                                                    rcond=None)  # LS - output
+            elif len(n_tup) > 1:
+                # n_s <= 1 (degenerate: <=1 sample in the whole dataset);
+                # tiny, rare edge case -- kept as an explicit loop rather
+                # than vectorized for clarity/safety.
+                v_ls = np.stack(
+                    [np.ravel(data[0, x_start + idx_x] / phi)
+                     for idx_x in range(x_len)], axis=1)
+            else:
+                v_ls = np.stack(
+                    [data[x_start + idx_x] / phi for idx_x in range(x_len)],
+                    axis=1)
+            tmp = np.zeros((p_max, x_len))
+            tmp[alpha_mask, :] = v_ls
+            ret_cf_ls_4s[sids, :, :] = tmp
 
     return (ret_cf_ls_4s, ret_std_cov_4s) if ret_std or ret_cov else ret_cf_ls_4s
 
@@ -1729,28 +1832,24 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
         P = ((phi.T / sigma_n_mk) @ phi
              + np.eye(phi.shape[1]) / sigma_p_mk)
         try:
-            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-        except:
-            L = np.linalg.cholesky(P)
-            L_inv = np.linalg.pinv(L)
+            L_inv = np.linalg.inv(np.linalg.cholesky(P))
             P_inv = np.ascontiguousarray(L_inv.T @ L_inv)
+        except:
+            P_inv = np.ascontiguousarray(np.linalg.pinv(P))
+        mx_inv = np.ascontiguousarray(P_inv @ phi.T / sigma_n_mk)
     elif meth_mode == 5: # reg_t for mkey-based output
         P = ((phi.T / sigma_n_mk) @ phi
              + np.eye(phi.shape[1]) / sigma_p_mk)
         try:
-            # P_inv = np.linalg.pinv(P)
-            L = np.linalg.cholesky(P)
-            L_inv = np.linalg.pinv(L)
+            L_inv = np.linalg.inv(np.linalg.cholesky(P))
             P_inv = np.ascontiguousarray(L_inv.T @ L_inv)
         except:
             P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-            # L = np.linalg.cholesky(P)
-            # L_inv = np.linalg.pinv(L)
-            # P_inv = L_inv.T @ L_inv
+        mx_inv = np.ascontiguousarray(P_inv @ phi.T / sigma_n_mk)
     elif meth_mode == 3:  # unbias
-        P_inv = np.linalg.pinv(phi.T @ phi)
+        P_inv = np.ascontiguousarray(np.linalg.pinv(phi.T @ phi))
     elif meth_mode == 4:  # reg_n
-        cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
+        cov_op = np.ascontiguousarray(np.linalg.pinv(1/sigma_n_mk * phi.T @ phi))
 
     # define return
     if meth_mode == 5:
@@ -1760,91 +1859,83 @@ def gen_amrpc_dec_ls_mask_aux(data, sids, pol_vals, alpha_mask, cov_mask,
         ret_std_cov_4s = np.zeros((n_s, p_max, p_max, x_len), dtype=np.float64)
         ret_cf_ls_4s = np.zeros((n_s, p_max, x_len), dtype=np.float64)
 
-    # compute coefficients for all idx_x
-    for idx_x in range(x_len):
-        # v, resid, rank, sigma = linalg.lstsq(A,y)
-        # solves Av = y using least squares
-        # sigma - singular values of A
-        dt_idx_x = x_start + idx_x
-        if n_s > 1:
-            rs_data = np.ascontiguousarray(data[sids, dt_idx_x])
-            if meth_mode == 1:  # pinv
-                # v_ls = np.linalg.pinv(phi) @ rs_data
-                v_ls = P_inv @ np.ascontiguousarray(rs_data)
-            elif meth_mode == 2:  # reg_t for sample based output
-                # P = ((phi.T / sigma_n_mk) @ phi
-                #      + np.eye(phi.shape[1]) / sigma_p_mk)
-                # try:
-                #     P_inv = np.linalg.pinv(P)
-                # except:
-                #     L = np.linalg.cholesky(P)
-                #     L_inv = np.linalg.pinv(L)
-                #     P_inv = L_inv.T @ L_inv
-                v_ls = (P_inv @ phi.T / sigma_n_mk
-                        @ rs_data)
-                if cov_mode == 1:  # std
-                    ret_std_cov_4s[:, :, 0, idx_x] = np.sqrt(np.diag(P_inv))
-                elif cov_mode == 2:  # cov
-                    # for sid in sids:
-                    # for s_idx in range(n_s):
-                    # ret_std_cov_4s[:, cov_mask, idx_x] = P_inv.flatten()
-                    p_mx = np.zeros((p_max*p_max), dtype=np.float64)
-                    p_mx[cov_mask.flatten()] = P_inv.flatten()
-                    p_mx = p_mx.reshape((p_max, -1))
-                    for s_idx in range(n_s):
+    # Compute coefficients for all idx_x at once (vectorized: single
+    # GEMM/lstsq call over the x_len block instead of a per-column
+    # Python loop), since the operator (P_inv, mx_inv, cov_op, ...) is
+    # constant across idx_x.
+    if n_s > 1:
+        data_block = np.ascontiguousarray(
+            data[sids, x_start:x_start + x_len])  # (n_s, x_len)
+        if meth_mode == 1:  # pinv
+            # v_ls = np.linalg.pinv(phi) @ data_block
+            v_ls = P_inv @ data_block
+        elif meth_mode == 2:  # reg_t for sample based output
+            v_ls = mx_inv @ data_block
+            if cov_mode == 1:  # std
+                ret_std_cov_4s[:, :, 0, :] = np.sqrt(np.diag(P_inv)).reshape(1, p_max, 1)
+            elif cov_mode == 2:  # cov
+                # for sid in sids:
+                # for s_idx in range(n_s):
+                # ret_std_cov_4s[:, cov_mask, :] = P_inv.flatten()
+                p_mx = np.zeros((p_max*p_max), dtype=np.float64)
+                p_mx[cov_mask.flatten()] = P_inv.flatten()
+                p_mx = p_mx.reshape((p_max, -1))
+                for s_idx in range(n_s):
+                    for idx_x in range(x_len):
                         ret_std_cov_4s[s_idx, :, :, idx_x] = p_mx
-            elif meth_mode == 5: # reg_t for mkey-based output
-                # P = ((phi.T / sigma_n_mk) @ phi
-                #      + np.eye(phi.shape[1]) / sigma_p_mk)
-                # try:
-                #     # P_inv = np.linalg.pinv(P)
-                #     L = np.linalg.cholesky(P)
-                #     L_inv = np.linalg.pinv(L)
-                #     P_inv = L_inv.T @ L_inv
-                # except:
-                #     P_inv = np.linalg.pinv(P)
-                #     # L = np.linalg.cholesky(P)
-                #     # L_inv = np.linalg.pinv(L)
-                #     # P_inv = L_inv.T @ L_inv
-                v_ls = (P_inv @ phi.T / sigma_n_mk
-                        @ rs_data)
-                if cov_mode == 1:  # std
-                    ret_std_cov_4s[0, :, 0, idx_x] = np.sqrt(np.diag(P_inv))
-                elif cov_mode == 2:  # cov
-                    # for sid in sids:
-                    # for s_idx in range(n_s):
-                    # ret_std_cov_4s[0, cov_mask, idx_x] = P_inv.flatten()
-                    p_mx = np.zeros((p_max*p_max), dtype=np.float64)
-                    p_mx[cov_mask.flatten()] = P_inv.flatten()
-                    # p_mx = p_mx.reshape((p_max, -1))
-                    ret_std_cov_4s[0, :, :, idx_x] = p_mx.reshape((p_max, -1))
+        elif meth_mode == 5: # reg_t for mkey-based output
+            v_ls = mx_inv @ data_block
+            if cov_mode == 1:  # std
+                ret_std_cov_4s[0, :, 0, :] = np.sqrt(np.diag(P_inv)).reshape(p_max, 1)
+            elif cov_mode == 2:  # cov
+                # for sid in sids:
+                # for s_idx in range(n_s):
+                # ret_std_cov_4s[0, cov_mask, :] = P_inv.flatten()
+                p_mx = np.zeros((p_max*p_max), dtype=np.float64)
+                p_mx[cov_mask.flatten()] = P_inv.flatten()
+                p_mx = p_mx.reshape((p_max, -1))
+                for idx_x in range(x_len):
+                    ret_std_cov_4s[0, :, :, idx_x] = p_mx
 
-            elif meth_mode == 3:  # unbias
-                # v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ rs_data
-                v_ls = P_inv @ phi.T @ rs_data
+        elif meth_mode == 3:  # unbias
+            # v_ls = np.linalg.pinv(phi.T @ phi) @ phi.T @ data_block
+            v_ls = P_inv @ phi.T @ data_block
 
-            elif meth_mode == 4:  # reg_n
-                # cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
-                v_ls = (cov_op @ phi.T / sigma_n_mk
-                        @ rs_data)
-                if cov_mode == 1:  # std
-                    ret_std_cov_4s[:, :, 0, idx_x] = np.sqrt(np.diag(cov_op))
-                elif cov_mode == 2:  # cov
-                    ret_std_cov_4s[:, :, :, idx_x] = cov_op
-            else:
-                #v_ls, resid, rank, sigma = np.linalg.lstsq(
-                #    Phi, data[sids, idx_x], rcond=None) # LS - output
-                v_ls, _, _, _ = np.linalg.lstsq(phi, rs_data,
-                                                rcond=-1)  # LS - output
+        elif meth_mode == 4:  # reg_n
+            # cov_op = np.linalg.pinv(1/sigma_n_mk * phi.T @ phi)
+            mx_inv_n = np.ascontiguousarray(cov_op @ phi.T / sigma_n_mk)
+            v_ls = mx_inv_n @ data_block
+            if cov_mode == 1:  # std
+                ret_std_cov_4s[:, :, 0, :] = np.sqrt(np.diag(cov_op)).reshape(1, p_max, 1)
+            elif cov_mode == 2:  # cov
+                for s_idx in range(n_s):
+                    for idx_x in range(x_len):
+                        ret_std_cov_4s[s_idx, :, :, idx_x] = cov_op
         else:
-            v_ls = np.ravel(data[0, dt_idx_x]/phi)
+            #v_ls, resid, rank, sigma = np.linalg.lstsq(
+            #    Phi, data_block, rcond=None) # LS - output
+            v_ls, _, _, _ = np.linalg.lstsq(phi, data_block,
+                                            rcond=-1)  # LS - output
 
         if meth_mode in (5,):
-            ret_cf_ls_4s[0, alpha_mask, idx_x] = v_ls
+            ret_cf_ls_4s[0, alpha_mask, :] = v_ls
         else:
-            tmp = np.zeros(p_max, dtype=np.float64)
-            tmp[alpha_mask] = v_ls
-            ret_cf_ls_4s[:, :, idx_x] = tmp
+            tmp = np.zeros((p_max, x_len), dtype=np.float64)
+            tmp[alpha_mask, :] = v_ls
+            ret_cf_ls_4s[:, :, :] = tmp
+    else:
+        # n_s <= 1 (degenerate: <=1 sample in the whole dataset);
+        # tiny, rare edge case -- kept as an explicit loop rather than
+        # vectorized for clarity/safety.
+        for idx_x in range(x_len):
+            dt_idx_x = x_start + idx_x
+            v_ls = np.ravel(data[0, dt_idx_x]/phi)
+            if meth_mode in (5,):
+                ret_cf_ls_4s[0, alpha_mask, idx_x] = v_ls
+            else:
+                tmp = np.zeros(p_max, dtype=np.float64)
+                tmp[alpha_mask] = v_ls
+                ret_cf_ls_4s[:, :, idx_x] = tmp
     return ret_cf_ls_4s, ret_std_cov_4s
 
 
@@ -1963,16 +2054,17 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
         #         P_inv = np.linalg.pinv(P)
 
 
-        # solve for all idx_x
+        # solve for all idx_x at once (vectorized: single GEMM/lstsq call
+        # over the x_len block instead of a per-column Python loop, since
+        # the operator (P_inv, mx_inv, ...) is constant across idx_x)
         if n_s > 1:
+            data_block = np.ascontiguousarray(
+                data[sids, x_start:x_start + x_len])  # (n_s, x_len)
             if method in ('pinv', 'reg', 'unbias', 'pinvt', 'pinvth'):
                 # pinv = inv(p*p.T) * p.T
                 P_inv  = np.linalg.pinv(phi)
-                for idx_x in range(x_len):
-                    dt_idx_x = x_start + idx_x
-                    # v_ls = np.linalg.pinv(phi) @ data[sids, dt_idx_x]
-                    v_ls = P_inv @ data[sids, dt_idx_x]
-                    cf_ls_4mk[alpha_mask, idx_x] = v_ls   
+                v_ls = P_inv @ data_block
+                cf_ls_4mk[alpha_mask, :] = v_ls
             elif method in ('unbias_chol'):
                 # mx_inv = np.linalg.pinv(phi.T @ phi) @ phi.T
                 # _eps = 1.0e-12
@@ -1987,22 +2079,18 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                     mx_inv = mx_inv.T @ mx_inv @ phi.T
                 except:
                     mx_inv =  np.linalg.pinv(phi.T @ phi) @ phi.T
-                for idx_x in range(x_len):
-                    dt_idx_x = x_start + idx_x
-                    v_ls = mx_inv @ data[sids, dt_idx_x]
-                    # v_ls = P_inv @ phi.T @ data[sids, dt_idx_x]
-                    cf_ls_4mk[alpha_mask, idx_x] = v_ls   
+                v_ls = mx_inv @ data_block
+                cf_ls_4mk[alpha_mask, :] = v_ls
             elif method == 'reg_n':
+                P = phi.T @ phi / sigma_n_sq
                 try:
-                    P_inv = np.linalg.inv(np.linalg.cholesky(1/sigma_n * phi.T @ phi))
-                    P_inv = P_inv.T @ P_inv 
-                except:
-                    P_inv = np.linalg.pinv(1/sigma_n * phi.T @ phi)
-                for idx_x in range(x_len):
-                    dt_idx_x = x_start + idx_x
-                    v_ls = (P_inv @ phi.T / sigma_n_sq
-                            @ data[sids, dt_idx_x])
-                    cf_ls_4mk[alpha_mask, idx_x] = v_ls 
+                    L_inv = np.linalg.inv(np.linalg.cholesky(P))
+                    P_inv = L_inv.T @ L_inv
+                except np.linalg.LinAlgError:
+                    P_inv = np.linalg.pinv(P)
+                mx_inv = P_inv @ phi.T / sigma_n_sq
+                v_ls = mx_inv @ data_block
+                cf_ls_4mk[alpha_mask, :] = v_ls
             elif method == 'reg_t':
                 # cf_ls_4mk, P_inv = gen_reg_t_aux(data, sids, phi, alpha_mask, cov_mask,
                 #                                  sigma_n_sq, sigma_p_sq,
@@ -2026,26 +2114,24 @@ def gen_amrpc_dec_mk_ls(data, pol_vals, mk2sid, **kwargs):
                 #     ret_std_cov_4mk = np.stack([one for _ in range(x_len)],
                 #                                axis=1)
                 mx_inv = P_inv @ phi.T / sigma_n_sq
-                for idx_x in range(x_len):
-                    dt_idx_x = x_start + idx_x
-                    v_ls = (mx_inv @ np.ascontiguousarray(data[sids, dt_idx_x]))
-                    cf_ls_4mk[alpha_mask, idx_x] = v_ls  
-                    if ret_cov:
-                        ret_std_cov_4mk[cov_mask, idx_x] = P_inv.flatten()
-                    elif ret_std:
-                        ret_std_cov_4mk[:, idx_x] = np.sqrt(np.diag(P_inv))
+                v_ls = mx_inv @ data_block
+                cf_ls_4mk[alpha_mask, :] = v_ls
+                if ret_cov:
+                    # P_inv is constant across idx_x: broadcast-fill
+                    ret_std_cov_4mk[cov_mask, :] = P_inv.flatten()[:, None]
+                elif ret_std:
+                    ret_std_cov_4mk[:, :] = np.sqrt(np.diag(P_inv))[:, None]
 
                      
             else:
-                for idx_x in range(x_len):
-                    dt_idx_x = x_start + idx_x
-                    if n_s == len(sids):
-                        v_ls, _, _, _ = np.linalg.lstsq(phi, data[:, dt_idx_x], rcond=None)  # LS - output
-                    else:
-                        # v_ls, resid, rank, sigma = np.linalg.lstsq(
-                        #    Phi, data[sids, idx_x], rcond=None)  # LS - output
-                        v_ls, _, _, _ = np.linalg.lstsq(phi, data[sids, dt_idx_x], rcond=None)  # LS-output
-                    cf_ls_4mk[alpha_mask, idx_x] = v_ls 
+                if n_s == len(sids):
+                    v_ls, _, _, _ = np.linalg.lstsq(
+                        phi, np.ascontiguousarray(data[:, x_start:x_start + x_len]),
+                        rcond=None)  # LS - output
+                else:
+                    v_ls, _, _, _ = np.linalg.lstsq(phi, data_block,
+                                                     rcond=None)  # LS-output
+                cf_ls_4mk[alpha_mask, :] = v_ls
         else:
             for idx_x in range(x_len):
                 dt_idx_x = x_start + idx_x
@@ -2098,12 +2184,14 @@ def gen_reg_t_aux(data, sids, phi, alpha_mask, cov_mask,
         P_inv = np.ascontiguousarray(L_inv.T @ L_inv)
     except:
         P_inv = np.ascontiguousarray(np.linalg.pinv(P))
-        
-    for idx_x in range(x_len):
-        dt_idx_x = x_start + idx_x
-        v_ls = (P_inv @ phi.T / sigma_n_sq
-                @ np.ascontiguousarray(data[sids, dt_idx_x]))
-        cf_ls_4mk[alpha_mask, idx_x] = v_ls
+
+    # Solve for all idx_x at once (vectorized: single GEMM call over the
+    # x_len block instead of a per-column loop), since mx_inv = P_inv @
+    # phi.T / sigma_n_sq is constant across idx_x.
+    mx_inv = np.ascontiguousarray(P_inv @ phi.T / sigma_n_sq)
+    data_block = np.ascontiguousarray(data[sids, x_start:x_start + x_len])
+    v_ls = mx_inv @ data_block
+    cf_ls_4mk[alpha_mask, :] = v_ls
     return cf_ls_4mk, P_inv
 
 def gen_amrpc_dec_q(data, pol_vals, mk2sid, weights):
